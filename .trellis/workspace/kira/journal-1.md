@@ -28,3 +28,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 2: 完成 D2 数据库、项目与手工记录
+<!-- trellis-session: v=2 fp=272467dc7c65e1be -->
+
+**Date**: 2026-09-19
+**Task**: 完成 D2 数据库、项目与手工记录
+**Branch**: `master`
+
+### Summary
+
+建立 Flyway 六表初始迁移、MyBatis PostgreSQL 持久化、项目和工作记录 API 与今日工作台；修复时区、归档历史关联和 problem+json 错误契约，并通过真实 PostgreSQL 全量验证。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7c9f437` | feat: add project and work record persistence |
+| `86ec7fa` | docs: record D2 database contracts |
+
+### Status
+
+[OK] **Completed**
