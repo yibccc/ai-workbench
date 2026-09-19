@@ -74,3 +74,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 4: 完成 D4 完成记录与状态一致性
+<!-- trellis-session: v=2 fp=7b2fe354ddac82eb -->
+
+**Date**: 2026-09-20
+**Task**: 完成 D4 完成记录与状态一致性
+**Branch**: `master`
+
+### Summary
+
+实现待办完成、重开、删除与自动工作记录的事务一致性；通过软删除、事件历史和部分唯一索引保证幂等与并发安全，并修复重复完成与重开的竞态。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9e43e94` | feat: add consistent task completion workflow |
+| `2dd1e39` | docs: record D4 completion consistency contracts |
+
+### Status
+
+[OK] **Completed**
