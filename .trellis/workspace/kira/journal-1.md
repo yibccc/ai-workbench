@@ -51,3 +51,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 3: 完成 D3 待办管理
+<!-- trellis-session: v=2 fp=1d5cbe8d6516c7f9 -->
+
+**Date**: 2026-09-19
+**Task**: 完成 D3 待办管理
+**Branch**: `master`
+
+### Summary
+
+实现待办 CRUD、组合筛选、默认优先级和乐观锁；通过 V2/V3 演进旧状态与默认值，保持 D3 查询和 D4 状态转换边界，并记录非 DDD 的功能分包约定。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7c5ef1c` | feat: add task management and filtering |
+| `9f9a26a` | docs: record D3 task and architecture contracts |
+
+### Status
+
+[OK] **Completed**
