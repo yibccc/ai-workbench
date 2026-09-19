@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.record.WorkRecordMapper">
+    <resultMap id="workRecordRow" type="com.aiworkbench.record.WorkRecordRow">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/>
+            <arg column="project_id" javaType="java.util.UUID"/>
+            <arg column="project_name" javaType="java.lang.String"/>
+            <arg column="project_status" javaType="java.lang.String"/>
+            <arg column="content" javaType="java.lang.String"/>
+            <arg column="occurred_at" javaType="java.time.Instant"/>
+            <arg column="created_at" javaType="java.time.Instant"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <sql id="joinedColumns">
+        wr.id, wr.project_id, p.name AS project_name, p.status AS project_status,
+        wr.content, wr.occurred_at, wr.created_at, wr.updated_at
+    </sql>
+    <insert id="insert">
+        INSERT INTO work_records (id, project_id, content, occurred_at)
+        VALUES (#{id}, #{projectId}, #{content}, #{occurredAt})
+    </insert>
+    <select id="findById" resultMap="workRecordRow">
+        SELECT <include refid="joinedColumns"/>
+        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id
+        WHERE wr.id = #{id}
+    </select>
+    <select id="findBetween" resultMap="workRecordRow">
+        SELECT <include refid="joinedColumns"/>
+        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id
+        WHERE wr.occurred_at &gt;= #{start} AND wr.occurred_at &lt; #{end}
+        ORDER BY wr.occurred_at DESC, wr.created_at DESC
+    </select>
+    <update id="update">
+        UPDATE work_records
+        SET project_id = #{projectId}, content = #{content}, occurred_at = #{occurredAt}, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+    <delete id="delete">DELETE FROM work_records WHERE id = #{id}</delete>
+</mapper>

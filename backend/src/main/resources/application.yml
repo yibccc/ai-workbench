@@ -8,6 +8,10 @@ spring:
     hikari:
       connection-timeout: 2000
       validation-timeout: 2000
+  flyway:
+    enabled: true
+  jackson:
+    time-zone: Asia/Shanghai
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -17,6 +21,8 @@ spring:
 
 server:
   address: 127.0.0.1
+  error:
+    include-message: always
 
 management:
   endpoints:
@@ -28,7 +34,13 @@ management:
       show-details: always
 
 workbench:
+  zone-id: Asia/Shanghai
   deepseek:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-flash}
+
+mybatis:
+  type-handlers-package: com.aiworkbench.config.mybatis
+  configuration:
+    map-underscore-to-camel-case: true
