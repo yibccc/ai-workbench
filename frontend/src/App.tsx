@@ -4,6 +4,7 @@ import {
   fetchWorkbenchStatus, renameProject, updateRecord,
   type Project, type WorkRecord, type WorkbenchStatus,
 } from './api'
+import { TasksPanel } from './TasksPanel'
 
 const WORKBENCH_TIME_ZONE = 'Asia/Shanghai'
 const workbenchParts = (date = new Date()) => Object.fromEntries(
@@ -151,6 +152,8 @@ function App() {
               </div>
             </form>
           </article>
+
+          <TasksPanel projects={projects} />
 
           <section className="records" aria-labelledby="records-title">
             <div className="section-heading"><div><p className="kicker">TIMELINE</p><h2 id="records-title">{selectedDate} 的记录</h2></div><span>{records.length} 条</span></div>

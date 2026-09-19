@@ -1,6 +1,6 @@
 # AI Workbench
 
-个人 AI 工作台的本机应用。当前已支持项目创建、改名和归档，以及当天或历史工作记录的新增、修改、删除与持久化；同时保留后端健康检查、PostgreSQL/Redis 连接探针和显式触发的 DeepSeek 最小调用。
+个人 AI 工作台的本机应用。当前已支持项目创建、改名和归档，当天或历史工作记录的维护，以及带项目、备注、优先级、可选期限和乐观锁的待办管理；同时保留后端健康检查、PostgreSQL/Redis 连接探针和显式触发的 DeepSeek 最小调用。
 
 ## 本机启动
 
@@ -21,7 +21,7 @@
 4. 启动前端：`cd frontend && npm ci && npm run dev`。
 5. 打开 <http://localhost:5173>；后端状态接口为 <http://localhost:8080/api/status>，Actuator 健康接口为 <http://localhost:8080/actuator/health>。
 
-后端启动时由 Flyway 自动执行数据库迁移。项目接口位于 `/api/projects`，工作记录接口位于 `/api/records`；记录列表的 `date=YYYY-MM-DD` 按 `Asia/Shanghai` 自然日解释。项目归档后历史记录仍保留原归属，但不能再把新记录关联到该项目。
+后端启动时由 Flyway 自动执行数据库迁移。项目接口位于 `/api/projects`，工作记录接口位于 `/api/records`，待办接口位于 `/api/tasks`。待办列表可按 `status`、`projectId`、`unassigned`、`priority` 和 `due`（`ALL/OVERDUE/TODAY/UPCOMING/NONE`）筛选；更新和删除必须携带当前 `version`，过期版本返回 409。记录列表的 `date=YYYY-MM-DD` 与待办期限筛选均按 `Asia/Shanghai` 解释。项目归档后历史记录和待办仍保留原归属，但不能再把新数据关联到该项目。
 
 Compose 端口由 `.env` 中的 `POSTGRES_PORT` 与 `REDIS_PORT` 控制，后端使用同名变量连接本机映射端口。默认分别为 5432 和 6379；若本机确有不可移除的端口冲突，可在 `.env` 中改为其他未占用端口，容器内部端口无需修改。
 

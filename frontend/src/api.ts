@@ -38,6 +38,40 @@ export interface WorkRecordInput {
   occurredAt: string
 }
 
+export type TaskPriority = 'HIGH' | 'MEDIUM' | 'LOW'
+export type TaskStatus = 'PENDING' | 'COMPLETED'
+export type TaskDueFilter = 'ALL' | 'OVERDUE' | 'TODAY' | 'UPCOMING' | 'NONE'
+
+export interface TaskItem {
+  id: string
+  project: Pick<Project, 'id' | 'name' | 'status'> | null
+  title: string
+  notes: string
+  priority: TaskPriority
+  status: TaskStatus
+  dueAt: string | null
+  completedAt: string | null
+  version: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TaskInput {
+  projectId: string | null
+  title: string
+  notes: string
+  dueAt: string | null
+  priority: TaskPriority
+}
+
+export interface TaskFilters {
+  status?: TaskStatus
+  projectId?: string
+  unassigned?: boolean
+  priority?: TaskPriority
+  due?: TaskDueFilter
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -63,3 +97,16 @@ export const fetchRecords = (date: string) => request<WorkRecord[]>(`/api/record
 export const createRecord = (input: WorkRecordInput) => request<WorkRecord>('/api/records', { method: 'POST', body: JSON.stringify(input) })
 export const updateRecord = (id: string, input: WorkRecordInput) => request<WorkRecord>(`/api/records/${id}`, { method: 'PUT', body: JSON.stringify(input) })
 export const deleteRecord = (id: string) => request<void>(`/api/records/${id}`, { method: 'DELETE' })
+export const fetchTasks = (filters: TaskFilters = {}) => {
+  const params = new URLSearchParams()
+  if (filters.status) params.set('status', filters.status)
+  if (filters.projectId) params.set('projectId', filters.projectId)
+  if (filters.unassigned) params.set('unassigned', 'true')
+  if (filters.priority) params.set('priority', filters.priority)
+  if (filters.due && filters.due !== 'ALL') params.set('due', filters.due)
+  const query = params.toString()
+  return request<TaskItem[]>(`/api/tasks${query ? `?${query}` : ''}`)
+}
+export const createTask = (input: TaskInput) => request<TaskItem>('/api/tasks', { method: 'POST', body: JSON.stringify(input) })
+export const updateTask = (id: string, input: TaskInput & { version: number }) => request<TaskItem>(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(input) })
+export const deleteTask = (id: string, version: number) => request<void>(`/api/tasks/${id}?version=${version}`, { method: 'DELETE' })

@@ -1,9 +1,11 @@
 package com.aiworkbench.web;
 
 import java.util.Optional;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,5 +25,10 @@ public class ApiExceptionHandler {
                 .map(error -> Optional.ofNullable(error.getDefaultMessage()).orElse("请求参数无效"))
                 .orElse("请求参数无效");
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, ConstraintViolationException.class})
+    ProblemDetail handleRequestParameter(Exception exception) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "请求参数无效");
     }
 }
