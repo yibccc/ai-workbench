@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"D3 在 task 业务包内新增 Controller、Service、Mapper、DTO，需要遵循现有按功能分包方式。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"D3 涉及 Flyway 演进、MyBatis、乐观锁、筛选索引和项目历史关联。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"D3 的校验、404、归档项目冲突和版本冲突必须返回稳定 problem+json。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D3 新增待办录入、编辑、删除和筛选界面，需要加载前端规范入口。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"待办状态、优先级、版本和筛选参数必须在数据库、API 与前端保持一致。"}

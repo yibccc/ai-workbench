@@ -14,7 +14,7 @@ This directory contains guidelines for backend development. Fill in each file wi
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
+| [Directory Structure](./directory-structure.md) | Feature-first modular monolith; no DDD or global technical-layer packages | Active |
 | [Database Guidelines](./database-guidelines.md) | PostgreSQL migrations, MyBatis mapping, time ranges, and project associations | Active |
 | [Error Handling](./error-handling.md) | Problem details, validation, conflicts, and safe exception translation | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |

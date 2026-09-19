@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"检查 task 功能包组织、API、事务和复用是否符合现有项目结构。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查迁移不可变性、约束、乐观锁、查询筛选和真实 PostgreSQL 行为。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查所有待办错误状态及 problem+json 详情可被前端消费。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查待办页面状态、表单、筛选、冲突反馈和类型契约。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查状态、优先级、日期、项目和版本字段跨层一致性。"}

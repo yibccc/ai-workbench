@@ -107,3 +107,87 @@ if (newProjectId != null && !newProjectId.equals(currentProjectId)) {
 ```
 
 Keep time boundaries explicit and validate only a newly introduced project association.
+
+---
+
+## Scenario: Task management, filtering, and optimistic locking
+
+### 1. Scope / Trigger
+
+Use this contract when changing `todo_items`, task CRUD, task filters, or the later completion/reopen flow. D3 owns task creation, metadata edits, deletion, and queries. D4 exclusively owns transitions between `PENDING` and `COMPLETED` because those transitions must remain consistent with completion work records.
+
+### 2. Signatures
+
+- `GET /api/tasks?status=&projectId=&unassigned=false&priority=&due=ALL -> TaskResponse[]`
+- `GET /api/tasks/{id} -> TaskResponse`
+- `POST /api/tasks { projectId?, title, notes?, dueAt?, priority? } -> 201 TaskResponse`
+- `PUT /api/tasks/{id} { projectId?, title, notes?, dueAt?, priority, version } -> TaskResponse`
+- `DELETE /api/tasks/{id}?version=<non-negative> -> 204`
+- `TaskDueFilter = ALL | OVERDUE | TODAY | UPCOMING | NONE`
+- `TaskPriority = HIGH | MEDIUM | LOW`; omitted create priority defaults to `MEDIUM`.
+- `TaskStatus = PENDING | COMPLETED`; general D3 update requests do not contain status.
+
+### 3. Contracts
+
+- Flyway migrations are immutable. V2 evolves the V1 task table and migrates legacy states; V3 corrects the inherited column default to `PENDING` instead of rewriting V1 or an already-applied V2.
+- Every update executes `... WHERE id = ? AND version = ?`, increments `version`, and returns the new value.
+- Every delete includes the expected version in the SQL predicate.
+- A zero-row update/delete is an optimistic-lock conflict, not a successful idempotent operation.
+- New task associations and changes to a different project require an active project. Existing tasks retain archived project attribution.
+- `unassigned=true` means `project_id IS NULL` and is mutually exclusive with `projectId`.
+- `OVERDUE` means `due_at < now` and `status=PENDING`.
+- `TODAY` means the Asia/Shanghai range `[todayStart, tomorrowStart)`.
+- `UPCOMING` means `due_at >= tomorrowStart`; `NONE` means `due_at IS NULL`.
+- `completed_at` is reserved for D4 state transitions. D3 must not write it or expose a generic status mutation.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Blank/oversized title or oversized notes | HTTP 400 problem detail |
+| Invalid status, priority, or due enum | HTTP 400 problem detail |
+| `unassigned=true` with `projectId` | HTTP 400, explicit contradictory-filter detail |
+| Missing task | HTTP 404 |
+| New/different archived project association | HTTP 409 |
+| Stale update or delete version | HTTP 409, `待办已被其他操作修改，请刷新后重试` |
+| Create priority omitted | Persist and return `MEDIUM` |
+| Due date omitted | Persist `NULL`; only `due=NONE` selects it by due category |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a client reads version 2, updates with version 2, receives version 3, and any second write using version 2 receives 409.
+- Base: an unassigned task with no due date is valid and defaults to `PENDING`, `MEDIUM`, version 0.
+- Bad: changing status through the generic update endpoint, using a read-then-unconditional-write optimistic lock, treating stale delete as 204, or modifying V1/V2 after application.
+
+### 6. Tests Required
+
+- Run real PostgreSQL migration tests for both an empty schema V1→latest and legacy V1 rows containing `OPEN`/`DONE` before V2/V3.
+- Assert default status, priority, and version through direct SQL or a re-query after transaction completion.
+- Exercise stale update and stale delete; assert HTTP 409 and problem-detail text.
+- Test status, project, unassigned, priority, and every due category, including combinations.
+- Use a clearly labeled database fixture for `COMPLETED` query tests until D4 implements the transition use case.
+- Assert V1 checksum/content remains unchanged while later migrations evolve the table.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```sql
+UPDATE todo_items SET title = #{title}, version = version + 1 WHERE id = #{id};
+```
+
+```java
+updateRequest.status(TaskStatus.COMPLETED);
+```
+
+The first silently overwrites concurrent edits; the second bypasses D4 completion-record consistency.
+
+#### Correct
+
+```sql
+UPDATE todo_items
+SET title = #{title}, version = version + 1, updated_at = CURRENT_TIMESTAMP
+WHERE id = #{id} AND version = #{version};
+```
+
+Return HTTP 409 when the affected row count is zero, and expose completion/reopen only through D4-specific transactional commands.
