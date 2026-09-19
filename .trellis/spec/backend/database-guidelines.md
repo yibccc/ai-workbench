@@ -191,3 +191,88 @@ WHERE id = #{id} AND version = #{version};
 ```
 
 Return HTTP 409 when the affected row count is zero, and expose completion/reopen only through D4-specific transactional commands.
+
+---
+
+## Scenario: Task completion consistency and history
+
+### 1. Scope / Trigger
+
+Use this contract for task completion, reopen, deletion, completion-result edits, task events, automatic work records, and report queries that consume completion facts. All writes for one state transition belong to one PostgreSQL transaction.
+
+### 2. Signatures
+
+- `POST /api/tasks/{id}/complete { version, result? } -> TaskResponse`
+- `POST /api/tasks/{id}/reopen { version } -> TaskResponse`
+- `PUT /api/tasks/{id}/completion-result { version, result } -> TaskResponse`
+- `GET /api/tasks/{id}/events -> TaskEventResponse[]`, including soft-deleted tasks
+- `DELETE /api/tasks/{id}?version=<non-negative> -> 204` performs a soft delete
+- `WorkRecordSource = MANUAL | TASK_COMPLETION`
+
+### 3. Contracts
+
+- A real `PENDING -> COMPLETED` transition atomically updates task status/version/completed time, inserts one active `TASK_COMPLETION` work record, and inserts one `COMPLETED` event.
+- A real `COMPLETED -> PENDING` transition atomically updates the task, invalidates the active automatic record, and inserts one `REOPENED` event.
+- Completing again after reopen creates a new automatic record; invalid historical records remain queryable.
+- The partial unique index `uq_work_records_active_task_completion` is the final concurrency guard: at most one row per `todo_id` where `source='TASK_COMPLETION' AND is_active`.
+- Repeating `complete` when the current state is already `COMPLETED` is a read-only success. It must not create, repair, or overwrite records or results.
+- Repeating `reopen` when the current state is already `PENDING` is a read-only success.
+- A stale version receives 409 when the requested target state has not already been achieved.
+- Completion-result updates require a currently completed task and active automatic record. The result is stored on that record and copied into the event snapshot.
+- Task deletion sets `deleted_at`, invalidates any active automatic completion record, and adds a `DELETED` event. Normal task queries exclude deleted rows; event history remains available.
+- `task_events.todo_id` and `work_records.todo_id` use `ON DELETE RESTRICT`. Do not reintroduce cascade deletion.
+- Automatic completion records cannot be edited or deleted by general work-record endpoints.
+- Reports and daily summaries must consume only `is_active=true` automatic records for current completion facts, while history views may include inactive records.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Missing/negative body version | HTTP 400 problem detail |
+| Real transition with current version | Atomic success and version increment |
+| Repeat complete when already completed | Return current task; no new event/record/result overwrite |
+| Repeat reopen when already pending | Return current task; no new event |
+| Stale version while target state not achieved | HTTP 409 optimistic-lock detail |
+| Result update while pending or without active completion record | HTTP 409 |
+| General PUT/DELETE of automatic work record | HTTP 409 problem detail |
+| Concurrent completes | Exactly one active automatic record and one real COMPLETED event |
+| Any transition sub-write fails | Entire transaction rolls back |
+
+### 5. Good / Base / Bad Cases
+
+- Good: complete twice, reopen twice, complete again yields active-record counts `1, 1, 0, 0, 1`; the second completion has a new record ID and all history remains.
+- Base: a manual work record is never affected by task reopen or deletion.
+- Bad: repairing a missing automatic record during an idempotent repeat, physically deleting task/event history, allowing general record CRUD to mutate automatic facts, or filtering reports without `is_active`.
+
+### 6. Tests Required
+
+- Run the exact `1,1,0,1` sequence and assert record IDs, status, versions, and event counts.
+- Run two completion calls in independent transactions with an explicit synchronization point; assert one active record and one transition event.
+- Repeat the concurrency test to catch scheduling-sensitive failures.
+- Inject a failure after the task update and assert task, record, and event writes all roll back.
+- Test repeat complete/reopen, stale version when the target is not achieved, and missing-version validation.
+- Test result preservation after reopen and historical visibility after deletion/restart.
+- Test manual-record isolation and HTTP 409 protection for automatic-record PUT/DELETE.
+- Test V1 legacy `OPEN`/`DONE` rows through V4 and an empty schema through all migrations.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```java
+if (task.isCompleted() && activeRecordMissing()) {
+    createCompletionRecord();
+}
+```
+
+This is not idempotent repair: it can race with reopen and leave a pending task with an active completion fact.
+
+#### Correct
+
+```java
+if (task.status() == TaskStatus.COMPLETED) {
+    return task.toResponse();
+}
+```
+
+Only a successful conditional `PENDING -> COMPLETED` write may create the automatic record and event, inside the same transaction.

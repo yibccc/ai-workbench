@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"D4 必须保持功能分包和简单分层，不引入 DDD 或额外端口适配层。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"D4 扩展任务状态、事件、自动完成记录、唯一约束、事务和乐观锁契约。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"重复操作、陈旧版本和非法状态转换必须返回稳定且安全的 problem+json。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D4 新增完成、重开和补充结果交互，需要遵循前端契约。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"任务状态、事件、自动记录有效性和前端显示跨越多个数据边界。"}

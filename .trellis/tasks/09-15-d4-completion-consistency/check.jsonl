@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"检查 D4 没有偏离功能分包和当前简单架构。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查事务、唯一约束、幂等、历史失效、乐观锁和真实 PostgreSQL 并发行为。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查状态转换与冲突的 HTTP 状态和 problem+json 详情。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查完成/重开/补充结果界面的状态、反馈和刷新一致性。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查任务、事件、记录、报告可见性和 UI 之间的数据流一致。"}
