@@ -53,6 +53,28 @@ public class TaskController {
         return service.update(id, request);
     }
 
+    @PostMapping("/{id}/complete")
+    public TaskResponse complete(@PathVariable UUID id, @Valid @RequestBody CompleteTaskRequest request) {
+        return service.complete(id, request);
+    }
+
+    @PostMapping("/{id}/reopen")
+    public TaskResponse reopen(@PathVariable UUID id, @Valid @RequestBody TaskVersionRequest request) {
+        return service.reopen(id, request);
+    }
+
+    @PutMapping("/{id}/completion-result")
+    public TaskResponse updateCompletionResult(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateCompletionResultRequest request) {
+        return service.updateCompletionResult(id, request);
+    }
+
+    @GetMapping("/{id}/events")
+    public List<TaskEventResponse> events(@PathVariable UUID id) {
+        return service.events(id);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id, @RequestParam @PositiveOrZero long version) {

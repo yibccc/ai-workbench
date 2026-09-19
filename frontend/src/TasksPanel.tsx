@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import {
-  createTask, deleteTask, fetchTasks, updateTask,
+  completeTask, createTask, deleteTask, fetchTasks, reopenTask, updateTask, updateTaskCompletionResult,
   type Project, type TaskDueFilter, type TaskItem, type TaskPriority, type TaskStatus,
 } from './api'
 
@@ -15,7 +15,7 @@ const localDateTime = (iso: string) => {
 }
 const toInstant = (dateTime: string) => new Date(`${dateTime}:00+08:00`).toISOString()
 
-export function TasksPanel({ projects }: { projects: Project[] }) {
+export function TasksPanel({ projects, onRecordsChanged }: { projects: Project[]; onRecordsChanged: () => Promise<void> }) {
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
@@ -75,6 +75,24 @@ export function TasksPanel({ projects }: { projects: Project[] }) {
     setEditing(task); setTitle(task.title); setNotes(task.notes); setProjectId(task.project?.id ?? '')
     setDueAt(task.dueAt ? localDateTime(task.dueAt) : ''); setPriority(task.priority)
   }
+  const changeStatus = (task: TaskItem) => {
+    const completing = task.status === 'PENDING'
+    const result = completing ? window.prompt('可选：补充本次完成结果', '') : null
+    if (completing && result === null) return
+    void run(async () => {
+      if (completing) await completeTask(task.id, task.version, result ?? '')
+      else await reopenTask(task.id, task.version)
+      await Promise.all([load(), onRecordsChanged()])
+    }, completing ? '待办已完成，并生成工作记录' : '待办已重开，原完成记录已转为历史')
+  }
+  const supplementResult = (task: TaskItem) => {
+    const result = window.prompt('补充或修改完成结果', task.completionResult)
+    if (result === null) return
+    void run(async () => {
+      await updateTaskCompletionResult(task.id, task.version, result)
+      await Promise.all([load(), onRecordsChanged()])
+    }, '完成结果已更新')
+  }
 
   return <article className="panel task-panel">
     <div className="section-heading"><div><p className="kicker">TASKS</p><h2>{editing ? '编辑待办' : '添加待办'}</h2></div><span>{tasks.length} 项</span></div>
@@ -100,7 +118,12 @@ export function TasksPanel({ projects }: { projects: Project[] }) {
     <div className="task-list">
       {tasks.length === 0 ? <div className="empty"><strong>没有符合条件的待办</strong><span>调整筛选条件，或在上方创建一项。</span></div> : tasks.map((task) => <div className={`task task-${task.priority.toLowerCase()}`} key={task.id}>
         <div className="task-copy"><div className="task-meta"><span>{task.status === 'PENDING' ? '待处理' : '已完成'}</span><span>{task.priority === 'HIGH' ? '高优先级' : task.priority === 'MEDIUM' ? '中优先级' : '低优先级'}</span><span className={task.project?.status === 'ARCHIVED' ? 'archived' : ''}>{task.project ? `${task.project.name}${task.project.status === 'ARCHIVED' ? '（已归档）' : ''}` : '未分类'}</span>{task.dueAt && <span>截止 {new Date(task.dueAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE })}</span>}</div><strong>{task.title}</strong>{task.notes && <p>{task.notes}</p>}</div>
-        <div className="record-actions"><button className="text-button" type="button" onClick={() => beginEdit(task)}>编辑</button><button className="text-button danger" type="button" onClick={() => { if (window.confirm(`确定删除“${task.title}”？`)) void run(async () => { await deleteTask(task.id, task.version); if (editing?.id === task.id) reset(); await load() }, '待办已删除') }}>删除</button></div>
+        <div className="record-actions">
+          <button className="text-button" type="button" onClick={() => changeStatus(task)}>{task.status === 'PENDING' ? '完成' : '重开'}</button>
+          {task.status === 'COMPLETED' && <button className="text-button" type="button" onClick={() => supplementResult(task)}>{task.completionResult ? '修改结果' : '补充结果'}</button>}
+          <button className="text-button" type="button" onClick={() => beginEdit(task)}>编辑</button>
+          <button className="text-button danger" type="button" onClick={() => { if (window.confirm(`确定删除“${task.title}”？自动完成记录将转为历史。`)) void run(async () => { await deleteTask(task.id, task.version); if (editing?.id === task.id) reset(); await Promise.all([load(), onRecordsChanged()]) }, '待办已删除') }}>删除</button>
+        </div>
       </div>)}
     </div>
   </article>

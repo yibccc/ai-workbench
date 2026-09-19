@@ -19,7 +19,7 @@ class TaskMigrationIntegrationTest {
     @Autowired DataSource dataSource;
 
     @Test
-    void migratesLegacyV1TasksThroughV3AndSupportsFreshSchemas() throws Exception {
+    void migratesLegacyV1TasksThroughLatestAndSupportsFreshSchemas() throws Exception {
         verifyLegacyUpgrade();
         verifyFreshMigration();
     }
@@ -30,6 +30,9 @@ class TaskMigrationIntegrationTest {
             migrate(schema, "1");
             inSchema(schema, jdbc -> jdbc.update(
                     "INSERT INTO todo_items (id, title) VALUES (?, ?)", UUID.randomUUID(), "legacy open task"));
+            inSchema(schema, jdbc -> jdbc.update(
+                    "INSERT INTO todo_items (id, title, status, completed_at) VALUES (?, ?, 'DONE', CURRENT_TIMESTAMP)",
+                    UUID.randomUUID(), "legacy done task"));
 
             migrate(schema, null);
 
@@ -41,6 +44,12 @@ class TaskMigrationIntegrationTest {
                         .containsEntry("notes", "")
                         .containsEntry("priority", "MEDIUM")
                         .containsEntry("version", 0L);
+                assertThat(jdbc.queryForObject(
+                        "SELECT status FROM todo_items WHERE title = ?", String.class, "legacy done task"))
+                        .isEqualTo("COMPLETED");
+                assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM information_schema.columns WHERE table_schema = ? AND table_name = 'todo_items' AND column_name = 'deleted_at'",
+                        Integer.class, schema)).isEqualTo(1);
             });
         } finally {
             dropSchema(schema);

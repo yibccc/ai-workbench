@@ -14,6 +14,13 @@ public interface WorkRecordMapper {
             @Param("projectId") UUID projectId,
             @Param("content") String content,
             @Param("occurredAt") Instant occurredAt);
+    void insertTaskCompletion(
+            @Param("id") UUID id,
+            @Param("projectId") UUID projectId,
+            @Param("todoId") UUID todoId,
+            @Param("content") String content,
+            @Param("completionResult") String completionResult,
+            @Param("occurredAt") Instant occurredAt);
     Optional<WorkRecordRow> findById(UUID id);
     List<WorkRecordRow> findBetween(@Param("start") Instant start, @Param("end") Instant end);
     int update(
@@ -22,4 +29,9 @@ public interface WorkRecordMapper {
             @Param("content") String content,
             @Param("occurredAt") Instant occurredAt);
     int delete(UUID id);
+    int invalidateTaskCompletion(@Param("todoId") UUID todoId, @Param("updatedAt") Instant updatedAt);
+    int updateCompletionResult(
+            @Param("todoId") UUID todoId,
+            @Param("completionResult") String completionResult,
+            @Param("updatedAt") Instant updatedAt);
 }

@@ -9,6 +9,10 @@ record WorkRecordRow(
         String projectName,
         String projectStatus,
         String content,
+        WorkRecordSource source,
+        UUID todoId,
+        Boolean active,
+        String completionResult,
         Instant occurredAt,
         Instant createdAt,
         Instant updatedAt) {
@@ -17,6 +21,7 @@ record WorkRecordRow(
         WorkRecordResponse.ProjectSummary project = projectId == null
                 ? null
                 : new WorkRecordResponse.ProjectSummary(projectId, projectName, projectStatus);
-        return new WorkRecordResponse(id, project, content, occurredAt, createdAt, updatedAt);
+        return new WorkRecordResponse(id, project, content, source, todoId, active,
+                completionResult == null ? "" : completionResult, occurredAt, createdAt, updatedAt);
     }
 }

@@ -14,6 +14,8 @@ record TaskRow(
         TaskStatus status,
         Instant dueAt,
         Instant completedAt,
+        UUID completionRecordId,
+        String completionResult,
         Long version,
         Instant createdAt,
         Instant updatedAt) {
@@ -21,6 +23,7 @@ record TaskRow(
         TaskProjectResponse project = projectId == null ? null
                 : new TaskProjectResponse(projectId, projectName, projectStatus);
         return new TaskResponse(id, project, title, notes, priority, status, dueAt, completedAt,
+                completionRecordId, completionResult == null ? "" : completionResult,
                 version, createdAt, updatedAt);
     }
 }

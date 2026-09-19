@@ -1,6 +1,6 @@
 # AI Workbench
 
-个人 AI 工作台的本机应用。当前已支持项目创建、改名和归档，当天或历史工作记录的维护，以及带项目、备注、优先级、可选期限和乐观锁的待办管理；同时保留后端健康检查、PostgreSQL/Redis 连接探针和显式触发的 DeepSeek 最小调用。
+个人 AI 工作台的本机应用。当前已支持项目创建、改名和归档，当天或历史工作记录的维护，以及带项目、备注、优先级、可选期限、乐观锁和完成记录联动的待办管理；同时保留后端健康检查、PostgreSQL/Redis 连接探针和显式触发的 DeepSeek 最小调用。
 
 ## 本机启动
 
@@ -22,6 +22,8 @@
 5. 打开 <http://localhost:5173>；后端状态接口为 <http://localhost:8080/api/status>，Actuator 健康接口为 <http://localhost:8080/actuator/health>。
 
 后端启动时由 Flyway 自动执行数据库迁移。项目接口位于 `/api/projects`，工作记录接口位于 `/api/records`，待办接口位于 `/api/tasks`。待办列表可按 `status`、`projectId`、`unassigned`、`priority` 和 `due`（`ALL/OVERDUE/TODAY/UPCOMING/NONE`）筛选；更新和删除必须携带当前 `version`，过期版本返回 409。记录列表的 `date=YYYY-MM-DD` 与待办期限筛选均按 `Asia/Shanghai` 解释。项目归档后历史记录和待办仍保留原归属，但不能再把新数据关联到该项目。
+
+待办状态只能通过 `POST /api/tasks/{id}/complete` 和 `POST /api/tasks/{id}/reopen` 修改，不能通过通用编辑接口修改。完成待办会在同一数据库事务中生成一条自动工作记录；重复完成请求不会重复生成记录。`PUT /api/tasks/{id}/completion-result` 可补充完成结果，`GET /api/tasks/{id}/events` 可查询状态历史。重开或删除待办只会使当前自动完成记录失效，既往结果和事件保留，手工工作记录不受影响。
 
 Compose 端口由 `.env` 中的 `POSTGRES_PORT` 与 `REDIS_PORT` 控制，后端使用同名变量连接本机映射端口。默认分别为 5432 和 6379；若本机确有不可移除的端口冲突，可在 `.env` 中改为其他未占用端口，容器内部端口无需修改。
 

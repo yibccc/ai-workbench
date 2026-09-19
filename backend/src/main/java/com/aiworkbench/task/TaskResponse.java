@@ -12,6 +12,8 @@ public record TaskResponse(
         TaskStatus status,
         Instant dueAt,
         Instant completedAt,
+        UUID completionRecordId,
+        String completionResult,
         long version,
         Instant createdAt,
         Instant updatedAt) {

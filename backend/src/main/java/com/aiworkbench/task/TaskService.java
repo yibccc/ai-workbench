@@ -1,6 +1,7 @@
 package com.aiworkbench.task;
 
 import com.aiworkbench.project.ProjectService;
+import com.aiworkbench.record.WorkRecordMapper;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class TaskService {
     private final TaskMapper mapper;
     private final ProjectService projectService;
+    private final WorkRecordMapper workRecordMapper;
     private final ZoneId zoneId;
     private final Clock clock;
 
@@ -25,13 +27,16 @@ public class TaskService {
     public TaskService(
             TaskMapper mapper,
             ProjectService projectService,
+            WorkRecordMapper workRecordMapper,
             @Value("${workbench.zone-id:Asia/Shanghai}") String zoneId) {
-        this(mapper, projectService, ZoneId.of(zoneId), Clock.systemUTC());
+        this(mapper, projectService, workRecordMapper, ZoneId.of(zoneId), Clock.systemUTC());
     }
 
-    TaskService(TaskMapper mapper, ProjectService projectService, ZoneId zoneId, Clock clock) {
+    TaskService(TaskMapper mapper, ProjectService projectService, WorkRecordMapper workRecordMapper,
+            ZoneId zoneId, Clock clock) {
         this.mapper = mapper;
         this.projectService = projectService;
+        this.workRecordMapper = workRecordMapper;
         this.zoneId = zoneId;
         this.clock = clock;
     }
@@ -88,15 +93,105 @@ public class TaskService {
 
     @Transactional
     public void delete(UUID id, long version) {
-        require(id);
-        if (mapper.delete(id, version) == 0) {
+        TaskRow current = require(id);
+        Instant now = clock.instant();
+        if (mapper.softDelete(id, version, now) == 0) {
             throw versionConflict();
         }
+        workRecordMapper.invalidateTaskCompletion(id, now);
+        insertEvent(current, "DELETED", current.status(), current.status(), version + 1, "", now);
+    }
+
+    @Transactional
+    public TaskResponse complete(UUID id, CompleteTaskRequest request) {
+        TaskRow current = require(id);
+        if (current.status() == TaskStatus.COMPLETED) {
+            return current.toResponse();
+        }
+
+        Instant now = clock.instant();
+        if (mapper.complete(id, request.version(), now) == 0) {
+            TaskRow latest = require(id);
+            if (latest.status() == TaskStatus.COMPLETED) {
+                return latest.toResponse();
+            }
+            throw versionConflict();
+        }
+        String result = normalizeResult(request.result());
+        workRecordMapper.insertTaskCompletion(UUID.randomUUID(), current.projectId(), id,
+                completionContent(current.title()), result, now);
+        insertEvent(current, "COMPLETED", TaskStatus.PENDING, TaskStatus.COMPLETED,
+                request.version() + 1, result, now);
+        return get(id);
+    }
+
+    @Transactional
+    public TaskResponse reopen(UUID id, TaskVersionRequest request) {
+        TaskRow current = require(id);
+        if (current.status() == TaskStatus.PENDING) {
+            return current.toResponse();
+        }
+        Instant now = clock.instant();
+        if (mapper.reopen(id, request.version()) == 0) {
+            TaskRow latest = require(id);
+            if (latest.status() == TaskStatus.PENDING) {
+                return latest.toResponse();
+            }
+            throw versionConflict();
+        }
+        workRecordMapper.invalidateTaskCompletion(id, now);
+        insertEvent(current, "REOPENED", TaskStatus.COMPLETED, TaskStatus.PENDING,
+                request.version() + 1, current.completionResult(), now);
+        return get(id);
+    }
+
+    @Transactional
+    public TaskResponse updateCompletionResult(UUID id, UpdateCompletionResultRequest request) {
+        TaskRow current = require(id);
+        if (current.status() != TaskStatus.COMPLETED || current.completionRecordId() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "只有已完成待办可以补充完成结果");
+        }
+        String result = normalizeResult(request.result());
+        Instant now = clock.instant();
+        if (mapper.touchCompletionResult(id, request.version()) == 0) {
+            throw versionConflict();
+        }
+        if (workRecordMapper.updateCompletionResult(id, result, now) != 1) {
+            throw new IllegalStateException("待办的当前完成记录缺失");
+        }
+        insertEvent(current, "COMPLETION_RESULT_UPDATED", TaskStatus.COMPLETED, TaskStatus.COMPLETED,
+                request.version() + 1, result, now);
+        return get(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskEventResponse> events(UUID id) {
+        requireAny(id);
+        return mapper.findEvents(id).stream().map(TaskEventRow::toResponse).toList();
     }
 
     private TaskRow require(UUID id) {
         return mapper.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "待办不存在"));
+    }
+
+    private TaskRow requireAny(UUID id) {
+        return mapper.findAnyById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "待办不存在"));
+    }
+
+    private void insertEvent(TaskRow task, String type, TaskStatus fromStatus, TaskStatus toStatus,
+            long version, String result, Instant occurredAt) {
+        mapper.insertEvent(UUID.randomUUID(), task.id(), type, task.title(), task.projectId(),
+                fromStatus, toStatus, version, result, occurredAt);
+    }
+
+    private String completionContent(String title) {
+        return "完成待办：" + title;
+    }
+
+    private String normalizeResult(String result) {
+        return result == null ? "" : result.trim();
     }
 
     private String normalizeNotes(String notes) {

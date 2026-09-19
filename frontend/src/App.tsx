@@ -153,30 +153,32 @@ function App() {
             </form>
           </article>
 
-          <TasksPanel projects={projects} />
+          <TasksPanel projects={projects} onRecordsChanged={() => loadRecords(selectedDate)} />
 
           <section className="records" aria-labelledby="records-title">
             <div className="section-heading"><div><p className="kicker">TIMELINE</p><h2 id="records-title">{selectedDate} 的记录</h2></div><span>{records.length} 条</span></div>
             {records.length === 0 ? (
               <div className="empty"><strong>这一天还没有记录</strong><span>在上方写下第一条，或切换日期补记历史工作。</span></div>
             ) : records.map((record) => (
-              <article className="record" key={record.id}>
+              <article className={`record ${record.source === 'TASK_COMPLETION' ? 'record-automatic' : ''}`} key={record.id}>
                 <time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, hour: '2-digit', minute: '2-digit' })}</time>
                 <div className="record-body">
                   <div className="record-meta">
                     {record.project ? <span className={record.project.status === 'ARCHIVED' ? 'archived' : ''}>{record.project.name}{record.project.status === 'ARCHIVED' ? '（已归档）' : ''}</span> : <span>未归属项目</span>}
+                    <span>{record.source === 'TASK_COMPLETION' ? '待办自动完成记录' : '手工记录'}</span>
                     <span>录入于 {new Date(record.createdAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE })}</span>
                   </div>
                   <p>{record.content}</p>
+                  {record.completionResult && <p className="completion-result">完成结果：{record.completionResult}</p>}
                 </div>
-                <div className="record-actions">
+                {record.source === 'MANUAL' && <div className="record-actions">
                   <button className="text-button" type="button" onClick={() => beginEdit(record)}>编辑</button>
                   <button className="text-button danger" type="button" onClick={() => {
                     if (window.confirm('确定删除这条工作记录吗？')) void run(async () => {
                       await deleteRecord(record.id); await loadRecords(selectedDate)
                     }, '工作记录已删除')
                   }}>删除</button>
-                </div>
+                </div>}
               </article>
             ))}
           </section>

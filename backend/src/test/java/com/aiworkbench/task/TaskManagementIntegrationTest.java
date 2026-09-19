@@ -61,8 +61,7 @@ class TaskManagementIntegrationTest {
         TaskResponse dueToday = taskService.create(new CreateTaskRequest(project.id(), "今天到期", "", todayDueAt, TaskPriority.MEDIUM));
         TaskResponse upcoming = taskService.create(new CreateTaskRequest(project.id(), "之后到期", "", upcomingDueAt, TaskPriority.LOW));
         TaskResponse unassigned = taskService.create(new CreateTaskRequest(null, "未分类无期限", "", null, TaskPriority.LOW));
-        // D3 only owns querying existing statuses. D4 will own the completion command and its work-record invariant.
-        jdbcTemplate.update("UPDATE todo_items SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP WHERE id = ?", unassigned.id());
+        taskService.complete(unassigned.id(), new CompleteTaskRequest(unassigned.version(), ""));
 
         assertThat(taskService.list(TaskStatus.PENDING, project.id(), false, TaskPriority.HIGH, TaskDueFilter.OVERDUE))
                 .extracting(TaskResponse::id).containsExactly(overdueHigh.id());

@@ -27,6 +27,10 @@ export interface WorkRecord {
   id: string
   project: Pick<Project, 'id' | 'name' | 'status'> | null
   content: string
+  source: 'MANUAL' | 'TASK_COMPLETION'
+  taskId: string | null
+  active: boolean
+  completionResult: string
   occurredAt: string
   createdAt: string
   updatedAt: string
@@ -51,6 +55,8 @@ export interface TaskItem {
   status: TaskStatus
   dueAt: string | null
   completedAt: string | null
+  completionRecordId: string | null
+  completionResult: string
   version: number
   createdAt: string
   updatedAt: string
@@ -110,3 +116,6 @@ export const fetchTasks = (filters: TaskFilters = {}) => {
 export const createTask = (input: TaskInput) => request<TaskItem>('/api/tasks', { method: 'POST', body: JSON.stringify(input) })
 export const updateTask = (id: string, input: TaskInput & { version: number }) => request<TaskItem>(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(input) })
 export const deleteTask = (id: string, version: number) => request<void>(`/api/tasks/${id}?version=${version}`, { method: 'DELETE' })
+export const completeTask = (id: string, version: number, result = '') => request<TaskItem>(`/api/tasks/${id}/complete`, { method: 'POST', body: JSON.stringify({ version, result }) })
+export const reopenTask = (id: string, version: number) => request<TaskItem>(`/api/tasks/${id}/reopen`, { method: 'POST', body: JSON.stringify({ version }) })
+export const updateTaskCompletionResult = (id: string, version: number, result: string) => request<TaskItem>(`/api/tasks/${id}/completion-result`, { method: 'PUT', body: JSON.stringify({ version, result }) })

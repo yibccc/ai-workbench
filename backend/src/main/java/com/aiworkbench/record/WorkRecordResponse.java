@@ -7,6 +7,10 @@ public record WorkRecordResponse(
         UUID id,
         ProjectSummary project,
         String content,
+        WorkRecordSource source,
+        UUID taskId,
+        boolean active,
+        String completionResult,
         Instant occurredAt,
         Instant createdAt,
         Instant updatedAt) {

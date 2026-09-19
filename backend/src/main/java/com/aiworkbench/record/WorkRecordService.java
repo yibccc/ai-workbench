@@ -51,6 +51,7 @@ public class WorkRecordService {
     @Transactional
     public WorkRecordResponse update(UUID id, UpdateWorkRecordRequest request) {
         WorkRecordRow current = require(id);
+        requireManual(current);
         if (request.projectId() != null && !request.projectId().equals(current.projectId())) {
             projectService.requireActive(request.projectId());
         }
@@ -60,7 +61,8 @@ public class WorkRecordService {
 
     @Transactional
     public void delete(UUID id) {
-        require(id);
+        WorkRecordRow current = require(id);
+        requireManual(current);
         mapper.delete(id);
     }
 
@@ -73,5 +75,11 @@ public class WorkRecordService {
     private WorkRecordRow require(UUID id) {
         return mapper.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "工作记录不存在"));
+    }
+
+    private void requireManual(WorkRecordRow row) {
+        if (row.source() != WorkRecordSource.MANUAL) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "自动完成记录请通过待办操作维护");
+        }
     }
 }

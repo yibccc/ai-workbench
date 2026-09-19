@@ -19,6 +19,8 @@ public interface TaskMapper {
 
     Optional<TaskRow> findById(UUID id);
 
+    Optional<TaskRow> findAnyById(UUID id);
+
     List<TaskRow> findAll(
             @Param("status") TaskStatus status,
             @Param("projectId") UUID projectId,
@@ -38,5 +40,25 @@ public interface TaskMapper {
             @Param("priority") TaskPriority priority,
             @Param("version") long version);
 
-    int delete(@Param("id") UUID id, @Param("version") long version);
+    int complete(@Param("id") UUID id, @Param("version") long version, @Param("completedAt") Instant completedAt);
+
+    int reopen(@Param("id") UUID id, @Param("version") long version);
+
+    int touchCompletionResult(@Param("id") UUID id, @Param("version") long version);
+
+    int softDelete(@Param("id") UUID id, @Param("version") long version, @Param("deletedAt") Instant deletedAt);
+
+    void insertEvent(
+            @Param("id") UUID id,
+            @Param("todoId") UUID todoId,
+            @Param("eventType") String eventType,
+            @Param("title") String title,
+            @Param("projectId") UUID projectId,
+            @Param("fromStatus") TaskStatus fromStatus,
+            @Param("toStatus") TaskStatus toStatus,
+            @Param("version") long version,
+            @Param("result") String result,
+            @Param("occurredAt") Instant occurredAt);
+
+    List<TaskEventRow> findEvents(UUID todoId);
 }

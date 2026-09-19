@@ -44,6 +44,8 @@ button:disabled { cursor: wait; opacity: .55; }
 .inline-error { color: #ffc3c3; background: rgba(255,107,107,.08); } .inline-success { color: #9ef0cd; background: rgba(57,201,142,.08); }
 .records { margin-top: 34px; }
 .record { display: grid; grid-template-columns: 64px minmax(0,1fr) auto; gap: 18px; padding: 22px 0; border-top: 1px solid #1b342c; }
+.record-automatic { border-left: 3px solid #2f7d64; padding-left: 14px; }
+.completion-result { color: #54daa2; font-size: .92rem; }
 .record time { color: #54daa2; font: 700 .85rem monospace; }
 .record-body p { margin: 10px 0 0; white-space: pre-wrap; line-height: 1.6; }
 .record-meta { display: flex; flex-wrap: wrap; gap: 12px; color: #789087; font-size: .75rem; }
