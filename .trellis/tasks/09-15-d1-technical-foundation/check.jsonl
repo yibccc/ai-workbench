@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/index.md","reason":"检查后端骨架、依赖、配置与健康检查是否符合项目后端规范。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查前端骨架、构建与状态页面是否符合项目前端规范。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查前后端、基础设施和 AI 适配之间的契约、配置与故障边界。"}

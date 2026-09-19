@@ -1,0 +1,3 @@
+{"file":".trellis/spec/backend/index.md","reason":"D1 将创建 Spring Boot 后端骨架、配置与健康检查，实施前需加载后端规范入口。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D1 将创建 React/Vite 前端骨架与运行状态页面，实施前需加载前端规范入口。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"D1 同时涉及前端、后端、PostgreSQL、Redis 与 AI 网关，需要按跨层数据流和边界进行设计。"}
