@@ -1,0 +1,18 @@
+.env
+.env.*
+!.env.example
+*.log
+
+.idea/
+.vscode/
+*.iml
+
+backend/target/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+### OS files ###
+.DS_Store
+Thumbs.db
+Desktop.ini
