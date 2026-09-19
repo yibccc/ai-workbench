@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"D2 新增 Spring Boot 业务模块、HTTP API、MyBatis 与数据库迁移，需要加载后端规范入口。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"D2 的核心是 PostgreSQL 表、约束、索引、迁移和 MyBatis 持久化。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"D2 必须沿用已验证的 PostgreSQL 环境变量、回环监听和运行时连接契约。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D2 新增项目管理与工作记录界面，需要加载前端规范入口。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"D2 的迁移、DTO、API、前端类型和刷新持久化构成跨层数据流。"}

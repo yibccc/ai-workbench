@@ -1,0 +1,5 @@
+{"file":".trellis/spec/backend/index.md","reason":"全量检查 D2 后端模块、API、持久化与测试是否符合后端规范。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查迁移、约束、索引、历史归属和 MyBatis 查询行为。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"检查新增数据能力未破坏现有连接、配置、安全监听和状态契约。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查项目与记录界面的类型、状态和错误反馈。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查数据库到 UI 的字段、日期、归档和错误语义保持一致。"}
