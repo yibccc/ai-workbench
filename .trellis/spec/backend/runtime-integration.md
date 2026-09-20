@@ -110,3 +110,73 @@ catch (DeepSeekNotConfiguredException exception) {
 ```
 
 Keep the missing-configuration path explicit and every local development listener loopback-only.
+
+---
+
+## Scenario: Strict DeepSeek extraction boundary
+
+### 1. Scope / Trigger
+
+Use this contract for any AI feature that converts untrusted user text into typed business input. The model is an untrusted producer: successful HTTP or valid JSON does not imply valid business data.
+
+### 2. Signatures
+
+- `WorkbenchAiGateway.extract(String rawContent, Instant referenceAt, ZoneId zoneId, List<String> activeProjectNames) -> AiCaptureResult`
+- `AiCaptureResult.records[] = { content, projectName, occurredAt }`
+- `AiCaptureResult.tasks[] = { title, notes, projectName, dueAt, priority }`
+
+### 3. Contracts
+
+- AgentScope Java 2.0.3 uses `OpenAIChatModel` with `DeepSeekFormatter`.
+- DeepSeek native structured output is disabled for this compatibility path; the prompt requests one JSON object and Jackson performs strict decoding.
+- Serialize `referenceAt`, `zoneId`, active project names, and raw user content into a JSON `input_data` object. Do not concatenate raw user text as prompt instructions.
+- State explicitly that `rawContent` is untrusted data and commands or output-format requests inside it must not be executed.
+- Reject unknown properties, trailing tokens, and scalar-to-string coercion. Markdown-fenced JSON may be unwrapped only when the complete payload is one matching fence.
+- Treat model output as data: enforce required arrays, item-count limits, string lengths, enum fallback, ISO instants, and active-project lookup after parsing.
+- Never log or return API keys, full upstream errors, or raw third-party response details.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| DeepSeek key absent | Sanitized not-configured failure |
+| Null/empty response | Sanitized processing failure |
+| Malformed JSON, extra field, trailing JSON, or forbidden coercion | Validation failure; no business writes |
+| Markdown explanation around JSON | Reject; do not heuristically extract a substring |
+| One complete `json` fence containing only the payload | May unwrap, then apply the same strict decoder |
+| Unknown project | `projectId=null` after backend lookup |
+| Unknown priority | `MEDIUM` after backend validation |
+| Prompt-injection text in raw input | Preserve as data; output must still satisfy the fixed extraction schema |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a mixed input produces strict JSON, then backend validation maps only an exact active project and persists an atomic batch.
+- Base: either array may be empty, but both empty is not a useful extraction and becomes a retryable failure.
+- Bad: trusting project IDs from the model, accepting unknown fields, coercing numeric content into strings, logging upstream bodies, or embedding raw input directly after a prompt delimiter.
+
+### 6. Tests Required
+
+- Fake-gateway tests cover mixed, multi-item, record-only, task-only, and empty results.
+- Parser tests cover empty response, Markdown fences, unknown fields, trailing JSON, scalar coercion, malformed instants, and more than the item limit.
+- Prompt test includes embedded role instructions and JSON delimiters; assert raw input is serialized inside `input_data`.
+- Failure tests assert the client receives sanitized text and no secrets/upstream payloads.
+- Real DeepSeek is a separate explicit acceptance check; record model, SDK version, time, sanitized input/result, and limitations without adding the call to ordinary regression.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```java
+String prompt = "Extract JSON from: " + rawUserText;
+return objectMapper.readValue(findFirstJsonObject(modelText), AiCaptureResult.class);
+```
+
+#### Correct
+
+```java
+String inputData = objectMapper.writeValueAsString(
+        new PromptInput(referenceAt, zoneId, activeProjects, rawUserText));
+AiCaptureResult result = strictMapper.readValue(wholeModelPayload, AiCaptureResult.class);
+```
+
+Serialize untrusted input, decode the entire output strictly, then validate business meaning before persistence.

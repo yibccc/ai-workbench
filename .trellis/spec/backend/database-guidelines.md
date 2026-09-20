@@ -276,3 +276,84 @@ if (task.status() == TaskStatus.COMPLETED) {
 ```
 
 Only a successful conditional `PENDING -> COMPLETED` write may create the automatic record and event, inside the same transaction.
+
+---
+
+## Scenario: AI capture persistence and atomic batches
+
+### 1. Scope / Trigger
+
+Use this contract for natural-language input, request idempotency, AI-processing state, retry, and generated record/task persistence. PostgreSQL owns the durable input state; in-memory scheduling only coordinates work inside one process.
+
+### 2. Signatures
+
+- `POST /api/inputs { requestId, content } -> 201 InputResponse`
+- `GET /api/inputs/{id} -> InputResponse`
+- `POST /api/inputs/{id}/retry -> InputResponse`
+- `InputStatus = PROCESSING | SUCCEEDED | FAILED | REVERTED`
+- Generated `work_records.capture_input_id` and `todo_items.capture_input_id` reference the source input with `ON DELETE RESTRICT`.
+
+### 3. Contracts
+
+- The first short transaction persists raw content, unique `client_request_id`, `reference_at`, `zone_id`, `PROCESSING`, and attempt 1 before any model call.
+- `client_request_id`, not content equality, defines request idempotency. Reusing an ID returns the original input; a different ID with identical text is a new input.
+- The AI gateway call occurs after the first transaction commits and outside every database transaction.
+- Success uses one short transaction to insert every generated record and task, attach each row to the input, and mark the input `SUCCEEDED`.
+- Any generated-row or final-state failure rolls back the whole success transaction. No half-batch may remain.
+- Failure uses a separate short transaction to preserve raw input and mark it `FAILED` with a sanitized message.
+- Basic retry is accepted only from `FAILED`, increments `attempt_count`, clears the previous failure, and reuses the original `reference_at` and `zone_id`.
+- Generated projects are resolved only against the current active-project snapshot. Unknown or non-unique names become `NULL`; the system never creates a project from model output.
+- Unknown priority becomes `MEDIUM`. Dates must be explicit ISO-8601 instants after model parsing.
+- D6 owns cross-process retry locking, abandoned `PROCESSING` recovery, and batch revert; D5 must not claim those guarantees early.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Blank/invalid request fields | HTTP 400 problem detail; no input row |
+| Reused request ID | Return original input and original content; no second batch |
+| Retry when not `FAILED` | HTTP 409 |
+| Model unavailable or invalid output | Input becomes `FAILED`; raw content and baseline remain |
+| Empty extraction | `FAILED`; no generated rows |
+| More than 50 total items | `FAILED`; no generated rows |
+| Invalid/oversized generated field or date | `FAILED`; no generated rows |
+| Second generated row violates a database constraint | Entire generated batch rolls back; input failure is persisted separately |
+| Scheduler rejects work | Input becomes `FAILED`, not permanently `PROCESSING` |
+
+### 5. Good / Base / Bad Cases
+
+- Good: one mixed input commits first, the model runs without a transaction, and one later transaction stores multiple records/tasks plus `SUCCEEDED`.
+- Base: a record-only or task-only result is valid; missing project and due date remain null; missing priority becomes `MEDIUM`.
+- Bad: opening one transaction around the model call, deduplicating by text, changing the retry baseline, or persisting generated items one transaction at a time.
+
+### 6. Tests Required
+
+- Prove raw input exists before invoking the fake gateway.
+- Inspect transaction synchronization or connection state inside the fake gateway and assert no transaction is active.
+- Reuse a request ID with different text and assert the original content and batch remain unchanged.
+- Force a later generated insert to fail and assert every generated row rolls back while the input becomes `FAILED`.
+- Test multiple items, record-only, task-only, empty output, unknown project, unknown priority, invalid dates, and maximum-item enforcement.
+- Retry the same failed input and assert unchanged `reference_at`/`zone_id` plus incremented `attempt_count`.
+- Run V1 legacy capture rows through V5 and an empty schema through all migrations.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```java
+@Transactional
+public void capture(String text) {
+    AiCaptureResult result = aiGateway.extract(text); // network call holds the transaction
+    result.items().forEach(this::saveIndividually);
+}
+```
+
+#### Correct
+
+```java
+InputRow input = persistence.createOrGet(requestId, text, referenceAt, zoneId);
+AiCaptureResult result = aiGateway.extract(input.content(), input.referenceAt(), zoneId, projects);
+persistence.succeed(input.id(), validatedBatch, completedAt);
+```
+
+Keep the orchestration service non-transactional and place each short transaction on a separate Spring bean.

@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"D5 新增 input 功能包并复用 ai、record、task，必须保持现有非 DDD 功能分包。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"D5 涉及原文优先保存、请求唯一性、短事务批量落库、日期和项目关联。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"D5 使用 AgentScope/DeepSeek 环境变量、手动真实调用和安全边界。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"模型、结构、业务校验和处理状态错误必须安全映射并保留可恢复原文。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D5 新增统一输入、轮询状态、生成条目与编辑入口。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"输入原文、AI 输出、业务验证、批量持久化和前端轮询构成长跨层数据流。"}
