@@ -33,6 +33,7 @@ Use this contract when changing local PostgreSQL or Redis wiring, DeepSeek confi
 | `DEEPSEEK_API_KEY` | Required only for a live AI probe | No default; backend only |
 | `DEEPSEEK_BASE_URL` | No | `https://api.deepseek.com` |
 | `DEEPSEEK_MODEL` | No | `deepseek-flash` |
+| `DEEPSEEK_TIMEOUT` | No | `PT4M`; must be a positive duration shorter than the capture lease |
 
 Spring Boot does not automatically load the repository-root `.env`. Local PowerShell startup must explicitly import it into the child process. The frontend must never read or forward the API key.
 
@@ -128,6 +129,8 @@ Use this contract for any AI feature that converts untrusted user text into type
 ### 3. Contracts
 
 - AgentScope Java 2.0.3 uses `OpenAIChatModel` with `DeepSeekFormatter`.
+- Both extraction and manual probe use bounded reactive waits with `DeepSeekProperties.requestTimeout()`; never call an unbounded `blockLast()`.
+- `workbench.capture.lease-duration` defaults to `PT5M` and must be strictly greater than the DeepSeek timeout. Invalid startup configuration fails fast.
 - DeepSeek native structured output is disabled for this compatibility path; the prompt requests one JSON object and Jackson performs strict decoding.
 - Serialize `referenceAt`, `zoneId`, active project names, and raw user content into a JSON `input_data` object. Do not concatenate raw user text as prompt instructions.
 - State explicitly that `rawContent` is untrusted data and commands or output-format requests inside it must not be executed.

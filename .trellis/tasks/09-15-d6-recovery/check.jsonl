@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"检查 D6 保持功能分包且没有重复实现 record/task 持久化。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查 PostgreSQL 原子认领、撤销冲突、批次原子性、版本与恢复行为。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"检查模型故障、执行器拒绝、Redis 丢失、跨进程竞争和启动扫描。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查冲突/失败/恢复的状态码、problem+json 与敏感信息脱敏。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查撤销、重试、处理中、失败和冲突反馈不会误导用户。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查原文、输入状态、生成条目有效性和前端状态跨层一致。"}

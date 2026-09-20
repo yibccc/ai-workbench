@@ -357,3 +357,92 @@ persistence.succeed(input.id(), validatedBatch, completedAt);
 ```
 
 Keep the orchestration service non-transactional and place each short transaction on a separate Spring bean.
+
+---
+
+## Scenario: Capture recovery, fencing, and batch revert
+
+### 1. Scope / Trigger
+
+Use this contract for cross-process capture ownership, retries, abandoned-processing recovery, generated-item versioning, and whole-batch revert. PostgreSQL conditions are the correctness boundary; process memory and Redis may optimize but must be disposable.
+
+### 2. Signatures
+
+- `POST /api/inputs/{id}/retry -> InputResponse`
+- `POST /api/inputs/{id}/revert -> InputResponse`
+- `processing_token: UUID?`, `lease_expires_at: TIMESTAMPTZ?`
+- `capture_generated_items(input_id, entity_type, entity_id, initial_version)`
+- `work_records.version >= 0`
+- `capture_inputs.revertible` defaults true for new rows; migrated legacy rows remain false.
+
+### 3. Contracts
+
+- Create ownership belongs only to the transaction that inserts the unique request ID and its token. Other callers return the stored input without scheduling work.
+- Retry ownership uses one conditional `FAILED -> PROCESSING` update that installs a new token and lease.
+- Success inserts the complete generated batch and marks `SUCCEEDED` with `WHERE id=? AND processing_token=?` in the same transaction. A stale token makes the final update affect zero rows, rolling back every generated row and ledger entry.
+- Failure also carries the token; an old owner cannot overwrite a newer owner or terminal state.
+- Startup recovery changes only `PROCESSING` rows whose lease expired or whose legacy lease is null. It preserves content, `reference_at`, and `zone_id`, then makes the input retryable.
+- The model timeout must be shorter than the lease. Startup fails fast if `leaseDuration <= requestTimeout`.
+- The immutable ledger records every generated entity and its initial version. New successful inputs are revertible only when all ledger entities still exist and match the untouched state.
+- Revert locks the input row. `SUCCEEDED` is required; `REVERTED` returns idempotently. Any edited, completed, reopened, deleted, missing, inactive, or version-changed generated item returns 409 with no mutation.
+- Successful revert atomically invalidates generated records, soft-deletes generated tasks, and marks the input `REVERTED`. Original input, ledger, and history remain.
+- Legacy inputs migrated without trustworthy creation-state evidence have `revertible=false` and must be rejected rather than guessed.
+- Manual record deletion uses `WHERE is_active`; a concurrent revert that already invalidated the row causes 409 instead of physical deletion.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Concurrent create with same request ID | One DB owner; one scheduled model call per database claim |
+| Concurrent retries | One token owner; others observe PROCESSING or receive conflict; one final batch |
+| Old owner attempts success | Whole transaction rolls back because token finalization affects zero rows |
+| Old owner attempts failure | Zero rows changed; newer owner/state preserved |
+| Startup sees valid lease | Leave PROCESSING unchanged |
+| Startup sees expired/null legacy lease | Mark FAILED with recovery message; baseline preserved |
+| Revert untouched successful batch | Atomic REVERTED; generated items disappear from normal queries |
+| Repeat revert | Return current REVERTED state without new writes |
+| Revert after any downstream change | HTTP 409; zero batch mutations |
+| Revert legacy non-revertible input | HTTP 409 safe-revert message |
+
+### 5. Good / Base / Bad Cases
+
+- Good: two service instances race to retry; one owns the token, the stale caller cannot finalize, and exactly one batch exists.
+- Base: Redis is down or flushed and behavior is unchanged because no correctness state lives there.
+- Bad: scheduling based only on an in-memory set, succeeding without a token predicate, recovering every PROCESSING row at startup, or reverting by current `capture_input_id` rows without an immutable ledger.
+
+### 6. Tests Required
+
+- Use independent transactions and a synchronization barrier for concurrent create and retry.
+- Assert one owner, one token, and one successful batch for a shared request ID.
+- Force an old token to attempt success and failure after a new owner; assert rollback/no overwrite.
+- Test valid lease, expired lease, and legacy null lease recovery with a controllable clock.
+- Test successful/repeated revert plus conflicts after record edit/delete and task edit/complete/reopen/delete.
+- Inject a revert sub-write failure and assert the input and every generated entity remain unchanged.
+- Assert normal record/task queries exclude reverted entities while history/ledger remains.
+- Run migrations from V1, V5 legacy data, and an empty schema to latest; verify legacy ledger backfill and `revertible=false`.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```java
+if (processingIds.add(inputId)) {
+    process(inputId); // process-local ownership only
+}
+```
+
+#### Correct
+
+```sql
+UPDATE capture_inputs
+SET status='PROCESSING', processing_token=:token, lease_expires_at=:lease
+WHERE id=:id AND status='FAILED';
+```
+
+```sql
+UPDATE capture_inputs
+SET status='SUCCEEDED', processing_token=NULL, lease_expires_at=NULL
+WHERE id=:id AND status='PROCESSING' AND processing_token=:token;
+```
+
+Acquire and fence ownership in PostgreSQL, then require that token on every terminal write.

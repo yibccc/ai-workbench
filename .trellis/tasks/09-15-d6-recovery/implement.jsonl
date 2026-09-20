@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"D6 在 input 功能包协调 record/task/Redis，继续使用现有非 DDD 功能分包。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"D6 核心是批次清单、版本冲突、原子认领、撤销事务和启动恢复。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"D6 处理模型失败、线程/进程调度、Redis 可选性和服务启动恢复。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"撤销冲突、并发重试和恢复失败必须返回稳定 problem+json 且保留原文。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D6 增加撤销、重试、冲突和恢复状态反馈。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"输入状态、生成条目、版本、软删除和 UI 恢复形成跨层一致性链路。"}
