@@ -63,7 +63,9 @@ public class WorkRecordService {
     public void delete(UUID id) {
         WorkRecordRow current = require(id);
         requireManual(current);
-        mapper.delete(id);
+        if (mapper.delete(id) == 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "工作记录状态已变化，请刷新后重试");
+        }
     }
 
     private void validateProject(UUID projectId) {

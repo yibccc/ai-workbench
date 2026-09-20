@@ -36,7 +36,7 @@ public class AgentScopeDeepSeekGateway implements DeepSeekGateway {
                         List.of(new UserMessage("Reply with exactly: AI_WORKBENCH_OK")),
                         List.of(),
                         null)
-                .blockLast();
+                .blockLast(properties.requestTimeout());
         if (response == null) {
             throw new IllegalStateException("DeepSeek returned no response");
         }

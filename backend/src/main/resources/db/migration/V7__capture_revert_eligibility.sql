@@ -1,0 +1,5 @@
+ALTER TABLE capture_inputs
+    ADD COLUMN revertible BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE capture_inputs
+    ALTER COLUMN revertible SET DEFAULT TRUE;

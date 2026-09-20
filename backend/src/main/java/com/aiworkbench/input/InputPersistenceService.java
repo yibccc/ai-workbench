@@ -1,8 +1,11 @@
 package com.aiworkbench.input;
 
+import com.aiworkbench.config.DeepSeekProperties;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,41 +13,93 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class InputPersistenceService {
+    private static final String RECOVERY_MESSAGE = "服务重启前的处理已中断，请重试";
     private final InputMapper mapper;
+    private final Duration leaseDuration;
 
-    public InputPersistenceService(InputMapper mapper) { this.mapper = mapper; }
-
-    @Transactional
-    public InputRow createOrGet(String requestId, String content, Instant referenceAt, ZoneId zoneId) {
-        UUID id = UUID.randomUUID();
-        mapper.insert(id, requestId, content, referenceAt, zoneId.getId());
-        return mapper.findByRequestId(requestId).orElseThrow();
+    public InputPersistenceService(InputMapper mapper,
+            @Value("${workbench.capture.lease-duration:PT5M}") Duration leaseDuration,
+            DeepSeekProperties deepSeekProperties) {
+        if (leaseDuration.isZero() || leaseDuration.isNegative()
+                || leaseDuration.compareTo(deepSeekProperties.requestTimeout()) <= 0) {
+            throw new IllegalArgumentException("AI 处理租约必须为正数且长于模型调用超时");
+        }
+        this.mapper = mapper;
+        this.leaseDuration = leaseDuration;
     }
 
     @Transactional
-    public InputRow beginRetry(UUID id) {
+    public ProcessingClaim createOrGet(String requestId, String content, Instant referenceAt, ZoneId zoneId) {
+        UUID id = UUID.randomUUID();
+        UUID token = UUID.randomUUID();
+        boolean owner = mapper.insert(id, requestId, content, referenceAt, zoneId.getId(), token,
+                referenceAt.plus(leaseDuration)) == 1;
+        InputRow row = mapper.findByRequestId(requestId).orElseThrow();
+        return new ProcessingClaim(row, owner ? token : null, owner);
+    }
+
+    @Transactional
+    public ProcessingClaim beginRetry(UUID id, Instant now) {
         InputRow current = require(id);
         if (current.status() != InputStatus.FAILED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "当前输入不能重试");
         }
-        if (mapper.beginRetry(id) != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "输入状态已变化，请刷新后重试");
-        return require(id);
+        UUID token = UUID.randomUUID();
+        boolean owner = mapper.beginRetry(id, token, now.plus(leaseDuration)) == 1;
+        InputRow latest = require(id);
+        if (!owner && latest.status() != InputStatus.PROCESSING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "输入状态已变化，请刷新后重试");
+        }
+        return new ProcessingClaim(latest, owner ? token : null, owner);
     }
 
     @Transactional
-    public void succeed(UUID inputId, PreparedCapture capture, Instant completedAt) {
+    public void succeed(UUID inputId, UUID token, PreparedCapture capture, Instant completedAt) {
         for (PreparedCapture.RecordItem item : capture.records()) {
-            mapper.insertRecord(UUID.randomUUID(), inputId, item.projectId(), item.content(), item.occurredAt());
+            UUID id = UUID.randomUUID();
+            mapper.insertRecord(id, inputId, item.projectId(), item.content(), item.occurredAt());
+            mapper.insertGeneratedItem(inputId, "RECORD", id, 0);
         }
         for (PreparedCapture.TaskItem item : capture.tasks()) {
-            mapper.insertTask(UUID.randomUUID(), inputId, item.projectId(), item.title(), item.notes(), item.dueAt(), item.priority());
+            UUID id = UUID.randomUUID();
+            mapper.insertTask(id, inputId, item.projectId(), item.title(), item.notes(), item.dueAt(), item.priority());
+            mapper.insertGeneratedItem(inputId, "TASK", id, 0);
         }
-        if (mapper.markSucceeded(inputId, completedAt) != 1) throw new IllegalStateException("输入状态已变化");
+        if (mapper.markSucceeded(inputId, token, completedAt) != 1) throw new IllegalStateException("输入处理权已失效");
     }
 
     @Transactional
-    public void fail(UUID inputId, String message, Instant completedAt) {
-        mapper.markFailed(inputId, message, completedAt);
+    public void fail(UUID inputId, UUID token, String message, Instant completedAt) {
+        mapper.markFailed(inputId, token, message, completedAt);
+    }
+
+    @Transactional
+    public int recoverExpiredProcessing(Instant now) {
+        return mapper.recoverExpiredProcessing(now, RECOVERY_MESSAGE);
+    }
+
+    @Transactional
+    public InputRow revert(UUID id, Instant now) {
+        InputRow current = mapper.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "输入不存在"));
+        if (current.status() == InputStatus.REVERTED) return current;
+        if (current.status() != InputStatus.SUCCEEDED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "只有处理成功的输入可以撤销");
+        }
+        if (!current.revertible()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "该输入创建于撤销保护启用前，无法安全撤销");
+        }
+        int recordCount = mapper.countGeneratedItems(id, "RECORD");
+        int taskCount = mapper.countGeneratedItems(id, "TASK");
+        if (recordCount != mapper.countUnchangedRecords(id) || taskCount != mapper.countUnchangedTasks(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "生成条目已被编辑、完成、重开或删除，不能撤销");
+        }
+        if (mapper.deactivateGeneratedRecords(id, now) != recordCount
+                || mapper.softDeleteGeneratedTasks(id, now) != taskCount
+                || mapper.markReverted(id, now) != 1) {
+            throw new IllegalStateException("撤销批次时状态发生变化");
+        }
+        return require(id);
     }
 
     @Transactional(readOnly = true)

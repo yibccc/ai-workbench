@@ -21,6 +21,7 @@ class TaskMigrationIntegrationTest {
     @Test
     void migratesLegacyV1TasksThroughLatestAndSupportsFreshSchemas() throws Exception {
         verifyLegacyUpgrade();
+        verifyV5CaptureUpgrade();
         verifyFreshMigration();
     }
 
@@ -50,6 +51,9 @@ class TaskMigrationIntegrationTest {
                 assertThat(jdbc.queryForObject(
                         "SELECT count(*) FROM information_schema.columns WHERE table_schema = ? AND table_name = 'todo_items' AND column_name = 'deleted_at'",
                         Integer.class, schema)).isEqualTo(1);
+                assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = 'capture_generated_items'",
+                        Integer.class, schema)).isEqualTo(1);
             });
         } finally {
             dropSchema(schema);
@@ -65,6 +69,51 @@ class TaskMigrationIntegrationTest {
                 assertThat(jdbc.queryForObject(
                         "SELECT status FROM todo_items WHERE title = ?", String.class, "fresh task"))
                         .isEqualTo("PENDING");
+                assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM information_schema.columns WHERE table_schema = ? AND table_name = 'capture_inputs' AND column_name = 'processing_token'",
+                        Integer.class, schema)).isEqualTo(1);
+            });
+        } finally {
+            dropSchema(schema);
+        }
+    }
+
+    private void verifyV5CaptureUpgrade() throws Exception {
+        String schema = schemaName("capture_upgrade");
+        UUID inputId = UUID.randomUUID();
+        UUID recordId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        try {
+            migrate(schema, "5");
+            inSchema(schema, jdbc -> {
+                jdbc.update("""
+                        INSERT INTO capture_inputs
+                            (id, content, source, captured_at, client_request_id, reference_at, zone_id,
+                             status, completed_at)
+                        VALUES (?, 'legacy capture', 'AI', CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP,
+                                'Asia/Shanghai', 'SUCCEEDED', CURRENT_TIMESTAMP)
+                        """, inputId, "legacy-capture-" + inputId);
+                jdbc.update("""
+                        INSERT INTO work_records (id, content, occurred_at, capture_input_id)
+                        VALUES (?, 'legacy generated record', CURRENT_TIMESTAMP, ?)
+                        """, recordId, inputId);
+                jdbc.update("""
+                        INSERT INTO todo_items (id, title, capture_input_id)
+                        VALUES (?, 'legacy generated task', ?)
+                        """, taskId, inputId);
+            });
+
+            migrate(schema, null);
+
+            inSchema(schema, jdbc -> {
+                assertThat(jdbc.queryForObject(
+                        "SELECT revertible FROM capture_inputs WHERE id=?", Boolean.class, inputId)).isFalse();
+                assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM capture_generated_items WHERE input_id=?", Integer.class, inputId))
+                        .isEqualTo(2);
+                assertThat(jdbc.queryForList(
+                        "SELECT initial_version FROM capture_generated_items WHERE input_id=?", Long.class, inputId))
+                        .containsOnly(0L);
             });
         } finally {
             dropSchema(schema);

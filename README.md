@@ -25,7 +25,7 @@
 
 待办状态只能通过 `POST /api/tasks/{id}/complete` 和 `POST /api/tasks/{id}/reopen` 修改，不能通过通用编辑接口修改。完成待办会在同一数据库事务中生成一条自动工作记录；重复完成请求不会重复生成记录。`PUT /api/tasks/{id}/completion-result` 可补充完成结果，`GET /api/tasks/{id}/events` 可查询状态历史。重开或删除待办只会使当前自动完成记录失效，既往结果和事件保留，手工工作记录不受影响。
 
-AI 统一输入使用 `POST /api/inputs`：后端先保存原文、客户端 `requestId`、Asia/Shanghai 解析基准和 `PROCESSING` 状态，再在事务外调用 DeepSeek。用 `GET /api/inputs/{id}` 读取状态与生成条目；失败后可调用 `POST /api/inputs/{id}/retry`，并沿用首次解析基准。同一 `requestId` 始终指向同一批次，相同文本使用不同 `requestId` 时会创建不同批次；AI 只关联已有活动项目，无法匹配的项目保持未分类。
+AI 统一输入使用 `POST /api/inputs`：后端先保存原文、客户端 `requestId`、Asia/Shanghai 解析基准和 `PROCESSING` 状态，再在事务外调用 DeepSeek。用 `GET /api/inputs/{id}` 读取状态与生成条目；失败后可调用 `POST /api/inputs/{id}/retry`，并沿用首次解析基准。同一 `requestId` 始终指向同一批次，相同文本使用不同 `requestId` 时会创建不同批次；PostgreSQL 处理令牌和租约保证并发重发、重试或服务重启后最多生成一批结果，Redis 不参与最终正确性。默认模型调用超时为 4 分钟、处理租约为 5 分钟；启动时会拒绝“租约不长于模型超时”的配置，避免仍在执行的有效请求被错误回收。未被编辑、完成、重开或删除的成功批次可通过 `POST /api/inputs/{id}/revert` 整批撤销，重复撤销幂等；原文和批次历史继续保留。AI 只关联已有活动项目，无法匹配的项目保持未分类。
 
 Compose 端口由 `.env` 中的 `POSTGRES_PORT` 与 `REDIS_PORT` 控制，后端使用同名变量连接本机映射端口。默认分别为 5432 和 6379；若本机确有不可移除的端口冲突，可在 `.env` 中改为其他未占用端口，容器内部端口无需修改。
 

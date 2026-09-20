@@ -24,4 +24,6 @@ public class InputController {
     public InputResponse get(@PathVariable UUID id) { return service.get(id); }
     @PostMapping("/{id}/retry")
     public InputResponse retry(@PathVariable UUID id) { return service.retry(id); }
+    @PostMapping("/{id}/revert")
+    public InputResponse revert(@PathVariable UUID id) { return service.revert(id); }
 }

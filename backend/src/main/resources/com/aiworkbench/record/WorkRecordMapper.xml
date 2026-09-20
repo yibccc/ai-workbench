@@ -35,21 +35,22 @@
     <select id="findById" resultMap="workRecordRow">
         SELECT <include refid="joinedColumns"/>
         FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id
-        WHERE wr.id = #{id}
+        WHERE wr.id = #{id} AND wr.is_active
     </select>
     <select id="findBetween" resultMap="workRecordRow">
         SELECT <include refid="joinedColumns"/>
         FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id
         WHERE wr.occurred_at &gt;= #{start} AND wr.occurred_at &lt; #{end}
-          AND (wr.source = 'MANUAL' OR wr.is_active)
+          AND wr.is_active
         ORDER BY wr.occurred_at DESC, wr.created_at DESC
     </select>
     <update id="update">
         UPDATE work_records
-        SET project_id = #{projectId}, content = #{content}, occurred_at = #{occurredAt}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = #{id}
+        SET project_id = #{projectId}, content = #{content}, occurred_at = #{occurredAt},
+            version = version + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND is_active
     </update>
-    <delete id="delete">DELETE FROM work_records WHERE id = #{id}</delete>
+    <delete id="delete">DELETE FROM work_records WHERE id = #{id} AND is_active</delete>
     <update id="invalidateTaskCompletion">
         UPDATE work_records SET is_active = FALSE, updated_at = #{updatedAt}
         WHERE todo_id = #{todoId} AND source = 'TASK_COMPLETION' AND is_active

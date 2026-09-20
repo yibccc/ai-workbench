@@ -29,7 +29,7 @@ public class InputService {
     private final ProjectService projectService;
     private final ZoneId zoneId;
     private final TaskExecutor taskExecutor;
-    private final Set<UUID> processing = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> processingTokens = ConcurrentHashMap.newKeySet();
 
     public InputService(InputMapper mapper, InputPersistenceService persistence, WorkbenchAiGateway aiGateway,
                         ProjectService projectService, TaskExecutor taskExecutor,
@@ -39,41 +39,46 @@ public class InputService {
     }
 
     public InputResponse create(CreateInputRequest request) {
-        InputRow row = persistence.createOrGet(request.requestId().trim(), request.content().trim(), Instant.now(), zoneId);
-        if (row.status() == InputStatus.PROCESSING && row.content().equals(request.content().trim())) schedule(row.id());
-        return get(row.id());
+        ProcessingClaim claim = persistence.createOrGet(request.requestId().trim(), request.content().trim(), Instant.now(), zoneId);
+        if (claim.owner()) schedule(claim.row().id(), claim.token());
+        return get(claim.row().id());
     }
 
     public InputResponse retry(UUID id) {
-        InputRow row = persistence.beginRetry(id);
-        if (row.status() == InputStatus.PROCESSING) schedule(row.id());
+        ProcessingClaim claim = persistence.beginRetry(id, Instant.now());
+        if (claim.owner()) schedule(claim.row().id(), claim.token());
+        return get(id);
+    }
+
+    public InputResponse revert(UUID id) {
+        persistence.revert(id, Instant.now());
         return get(id);
     }
 
     public InputResponse get(UUID id) { return toResponse(persistence.require(id)); }
 
-    private void schedule(UUID id) {
-        if (!processing.add(id)) return;
+    private void schedule(UUID id, UUID token) {
+        if (!processingTokens.add(token)) return;
         try {
             taskExecutor.execute(() -> {
-                try { process(persistence.require(id)); }
-                finally { processing.remove(id); }
+                try { process(persistence.require(id), token); }
+                finally { processingTokens.remove(token); }
             });
         } catch (RuntimeException exception) {
-            processing.remove(id);
-            persistence.fail(id, "AI 处理暂时不可用，请稍后重试", Instant.now());
+            processingTokens.remove(token);
+            persistence.fail(id, token, "AI 处理暂时不可用，请稍后重试", Instant.now());
         }
     }
 
-    private void process(InputRow row) {
+    private void process(InputRow row, UUID token) {
         try {
             List<ProjectResponse> projects = projectService.list(false);
             AiCaptureResult result = aiGateway.extract(row.content(), row.referenceAt(), ZoneId.of(row.zoneId()),
                     projects.stream().map(ProjectResponse::name).toList());
             PreparedCapture prepared = validate(result, projects, row.referenceAt());
-            persistence.succeed(row.id(), prepared, Instant.now());
+            persistence.succeed(row.id(), token, prepared, Instant.now());
         } catch (RuntimeException exception) {
-            persistence.fail(row.id(), safeFailure(exception), Instant.now());
+            persistence.fail(row.id(), token, safeFailure(exception), Instant.now());
         }
     }
 

@@ -137,3 +137,4 @@ export const updateTaskCompletionResult = (id: string, version: number, result: 
 export const createCaptureInput = (requestId: string, content: string, signal?: AbortSignal) => request<CaptureInput>('/api/inputs', { method: 'POST', body: JSON.stringify({ requestId, content }), signal })
 export const fetchCaptureInput = (id: string, signal?: AbortSignal) => request<CaptureInput>(`/api/inputs/${id}`, { signal })
 export const retryCaptureInput = (id: string, signal?: AbortSignal) => request<CaptureInput>(`/api/inputs/${id}/retry`, { method: 'POST', signal })
+export const revertCaptureInput = (id: string, signal?: AbortSignal) => request<CaptureInput>(`/api/inputs/${id}/revert`, { method: 'POST', signal })

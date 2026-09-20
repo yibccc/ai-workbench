@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 class AgentScopeAiGatewayTest {
     private final AgentScopeAiGateway gateway = new AgentScopeAiGateway(
-            new DeepSeekProperties("test-only", "https://example.invalid", "test-model"), new ObjectMapper());
+            new DeepSeekProperties("test-only", "https://example.invalid", "test-model", null), new ObjectMapper());
 
     @Test
     void acceptsPlainJsonAndMarkdownFenceButRejectsUnknownFields() {

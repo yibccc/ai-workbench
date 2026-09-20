@@ -44,7 +44,8 @@ public class AgentScopeAiGateway implements WorkbenchAiGateway {
                 .nativeStructuredOutput(false).nativeStructuredOutputWithTools(false)
                 .build();
         String prompt = buildPrompt(rawContent, referenceAt, zoneId, activeProjectNames);
-        ChatResponse response = model.stream(List.of(new UserMessage(prompt)), List.of(), null).blockLast();
+        ChatResponse response = model.stream(List.of(new UserMessage(prompt)), List.of(), null)
+                .blockLast(properties.requestTimeout());
         if (response == null) throw new IllegalStateException("模型未返回结果");
         String json = response.getContent().stream().filter(TextBlock.class::isInstance)
                 .map(TextBlock.class::cast).map(TextBlock::getText).reduce("", String::concat).trim();

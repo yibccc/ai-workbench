@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,6 +39,13 @@ class AiCaptureIntegrationTest {
     @MockitoBean WorkbenchAiGateway gateway;
 
     @BeforeEach void resetGateway() { reset(gateway); }
+
+    @AfterEach void removeD6FailureFixtures() {
+        jdbc.update("DELETE FROM capture_generated_items WHERE input_id IN (SELECT id FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%')");
+        jdbc.update("DELETE FROM work_records WHERE capture_input_id IN (SELECT id FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%')");
+        jdbc.update("DELETE FROM todo_items WHERE capture_input_id IN (SELECT id FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%')");
+        jdbc.update("DELETE FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%'");
+    }
 
     @Test
     void commitsOriginalAndReferenceBeforeCallingModelThenPersistsMixedBatch() {
@@ -113,8 +121,9 @@ class AiCaptureIntegrationTest {
         assertThat(taskOnly.status()).isEqualTo(InputStatus.SUCCEEDED);
         assertThat(taskOnly.records()).isEmpty();
         assertThat(taskOnly.tasks()).hasSize(2);
-        assertThat(taskOnly.tasks().get(0).dueAt()).isNull();
-        assertThat(taskOnly.tasks().get(0).priority()).isEqualTo(TaskPriority.MEDIUM);
+        assertThat(taskOnly.tasks()).allSatisfy(item -> assertThat(item.dueAt()).isNull());
+        assertThat(taskOnly.tasks()).extracting(InputResponse.GeneratedTask::priority)
+                .containsExactlyInAnyOrder(TaskPriority.MEDIUM, TaskPriority.LOW);
         assertThat(empty.status()).isEqualTo(InputStatus.FAILED);
         assertThat(empty.records()).isEmpty();
         assertThat(empty.tasks()).isEmpty();
@@ -169,6 +178,28 @@ class AiCaptureIntegrationTest {
         assertThat(failed.tasks()).isEmpty();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE capture_input_id=?", Integer.class, failed.id())).isZero();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM todo_items WHERE capture_input_id=?", Integer.class, failed.id())).isZero();
+    }
+
+    @Test
+    void timeoutAndInvalidDateRemainRetryableWithoutBusinessWrites() {
+        when(gateway.extract(anyString(), any(), any(), anyList()))
+                .thenThrow(new RuntimeException("upstream timeout with private details"))
+                .thenReturn(new AiCaptureResult(
+                        List.of(new AiCaptureResult.RecordItem("日期无效", null, "tomorrow")), List.of()));
+
+        InputResponse timeout = awaitTerminal(inputService.create(
+                new CreateInputRequest("timeout-" + UUID.randomUUID(), "超时也要保留的原文")).id());
+        InputResponse invalidDate = awaitTerminal(inputService.create(
+                new CreateInputRequest("invalid-date-" + UUID.randomUUID(), "非法日期也要保留的原文")).id());
+
+        assertThat(timeout.status()).isEqualTo(InputStatus.FAILED);
+        assertThat(timeout.content()).isEqualTo("超时也要保留的原文");
+        assertThat(timeout.errorMessage()).doesNotContain("private details");
+        assertThat(invalidDate.status()).isEqualTo(InputStatus.FAILED);
+        assertThat(invalidDate.content()).isEqualTo("非法日期也要保留的原文");
+        assertThat(jdbc.queryForObject(
+                "SELECT count(*) FROM work_records WHERE capture_input_id IN (?, ?)", Integer.class,
+                timeout.id(), invalidDate.id())).isZero();
     }
 
     private InputResponse awaitTerminal(UUID id) {

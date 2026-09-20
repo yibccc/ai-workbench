@@ -35,10 +35,13 @@ management:
 
 workbench:
   zone-id: Asia/Shanghai
+  capture:
+    lease-duration: PT5M
   deepseek:
     api-key: ${DEEPSEEK_API_KEY:}
     base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
     model: ${DEEPSEEK_MODEL:deepseek-flash}
+    timeout: ${DEEPSEEK_TIMEOUT:PT4M}
 
 mybatis:
   type-handlers-package: com.aiworkbench.config.mybatis
