@@ -35,6 +35,10 @@ management:
 
 workbench:
   zone-id: Asia/Shanghai
+  report:
+    ai:
+      timeout: ${REPORT_AI_TIMEOUT:PT6M}
+      max-tokens: ${REPORT_AI_MAX_TOKENS:4096}
   capture:
     lease-duration: PT5M
   deepseek:

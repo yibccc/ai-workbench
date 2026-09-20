@@ -44,9 +44,24 @@ class DailyReportIntegrationTest {
     private final List<UUID> recordIds = new ArrayList<>();
     private final List<UUID> taskIds = new ArrayList<>();
 
-    @BeforeEach void resetGateway() { reset(gateway); }
+    @BeforeEach void resetGateway() {
+        reset(gateway);
+        jdbc.update("UPDATE reports SET previous_report_id=NULL WHERE period_start IN (?,?)", DATE, LocalDate.of(2041, 6, 7));
+        jdbc.update("DELETE FROM report_sources WHERE report_id IN (SELECT id FROM reports WHERE period_start IN (?,?))",
+                DATE, LocalDate.of(2041, 6, 7));
+        jdbc.update("DELETE FROM reports WHERE period_start IN (?,?)", DATE, LocalDate.of(2041, 6, 7));
+        jdbc.update("DELETE FROM work_records WHERE occurred_at>=? AND occurred_at<?",
+                Timestamp.from(DATE.atStartOfDay(ZONE).toInstant().minusSeconds(1)),
+                Timestamp.from(LocalDate.of(2041, 6, 9).atStartOfDay(ZONE).toInstant()));
+        jdbc.update("DELETE FROM todo_items WHERE due_at>=? AND due_at<?",
+                Timestamp.from(DATE.atStartOfDay(ZONE).toInstant().minusSeconds(1)),
+                Timestamp.from(LocalDate.of(2041, 6, 9).atStartOfDay(ZONE).toInstant()));
+    }
 
     @AfterEach void cleanup() {
+        for (UUID requestId : requestIds) {
+            jdbc.update("UPDATE reports SET previous_report_id=NULL WHERE previous_report_id IN (SELECT id FROM reports WHERE request_id=?)", requestId);
+        }
         for (UUID requestId : requestIds) {
             jdbc.update("DELETE FROM report_sources WHERE report_id IN (SELECT id FROM reports WHERE request_id=?)", requestId);
             jdbc.update("DELETE FROM reports WHERE request_id=?", requestId);

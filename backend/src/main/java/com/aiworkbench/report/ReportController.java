@@ -25,11 +25,19 @@ public class ReportController {
     @ResponseStatus(HttpStatus.CREATED)
     public ReportResponse create(@Valid @RequestBody CreateReportRequest request) { return service.create(request); }
     @GetMapping
-    public List<ReportResponse> list(@RequestParam(required = false) LocalDate date) { return service.list(date); }
+    public List<ReportResponse> list(@RequestParam(required = false) LocalDate date,
+                                     @RequestParam(required = false, defaultValue = "DAILY") String reportType) {
+        return service.list(reportType, date);
+    }
     @GetMapping("/{id}")
     public ReportResponse get(@PathVariable UUID id) { return service.get(id); }
     @PatchMapping("/{id}")
     public ReportResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateReportRequest request) {
         return service.update(id, request);
+    }
+    @PatchMapping("/{id}/manual-additions")
+    public ReportResponse updateManualAdditions(@PathVariable UUID id,
+                                                 @Valid @RequestBody UpdateManualAdditionsRequest request) {
+        return service.updateManualAdditions(id, request);
     }
 }

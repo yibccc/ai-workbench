@@ -75,6 +75,41 @@ class ReportMigrationIntegrationTest {
         }
     }
 
+    @Test
+    void upgradesV8SourcesAndReportsToWeeklyVersionModel() throws Exception {
+        String schema = schemaName("v8");
+        UUID reportId = UUID.randomUUID();
+        UUID sourceId = UUID.randomUUID();
+        try {
+            migrate(schema, "8");
+            inSchema(schema, jdbc -> {
+                jdbc.update("""
+                        INSERT INTO reports(id,request_id,report_type,period_start,period_end,status,content)
+                        VALUES (?,?, 'DAILY', DATE '2043-01-02', DATE '2043-01-02','SUCCEEDED','旧正文')
+                        """, reportId, UUID.randomUUID());
+                jdbc.update("""
+                        INSERT INTO report_sources(id,report_id,source_type,entity_id,content,source_time)
+                        VALUES (?,?,'RECORD',?,'旧来源',TIMESTAMPTZ '2043-01-02 01:00:00Z')
+                        """, sourceId, reportId, UUID.randomUUID());
+            });
+
+            migrate(schema, null);
+
+            inSchema(schema, jdbc -> {
+                assertThat(jdbc.queryForObject("SELECT source_role FROM report_sources WHERE id=?", String.class, sourceId))
+                        .isEqualTo("DAILY_RECORD");
+                Map<String, Object> report = jdbc.queryForMap("""
+                        SELECT manual_additions, previous_report_id, manual_edited_at FROM reports WHERE id=?
+                        """, reportId);
+                assertThat(report).containsEntry("manual_additions", "")
+                        .containsEntry("previous_report_id", null)
+                        .containsEntry("manual_edited_at", null);
+            });
+        } finally {
+            dropSchema(schema);
+        }
+    }
+
     private void migrate(String schema, String target) {
         var configuration = Flyway.configure().dataSource(dataSource).defaultSchema(schema).schemas(schema)
                 .createSchemas(true).locations("classpath:db/migration");

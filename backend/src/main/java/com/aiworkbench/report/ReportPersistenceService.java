@@ -17,19 +17,35 @@ class ReportPersistenceService {
     ReportPersistenceService(ReportMapper mapper) { this.mapper = mapper; }
 
     @Transactional
-    ReportClaim prepare(UUID requestId, LocalDate date, ZoneId zoneId) {
+    ReportClaim prepare(UUID requestId, String reportType, LocalDate periodStart, LocalDate periodEnd, ZoneId zoneId) {
         UUID id = UUID.randomUUID();
         UUID token = UUID.randomUUID();
-        boolean owner = mapper.insertReport(id, requestId, date, zoneId.getId(), token) == 1;
+        UUID previousReportId = null;
+        if (reportType.equals("WEEKLY")) {
+            mapper.lockWeeklyVersionChain(periodStart);
+            previousReportId = mapper.findLatest(reportType, periodStart).map(ReportRow::id).orElse(null);
+        }
+        boolean owner = mapper.insertReport(id, requestId, reportType, periodStart, periodEnd,
+                zoneId.getId(), token, previousReportId) == 1;
         ReportRow row = mapper.findByRequestId(requestId).orElseThrow();
-        if (!row.periodStart().equals(date) || !row.reportType().equals("DAILY")) {
+        if (!row.periodStart().equals(periodStart) || !row.periodEnd().equals(periodEnd)
+                || !row.reportType().equals(reportType)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "requestId 已用于其他报告请求");
         }
         if (owner) {
-            Instant start = date.atStartOfDay(zoneId).toInstant();
-            Instant end = date.plusDays(1).atStartOfDay(zoneId).toInstant();
-            List<ReportSourceRow> candidates = new java.util.ArrayList<>(mapper.findCandidateRecords(start, end));
-            candidates.addAll(mapper.findCandidateTasks(start, end));
+            Instant start = periodStart.atStartOfDay(zoneId).toInstant();
+            Instant end = (reportType.equals("DAILY") ? periodStart.plusDays(1) : periodEnd)
+                    .atStartOfDay(zoneId).toInstant();
+            List<ReportSourceRow> candidates = new java.util.ArrayList<>();
+            if (reportType.equals("DAILY")) {
+                candidates.addAll(mapper.findCandidateRecords(start, end));
+                candidates.addAll(mapper.findCandidateTasks(start, end));
+            } else {
+                Instant nextEnd = periodEnd.plusWeeks(1).atStartOfDay(zoneId).toInstant();
+                candidates.addAll(mapper.findWeeklyRecords(start, end));
+                candidates.addAll(mapper.findCurrentTasks(start, end));
+                candidates.addAll(mapper.findNextWeekTasks(end, nextEnd));
+            }
             candidates.forEach(source -> mapper.insertSource(source.id(), id, source));
         }
         return new ReportClaim(row, owner ? token : null, owner);
@@ -50,6 +66,15 @@ class ReportPersistenceService {
         require(id);
         if (mapper.updateContent(id, content, version, now) != 1) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "日报已被其他操作修改，请刷新后重试");
+        }
+        return require(id);
+    }
+
+    @Transactional
+    ReportRow updateManualAdditions(UUID id, String manualAdditions, long version, Instant now) {
+        require(id);
+        if (mapper.updateManualAdditions(id, manualAdditions, version, now) != 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "报告已被其他操作修改，请刷新后重试");
         }
         return require(id);
     }

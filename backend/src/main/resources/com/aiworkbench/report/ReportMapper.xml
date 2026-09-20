@@ -8,35 +8,52 @@
             <arg column="period_end" javaType="java.time.LocalDate"/><arg column="status" javaType="com.aiworkbench.report.ReportStatus"/>
             <arg column="content" javaType="java.lang.String"/><arg column="error_message" javaType="java.lang.String"/>
             <arg column="zone_id" javaType="java.lang.String"/><arg column="version" javaType="long"/>
-            <arg column="edited_at" javaType="java.time.Instant"/><arg column="created_at" javaType="java.time.Instant"/>
+            <arg column="edited_at" javaType="java.time.Instant"/><arg column="previous_report_id" javaType="java.util.UUID"/>
+            <arg column="manual_additions" javaType="java.lang.String"/><arg column="manual_edited_at" javaType="java.time.Instant"/>
+            <arg column="created_at" javaType="java.time.Instant"/>
             <arg column="updated_at" javaType="java.time.Instant"/>
         </constructor>
     </resultMap>
     <resultMap id="sourceRow" type="com.aiworkbench.report.ReportSourceRow">
         <constructor>
             <arg column="id" javaType="java.util.UUID"/><arg column="report_id" javaType="java.util.UUID"/>
-            <arg column="source_type" javaType="com.aiworkbench.report.ReportSourceType"/><arg column="entity_id" javaType="java.util.UUID"/>
+            <arg column="source_type" javaType="com.aiworkbench.report.ReportSourceType"/>
+            <arg column="source_role" javaType="com.aiworkbench.report.ReportSourceRole"/><arg column="entity_id" javaType="java.util.UUID"/>
             <arg column="content" javaType="java.lang.String"/><arg column="project_id" javaType="java.util.UUID"/>
             <arg column="project_name" javaType="java.lang.String"/><arg column="source_status" javaType="java.lang.String"/>
             <arg column="source_time" javaType="java.time.Instant"/><arg column="snapshot" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
     <sql id="reportColumns">id, request_id, report_type, period_start, period_end, status, content,
-        error_message, zone_id, version, edited_at, created_at, updated_at</sql>
+        error_message, zone_id, version, edited_at, previous_report_id, manual_additions, manual_edited_at,
+        created_at, updated_at</sql>
+    <select id="lockWeeklyVersionChain" resultType="boolean">
+        SELECT pg_advisory_xact_lock(hashtextextended('weekly-report:' || CAST(#{periodStart} AS text), 0)) IS NULL
+    </select>
     <insert id="insertReport">
-        INSERT INTO reports (id, request_id, report_type, period_start, period_end, status, content, zone_id, processing_token)
-        VALUES (#{id}, #{requestId}, 'DAILY', #{date}, #{date}, 'PROCESSING', '', #{zoneId}, #{token})
+        INSERT INTO reports (id, request_id, report_type, period_start, period_end, status, content, zone_id,
+                             processing_token, previous_report_id)
+        VALUES (#{id}, #{requestId}, #{reportType}, #{periodStart}, #{periodEnd}, 'PROCESSING', '', #{zoneId},
+                #{token}, #{previousReportId})
         ON CONFLICT (request_id) DO NOTHING
     </insert>
     <select id="findById" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE id=#{id}</select>
     <select id="findByRequestId" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE request_id=#{requestId}</select>
-    <select id="findDaily" resultMap="reportRow">
+    <select id="findReports" resultMap="reportRow">
         SELECT <include refid="reportColumns"/> FROM reports
-        WHERE report_type='DAILY' <if test="date != null">AND period_start=#{date}</if>
+        WHERE report_type=#{reportType} <if test="periodStart != null">AND period_start=#{periodStart}</if>
         ORDER BY period_start DESC, created_at DESC
     </select>
+    <select id="findLatest" resultMap="reportRow">
+        SELECT <include refid="reportColumns"/> FROM reports current_report
+        WHERE report_type=#{reportType} AND period_start=#{periodStart}
+          AND NOT EXISTS (
+            SELECT 1 FROM reports next_report WHERE next_report.previous_report_id=current_report.id
+          )
+        ORDER BY created_at DESC, id DESC LIMIT 1
+    </select>
     <select id="findCandidateRecords" resultMap="sourceRow">
-        SELECT gen_random_uuid() id, NULL::uuid report_id, 'RECORD' source_type, wr.id entity_id,
+        SELECT gen_random_uuid() id, NULL::uuid report_id, 'RECORD' source_type, 'DAILY_RECORD' source_role, wr.id entity_id,
                CASE WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
                wr.project_id, p.name project_name, wr.source source_status, wr.occurred_at source_time,
                jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result)::text snapshot
@@ -45,7 +62,7 @@
         ORDER BY wr.occurred_at, wr.id
     </select>
     <select id="findCandidateTasks" resultMap="sourceRow">
-        SELECT gen_random_uuid() id, NULL::uuid report_id, 'TASK' source_type, t.id entity_id,
+        SELECT gen_random_uuid() id, NULL::uuid report_id, 'TASK' source_type, 'DAILY_TASK' source_role, t.id entity_id,
                CASE WHEN t.notes &lt;&gt; '' THEN t.title || E'\n备注：' || t.notes ELSE t.title END content,
                t.project_id, p.name project_name, t.status source_status, t.due_at source_time,
                jsonb_build_object('priority',t.priority,'notes',t.notes)::text snapshot
@@ -53,14 +70,46 @@
         WHERE t.due_at &gt;=#{start} AND t.due_at &lt;#{end} AND t.deleted_at IS NULL AND t.status='PENDING'
         ORDER BY t.due_at, t.id
     </select>
+    <select id="findWeeklyRecords" resultMap="sourceRow">
+        SELECT gen_random_uuid() id, NULL::uuid report_id, 'RECORD' source_type, 'WEEK_RECORD' source_role, wr.id entity_id,
+               CASE WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
+               wr.project_id, p.name project_name, wr.source source_status, wr.occurred_at source_time,
+               jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result)::text snapshot
+        FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id
+        WHERE wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
+        ORDER BY wr.occurred_at, wr.id
+    </select>
+    <select id="findCurrentTasks" resultMap="sourceRow">
+        SELECT gen_random_uuid() id, NULL::uuid report_id, 'TASK' source_type, 'CURRENT_TASK' source_role, t.id entity_id,
+               CASE WHEN t.notes &lt;&gt; '' THEN t.title || E'\n备注：' || t.notes ELSE t.title END content,
+               t.project_id, p.name project_name, t.status source_status,
+               GREATEST(t.created_at, t.updated_at, COALESCE(t.due_at, t.updated_at)) source_time,
+               jsonb_build_object('priority',t.priority,'notes',t.notes,'dueAt',t.due_at)::text snapshot
+        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id
+        WHERE t.deleted_at IS NULL AND t.status='PENDING'
+          AND ((t.created_at &gt;=#{start} AND t.created_at &lt;#{end})
+            OR (t.updated_at &gt;=#{start} AND t.updated_at &lt;#{end})
+            OR (t.due_at &gt;=#{start} AND t.due_at &lt;#{end}))
+        ORDER BY source_time, t.id
+    </select>
+    <select id="findNextWeekTasks" resultMap="sourceRow">
+        SELECT gen_random_uuid() id, NULL::uuid report_id, 'TASK' source_type, 'NEXT_WEEK_TASK' source_role, t.id entity_id,
+               CASE WHEN t.notes &lt;&gt; '' THEN t.title || E'\n备注：' || t.notes ELSE t.title END content,
+               t.project_id, p.name project_name, t.status source_status, t.due_at source_time,
+               jsonb_build_object('priority',t.priority,'notes',t.notes,'dueAt',t.due_at)::text snapshot
+        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id
+        WHERE t.deleted_at IS NULL AND t.status='PENDING'
+          AND t.due_at IS NOT NULL AND t.due_at &gt;=#{start} AND t.due_at &lt;#{end}
+        ORDER BY t.due_at, t.id
+    </select>
     <insert id="insertSource">
-        INSERT INTO report_sources (id, report_id, source_type, entity_id, content, project_id, project_name, source_status, source_time, snapshot)
-        VALUES (#{id}, #{reportId}, #{source.sourceType}, #{source.entityId}, #{source.content}, #{source.projectId},
+        INSERT INTO report_sources (id, report_id, source_type, source_role, entity_id, content, project_id, project_name, source_status, source_time, snapshot)
+        VALUES (#{id}, #{reportId}, #{source.sourceType}, #{source.sourceRole}, #{source.entityId}, #{source.content}, #{source.projectId},
                 #{source.projectName}, #{source.sourceStatus}, #{source.sourceTime}, CAST(#{source.snapshot} AS jsonb))
     </insert>
     <select id="findSources" resultMap="sourceRow">
-        SELECT id, report_id, source_type, entity_id, content, project_id, project_name, source_status, source_time, snapshot::text snapshot
-        FROM report_sources WHERE report_id=#{reportId} ORDER BY source_time, id
+        SELECT id, report_id, source_type, source_role, entity_id, content, project_id, project_name, source_status, source_time, snapshot::text snapshot
+        FROM report_sources WHERE report_id=#{reportId} ORDER BY source_time, source_role, id
     </select>
     <update id="markSucceeded">
         UPDATE reports SET status='SUCCEEDED', content=#{content}, error_message=NULL, processing_token=NULL,
@@ -72,6 +121,11 @@
     </update>
     <update id="updateContent">
         UPDATE reports SET content=#{content}, version=version+1, edited_at=#{now}, updated_at=#{now}
+        WHERE id=#{id} AND status='SUCCEEDED' AND version=#{version}
+    </update>
+    <update id="updateManualAdditions">
+        UPDATE reports SET manual_additions=#{manualAdditions}, version=version+1,
+            manual_edited_at=#{now}, updated_at=#{now}
         WHERE id=#{id} AND status='SUCCEEDED' AND version=#{version}
     </update>
 </mapper>

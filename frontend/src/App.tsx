@@ -7,6 +7,7 @@ import {
 import { AiCapturePanel } from './AiCapturePanel'
 import { TasksPanel } from './TasksPanel'
 import { DailyReportPanel } from './DailyReportPanel'
+import { WeeklyReportPanel } from './WeeklyReportPanel'
 
 const WORKBENCH_TIME_ZONE = 'Asia/Shanghai'
 const workbenchParts = (date = new Date()) => Object.fromEntries(
@@ -41,11 +42,13 @@ function App() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [captureRevision, setCaptureRevision] = useState(0)
-  const [reportDirty, setReportDirty] = useState(false)
+  const [dailyReportDirty, setDailyReportDirty] = useState(false)
+  const [weeklyReportDirty, setWeeklyReportDirty] = useState(false)
+  const reportDirty = dailyReportDirty || weeklyReportDirty
 
   const changeSelectedDate = (nextDate: string) => {
     if (nextDate === selectedDate) return true
-    if (reportDirty && !window.confirm('日报正文尚未保存，确定切换日期并放弃修改吗？')) return false
+    if (reportDirty && !window.confirm('报告还有未保存修改，确定切换日期并放弃吗？')) return false
     setSelectedDate(nextDate)
     if (!editingId) setOccurredAt(timeForDate(nextDate))
     return true
@@ -143,7 +146,8 @@ function App() {
 
       <section className="workspace">
         <div className="main-column">
-          <DailyReportPanel date={selectedDate} onDateChange={changeSelectedDate} onDirtyChange={setReportDirty} />
+          <WeeklyReportPanel date={selectedDate} onDateChange={changeSelectedDate} onDirtyChange={setWeeklyReportDirty} />
+          <DailyReportPanel date={selectedDate} onDateChange={changeSelectedDate} onDirtyChange={setDailyReportDirty} />
           <AiCapturePanel onGenerated={async (result: CaptureInput) => {
             const firstRecord = result.records[0]
             const generatedDate = firstRecord ? localDate(new Date(firstRecord.occurredAt)) : selectedDate
