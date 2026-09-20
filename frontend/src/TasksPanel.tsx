@@ -116,7 +116,7 @@ export function TasksPanel({ projects, onRecordsChanged }: { projects: Project[]
     </div>
 
     <div className="task-list">
-      {tasks.length === 0 ? <div className="empty"><strong>没有符合条件的待办</strong><span>调整筛选条件，或在上方创建一项。</span></div> : tasks.map((task) => <div className={`task task-${task.priority.toLowerCase()}`} key={task.id}>
+      {tasks.length === 0 ? <div className="empty"><strong>没有符合条件的待办</strong><span>调整筛选条件，或在上方创建一项。</span></div> : tasks.map((task) => <div id={`task-${task.id}`} className={`task task-${task.priority.toLowerCase()}`} key={task.id}>
         <div className="task-copy"><div className="task-meta"><span>{task.status === 'PENDING' ? '待处理' : '已完成'}</span><span>{task.priority === 'HIGH' ? '高优先级' : task.priority === 'MEDIUM' ? '中优先级' : '低优先级'}</span><span className={task.project?.status === 'ARCHIVED' ? 'archived' : ''}>{task.project ? `${task.project.name}${task.project.status === 'ARCHIVED' ? '（已归档）' : ''}` : '未分类'}</span>{task.dueAt && <span>截止 {new Date(task.dueAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE })}</span>}</div><strong>{task.title}</strong>{task.notes && <p>{task.notes}</p>}</div>
         <div className="record-actions">
           <button className="text-button" type="button" onClick={() => changeStatus(task)}>{task.status === 'PENDING' ? '完成' : '重开'}</button>

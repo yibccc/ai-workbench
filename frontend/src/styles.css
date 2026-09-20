@@ -30,6 +30,13 @@ button { border: 1px solid #4de0a2; border-radius: 999px; padding: 10px 17px; co
 button:disabled { cursor: wait; opacity: .55; }
 .secondary { color: #a7bbb4; border-color: #385249; background: transparent; }
 .task-panel { margin-top: 20px; }
+.ai-capture { margin-bottom: 20px; border-color: #2e765d; }
+.capture-state { margin: 18px 0 0; color: #9fb5ad; }
+.capture-failed { display: flex; align-items: center; justify-content: space-between; gap: 14px; color: #ffc3c3; }
+.capture-results { display: grid; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #1b342c; }
+.capture-results p { margin: 0 0 4px; color: #9ef0cd; }
+.capture-results a { color: #75dcb1; text-decoration: none; }
+.capture-results a:hover { text-decoration: underline; }
 .task-notes { margin-top: 14px; }
 .task-fields { display: grid; grid-template-columns: 1fr .55fr 1fr; gap: 14px; margin-top: 14px; }
 .task-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 28px 0 12px; padding-top: 20px; border-top: 1px solid #1b342c; }

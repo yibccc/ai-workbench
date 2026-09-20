@@ -2,8 +2,9 @@ import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import {
   archiveProject, createProject, createRecord, deleteRecord, fetchProjects, fetchRecords,
   fetchWorkbenchStatus, renameProject, updateRecord,
-  type Project, type WorkRecord, type WorkbenchStatus,
+  type CaptureInput, type Project, type WorkRecord, type WorkbenchStatus,
 } from './api'
+import { AiCapturePanel } from './AiCapturePanel'
 import { TasksPanel } from './TasksPanel'
 
 const WORKBENCH_TIME_ZONE = 'Asia/Shanghai'
@@ -38,6 +39,7 @@ function App() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [captureRevision, setCaptureRevision] = useState(0)
 
   const loadProjects = useCallback(async () => setProjects(await fetchProjects(true)), [])
   const loadRecords = useCallback(async (date: string) => setRecords(await fetchRecords(date)), [])
@@ -131,6 +133,12 @@ function App() {
 
       <section className="workspace">
         <div className="main-column">
+          <AiCapturePanel onGenerated={async (result: CaptureInput) => {
+            const firstRecord = result.records[0]
+            if (firstRecord) setSelectedDate(localDate(new Date(firstRecord.occurredAt)))
+            await loadRecords(firstRecord ? localDate(new Date(firstRecord.occurredAt)) : selectedDate)
+            setCaptureRevision((value) => value + 1)
+          }} />
           <article className="panel composer">
             <div className="section-heading">
               <div><p className="kicker">WORK LOG</p><h2>{editingId ? '编辑工作记录' : '记一笔工作'}</h2></div>
@@ -153,14 +161,14 @@ function App() {
             </form>
           </article>
 
-          <TasksPanel projects={projects} onRecordsChanged={() => loadRecords(selectedDate)} />
+          <TasksPanel key={captureRevision} projects={projects} onRecordsChanged={() => loadRecords(selectedDate)} />
 
           <section className="records" aria-labelledby="records-title">
             <div className="section-heading"><div><p className="kicker">TIMELINE</p><h2 id="records-title">{selectedDate} 的记录</h2></div><span>{records.length} 条</span></div>
             {records.length === 0 ? (
               <div className="empty"><strong>这一天还没有记录</strong><span>在上方写下第一条，或切换日期补记历史工作。</span></div>
             ) : records.map((record) => (
-              <article className={`record ${record.source === 'TASK_COMPLETION' ? 'record-automatic' : ''}`} key={record.id}>
+              <article id={`record-${record.id}`} className={`record ${record.source === 'TASK_COMPLETION' ? 'record-automatic' : ''}`} key={record.id}>
                 <time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, hour: '2-digit', minute: '2-digit' })}</time>
                 <div className="record-body">
                   <div className="record-meta">

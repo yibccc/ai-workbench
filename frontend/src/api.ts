@@ -78,6 +78,21 @@ export interface TaskFilters {
   due?: TaskDueFilter
 }
 
+export type InputStatus = 'PROCESSING' | 'SUCCEEDED' | 'FAILED' | 'REVERTED'
+export interface CaptureInput {
+  id: string
+  requestId: string
+  content: string
+  referenceAt: string
+  zoneId: string
+  status: InputStatus
+  errorMessage: string | null
+  attemptCount: number
+  completedAt: string | null
+  records: Array<{ id: string; projectId: string | null; projectName: string | null; content: string; occurredAt: string }>
+  tasks: Array<{ id: string; projectId: string | null; projectName: string | null; title: string; notes: string; dueAt: string | null; priority: TaskPriority; version: number }>
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -119,3 +134,6 @@ export const deleteTask = (id: string, version: number) => request<void>(`/api/t
 export const completeTask = (id: string, version: number, result = '') => request<TaskItem>(`/api/tasks/${id}/complete`, { method: 'POST', body: JSON.stringify({ version, result }) })
 export const reopenTask = (id: string, version: number) => request<TaskItem>(`/api/tasks/${id}/reopen`, { method: 'POST', body: JSON.stringify({ version }) })
 export const updateTaskCompletionResult = (id: string, version: number, result: string) => request<TaskItem>(`/api/tasks/${id}/completion-result`, { method: 'PUT', body: JSON.stringify({ version, result }) })
+export const createCaptureInput = (requestId: string, content: string, signal?: AbortSignal) => request<CaptureInput>('/api/inputs', { method: 'POST', body: JSON.stringify({ requestId, content }), signal })
+export const fetchCaptureInput = (id: string, signal?: AbortSignal) => request<CaptureInput>(`/api/inputs/${id}`, { signal })
+export const retryCaptureInput = (id: string, signal?: AbortSignal) => request<CaptureInput>(`/api/inputs/${id}/retry`, { method: 'POST', signal })
