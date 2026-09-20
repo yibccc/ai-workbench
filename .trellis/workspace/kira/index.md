@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
+- **Total Sessions**: 8
 - **Last Active**: 2026-09-20
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~168 | Active |
+| `journal-1.md` | ~191 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 8 | 2026-09-20 | 完成 D8 周报与版本保护 | `b099337`, `805054a` | `master` |
 | 7 | 2026-09-20 | 完成 D7 手动当天汇总 | `eca7d6a`, `d2c9356` | `master` |
 | 6 | 2026-09-20 | 完成 D6 撤销、重试与故障恢复 | `6b49437`, `3269a8f` | `master` |
 | 5 | 2026-09-20 | 完成 D5 统一输入与 AI 自动拆分 | `4e6a0d1`, `57f3ac9` | `master` |

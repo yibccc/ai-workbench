@@ -166,3 +166,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 8: 完成 D8 周报与版本保护
+<!-- trellis-session: v=2 fp=f50b8788dcb2ee04 -->
+
+**Date**: 2026-09-20
+**Task**: 完成 D8 周报与版本保护
+**Branch**: `master`
+
+### Summary
+
+实现自然周周报、来源角色、线性版本链、不可变快照与独立人工补充；增加周报专用模型超时和大来源风险记录。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b099337` | feat: add versioned source-grounded weekly reports |
+| `805054a` | docs: record D8 weekly report contracts |
+
+### Status
+
+[OK] **Completed**
