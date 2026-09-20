@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"检查 report 功能包边界与现有简单分层一致。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查日期边界、来源快照、报告状态、版本和幂等事务。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"检查日报模型调用、严格 JSON、来源 ID 校验、超时和安全错误。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查生成失败不覆盖草稿、来源越界和编辑冲突的 problem+json。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查日期、轮询、来源、编辑、保存、复制和失败反馈。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查从有效数据取数到快照、AI 要点和前端核对的全链路事实一致性。"}

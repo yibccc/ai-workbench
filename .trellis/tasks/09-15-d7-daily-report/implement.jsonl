@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"D7 新增 report 功能包并复用 AI、record、task，继续保持非 DDD 功能分包。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"D7 涉及报告状态、请求幂等、来源快照、版本编辑和本地日期取数。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"D7 使用 DeepSeek 严格结构化输出、超时与不可信模型边界。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"生成失败、来源校验、编辑冲突和复制前保存必须提供稳定错误契约。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D7 新增日期选择、生成轮询、来源核对、编辑保存和复制界面。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"来源候选、快照、模型引用、报告正文和 UI 展示跨越多层。"}

@@ -183,3 +183,74 @@ AiCaptureResult result = strictMapper.readValue(wholeModelPayload, AiCaptureResu
 ```
 
 Serialize untrusted input, decode the entire output strictly, then validate business meaning before persistence.
+
+---
+
+## Scenario: Source-grounded report generation
+
+### 1. Scope / Trigger
+
+Use this contract for AI-generated daily or weekly report text. The gateway formats candidate snapshots, but the backend owns source authorization and rejects any unsupported model claim.
+
+### 2. Signatures
+
+- `ReportAiGateway.generate(LocalDate date, ZoneId zoneId, List<ReportSourcePrompt> sources) -> AiReportResult`
+- `AiReportResult.sections[] = { type, bullets[] }`
+- `bullet = { text, sourceIds[] }`
+- Daily section types: `ACHIEVEMENTS | PROGRESS | PLANS`
+
+### 3. Contracts
+
+- Serialize date, zone, and frozen report-source IDs/content into one untrusted `input_data` JSON object.
+- Decode the whole model response strictly: reject unknown properties, trailing tokens, scalar coercion, malformed JSON, and incomplete Markdown fences.
+- Every nonempty AI bullet requires at least one source ID. Each ID must belong to this report snapshot.
+- For daily reports, ACHIEVEMENTS/PROGRESS may reference only RECORD sources; PLANS may reference only TASK sources.
+- Reject duplicate section types and duplicate source references according to the report policy. Enforce global bullet and text-length limits.
+- Render stable `[来源 N]` markers from the persisted source ordering so users can inspect each generated claim.
+- Missing sections use deterministic backend placeholders. The model must not invent text for a section without evidence.
+- The DeepSeek timeout and sanitized error rules from the strict extraction boundary also apply here.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Bullet has no source IDs | Reject the report result |
+| Unknown/out-of-snapshot source ID | Reject; mark this report FAILED |
+| RECORD used in PLANS or TASK used in fact sections | Reject |
+| Duplicate section/source reference | Reject |
+| Missing section | Render deterministic empty placeholder |
+| Complete single JSON fence | Unwrap and strictly decode |
+| Incomplete fence, explanation, or trailing payload | Reject |
+
+### 5. Good / Base / Bad Cases
+
+- Good: each generated bullet ends with source markers that resolve to the frozen source list.
+- Base: one section has no evidence and is rendered by the backend as an explicit empty state.
+- Bad: accepting prose around JSON, silently dropping source IDs after validation, or treating manually edited sentences as automatically source-backed.
+
+### 6. Tests Required
+
+- Parser tests for strict JSON, complete/incomplete fences, unknown fields, trailing tokens, and coercion.
+- Validation tests for missing, unknown, duplicate, and cross-type source IDs.
+- Render tests assert every generated bullet maps to stable source numbers and empty sections use exact placeholders.
+- Persistence tests assert invalid model output fails only the new report and older reports remain unchanged.
+- Real-model acceptance is separate from regression; record sanitized evidence once unless the gateway path changes materially.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```java
+String body = model.generate(sources).text();
+reportRepository.save(body); // source references discarded
+```
+
+#### Correct
+
+```java
+AiReportResult result = gateway.generate(date, zone, frozenSources);
+ValidatedReport validated = validateSourceIds(result, frozenSources);
+String body = renderWithStableSourceMarkers(validated, frozenSources);
+```
+
+Validate authorization first, preserve the mapping, then persist the rendered report.

@@ -446,3 +446,80 @@ WHERE id=:id AND status='PROCESSING' AND processing_token=:token;
 ```
 
 Acquire and fence ownership in PostgreSQL, then require that token on every terminal write.
+
+---
+
+## Scenario: Daily report versions and immutable source snapshots
+
+### 1. Scope / Trigger
+
+Use this contract for daily-report source selection, generation requests, report history, edits, and any consumer that displays evidence for generated text. A report is a versioned artifact with frozen evidence, not a live projection that changes when source rows change.
+
+### 2. Signatures
+
+- `POST /api/reports { requestId, reportType?: "DAILY", date? } -> 201 ReportResponse`
+- `GET /api/reports?date=YYYY-MM-DD -> ReportResponse[]`
+- `GET /api/reports/{id} -> ReportResponse`
+- `PATCH /api/reports/{id} { content, version } -> ReportResponse`
+- `ReportStatus = PROCESSING | SUCCEEDED | FAILED`
+- `report_sources(report_id, source_type, entity_id, content, project/projectName, source_status, source_time, snapshot)`
+
+### 3. Contracts
+
+- Each generation request creates a new report row. Multiple DAILY versions for the same date are allowed; `request_id` alone is unique.
+- Reusing a request ID for the same date/type returns the existing report and does not call the gateway again. Reusing it for another date/type returns 409.
+- The owner transaction creates `PROCESSING` and freezes all source snapshots before the model call. The model runs outside the transaction.
+- Daily record sources are active work records in the Asia/Shanghai interval `[dayStart, nextDayStart)`. Inactive records, including reopened/deleted completion facts and reverted capture rows, are excluded.
+- Plan sources are non-deleted `PENDING` tasks whose `due_at` is inside that same interval. Completed tasks are represented only by their active completion work record, preventing duplicate facts.
+- Source snapshot text, project identity/name, status, time, and structured metadata never change after insertion, even if the source is edited, archived, invalidated, or deleted later.
+- Success requires the processing token and writes content/status/version. Failure affects only the new report row and never overwrites an older successful or edited report.
+- Content edits are allowed only for `SUCCEEDED`, require the current version, increment it, and set `edited_at`.
+- Generated source markers describe the AI-generated content. Once a user edits the body, the UI must state that source markers are not automatically recalculated and must not claim that new user text has AI evidence.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Same request ID, same DAILY date | Return existing version; one gateway call |
+| Same request ID, different date/type | HTTP 409 |
+| Empty source set | Succeed with deterministic empty-section text; no fabricated bullets |
+| Model/source validation failure | New row becomes FAILED; older reports unchanged |
+| PATCH missing/negative version | HTTP 400 |
+| PATCH stale version or non-SUCCEEDED report | HTTP 409 |
+| Source changes after generation | Existing report_sources and content remain unchanged |
+
+### 5. Good / Base / Bad Cases
+
+- Good: generate a report, edit the underlying record, and still inspect the original snapshot and `[来源 N]` mapping in the saved report.
+- Base: no sources yields “暂无记录” and “暂无已安排计划” without calling or trusting the model.
+- Bad: enforcing one report per date, joining live source text when reading history, including inactive completion records, or updating the latest report row in place for regeneration.
+
+### 6. Tests Required
+
+- Test the Asia/Shanghai day boundary and historical-date backfill with fixed instants.
+- Test empty, plan-only, progress-only, active completion, invalid completion, and reverted source cases.
+- Generate, mutate/delete the source, and assert the report snapshot is unchanged.
+- Test same-request concurrency with independent transactions; assert one report and one gateway invocation.
+- Test multiple request IDs on one date, failed regeneration isolation, successful edit, stale edit conflict, and missing version.
+- Run legacy reports through V8 and an empty schema through all migrations, confirming the old per-period unique constraint is removed safely.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```sql
+SELECT wr.content
+FROM report_sources rs
+JOIN work_records wr ON wr.id = rs.entity_id;
+```
+
+#### Correct
+
+```sql
+SELECT content, project_name, source_status, source_time, snapshot
+FROM report_sources
+WHERE report_id = :reportId
+ORDER BY source_time, id;
+```
+
+Read report evidence from the immutable snapshot, never from mutable live source rows.
