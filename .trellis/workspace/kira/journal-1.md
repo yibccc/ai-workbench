@@ -143,3 +143,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 7: 完成 D7 手动当天汇总
+<!-- trellis-session: v=2 fp=6815ae2127ee68d6 -->
+
+**Date**: 2026-09-20
+**Task**: 完成 D7 手动当天汇总
+**Branch**: `master`
+
+### Summary
+
+实现按 Asia/Shanghai 日期生成可追溯日报、不可变来源快照、多版本历史、编辑保存与复制；补强逐要点来源映射、失败隔离和未保存保护。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `eca7d6a` | feat: add source-grounded daily reports |
+| `d2c9356` | docs: record D7 daily report contracts |
+
+### Status
+
+[OK] **Completed**
