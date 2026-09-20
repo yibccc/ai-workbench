@@ -120,3 +120,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 6: 完成 D6 撤销、重试与故障恢复
+<!-- trellis-session: v=2 fp=8758cd752175bf70 -->
+
+**Date**: 2026-09-20
+**Task**: 完成 D6 撤销、重试与故障恢复
+**Branch**: `master`
+
+### Summary
+
+实现 PostgreSQL 原子处理认领、租约与 token fencing、启动恢复、不可变批次 ledger 和安全整批撤销；补充模型超时与删除并发保护。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6b49437` | feat: add resilient capture recovery and revert |
+| `3269a8f` | docs: record D6 recovery and fencing contracts |
+
+### Status
+
+[OK] **Completed**
