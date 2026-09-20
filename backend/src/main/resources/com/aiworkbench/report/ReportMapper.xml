@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.report.ReportMapper">
+    <resultMap id="reportRow" type="com.aiworkbench.report.ReportRow">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/><arg column="request_id" javaType="java.util.UUID"/>
+            <arg column="report_type" javaType="java.lang.String"/><arg column="period_start" javaType="java.time.LocalDate"/>
+            <arg column="period_end" javaType="java.time.LocalDate"/><arg column="status" javaType="com.aiworkbench.report.ReportStatus"/>
+            <arg column="content" javaType="java.lang.String"/><arg column="error_message" javaType="java.lang.String"/>
+            <arg column="zone_id" javaType="java.lang.String"/><arg column="version" javaType="long"/>
+            <arg column="edited_at" javaType="java.time.Instant"/><arg column="created_at" javaType="java.time.Instant"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="sourceRow" type="com.aiworkbench.report.ReportSourceRow">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/><arg column="report_id" javaType="java.util.UUID"/>
+            <arg column="source_type" javaType="com.aiworkbench.report.ReportSourceType"/><arg column="entity_id" javaType="java.util.UUID"/>
+            <arg column="content" javaType="java.lang.String"/><arg column="project_id" javaType="java.util.UUID"/>
+            <arg column="project_name" javaType="java.lang.String"/><arg column="source_status" javaType="java.lang.String"/>
+            <arg column="source_time" javaType="java.time.Instant"/><arg column="snapshot" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <sql id="reportColumns">id, request_id, report_type, period_start, period_end, status, content,
+        error_message, zone_id, version, edited_at, created_at, updated_at</sql>
+    <insert id="insertReport">
+        INSERT INTO reports (id, request_id, report_type, period_start, period_end, status, content, zone_id, processing_token)
+        VALUES (#{id}, #{requestId}, 'DAILY', #{date}, #{date}, 'PROCESSING', '', #{zoneId}, #{token})
+        ON CONFLICT (request_id) DO NOTHING
+    </insert>
+    <select id="findById" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE id=#{id}</select>
+    <select id="findByRequestId" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE request_id=#{requestId}</select>
+    <select id="findDaily" resultMap="reportRow">
+        SELECT <include refid="reportColumns"/> FROM reports
+        WHERE report_type='DAILY' <if test="date != null">AND period_start=#{date}</if>
+        ORDER BY period_start DESC, created_at DESC
+    </select>
+    <select id="findCandidateRecords" resultMap="sourceRow">
+        SELECT gen_random_uuid() id, NULL::uuid report_id, 'RECORD' source_type, wr.id entity_id,
+               CASE WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
+               wr.project_id, p.name project_name, wr.source source_status, wr.occurred_at source_time,
+               jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result)::text snapshot
+        FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id
+        WHERE wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
+        ORDER BY wr.occurred_at, wr.id
+    </select>
+    <select id="findCandidateTasks" resultMap="sourceRow">
+        SELECT gen_random_uuid() id, NULL::uuid report_id, 'TASK' source_type, t.id entity_id,
+               CASE WHEN t.notes &lt;&gt; '' THEN t.title || E'\n备注：' || t.notes ELSE t.title END content,
+               t.project_id, p.name project_name, t.status source_status, t.due_at source_time,
+               jsonb_build_object('priority',t.priority,'notes',t.notes)::text snapshot
+        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id
+        WHERE t.due_at &gt;=#{start} AND t.due_at &lt;#{end} AND t.deleted_at IS NULL AND t.status='PENDING'
+        ORDER BY t.due_at, t.id
+    </select>
+    <insert id="insertSource">
+        INSERT INTO report_sources (id, report_id, source_type, entity_id, content, project_id, project_name, source_status, source_time, snapshot)
+        VALUES (#{id}, #{reportId}, #{source.sourceType}, #{source.entityId}, #{source.content}, #{source.projectId},
+                #{source.projectName}, #{source.sourceStatus}, #{source.sourceTime}, CAST(#{source.snapshot} AS jsonb))
+    </insert>
+    <select id="findSources" resultMap="sourceRow">
+        SELECT id, report_id, source_type, entity_id, content, project_id, project_name, source_status, source_time, snapshot::text snapshot
+        FROM report_sources WHERE report_id=#{reportId} ORDER BY source_time, id
+    </select>
+    <update id="markSucceeded">
+        UPDATE reports SET status='SUCCEEDED', content=#{content}, error_message=NULL, processing_token=NULL,
+            version=version+1, updated_at=#{now} WHERE id=#{id} AND status='PROCESSING' AND processing_token=#{token}
+    </update>
+    <update id="markFailed">
+        UPDATE reports SET status='FAILED', error_message=#{message}, processing_token=NULL, updated_at=#{now}
+        WHERE id=#{id} AND status='PROCESSING' AND processing_token=#{token}
+    </update>
+    <update id="updateContent">
+        UPDATE reports SET content=#{content}, version=version+1, edited_at=#{now}, updated_at=#{now}
+        WHERE id=#{id} AND status='SUCCEEDED' AND version=#{version}
+    </update>
+</mapper>

@@ -31,6 +31,14 @@ button:disabled { cursor: wait; opacity: .55; }
 .secondary { color: #a7bbb4; border-color: #385249; background: transparent; }
 .task-panel { margin-top: 20px; }
 .ai-capture { margin-bottom: 20px; border-color: #2e765d; }
+.daily-report { margin-bottom: 20px; border-color: #49725f; }
+.report-toolbar { display: grid; grid-template-columns: auto minmax(220px, 1fr); gap: 10px; margin-bottom: 18px; }
+.report-meta { color: #789087; font: .75rem/1.5 monospace; }
+.report-sources { margin-top: 20px; border-top: 1px solid #1b342c; padding-top: 16px; }
+.report-sources summary { cursor: pointer; color: #75dcb1; }
+.report-sources article { padding: 14px 0; border-bottom: 1px solid #1b342c; }
+.report-sources article p { margin: 8px 0; color: #b9cbc5; white-space: pre-wrap; }
+.report-sources small { color: #789087; }
 .capture-state { margin: 18px 0 0; color: #9fb5ad; }
 .capture-failed { display: flex; align-items: center; justify-content: space-between; gap: 14px; color: #ffc3c3; }
 .capture-results { display: grid; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #1b342c; }
@@ -72,4 +80,4 @@ button:disabled { cursor: wait; opacity: .55; }
 .project span, .muted { color: #789087; font-size: .74rem; }
 .project-archived strong { color: #788c85; text-decoration: line-through; }
 @media (max-width: 860px) { .hero { align-items: flex-start; flex-direction: column; } .health { justify-content: flex-start; } .workspace { grid-template-columns: 1fr; } .projects { position: static; grid-row: 1; } .task-filters { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 580px) { .shell { width: min(100% - 24px, 1240px); padding-top: 36px; } .form-row, .task-fields, .task-filters { grid-template-columns: 1fr; } .record { grid-template-columns: 52px minmax(0,1fr); } .record-actions { grid-column: 2; } .task .record-actions { grid-column: 1; } .task { grid-template-columns: 1fr; } .section-heading { align-items: flex-start; flex-direction: column; } .project-form { flex-direction: column; } }
+@media (max-width: 580px) { .shell { width: min(100% - 24px, 1240px); padding-top: 36px; } .form-row, .task-fields, .task-filters, .report-toolbar { grid-template-columns: 1fr; } .record { grid-template-columns: 52px minmax(0,1fr); } .record-actions { grid-column: 2; } .task .record-actions { grid-column: 1; } .task { grid-template-columns: 1fr; } .section-heading { align-items: flex-start; flex-direction: column; } .project-form { flex-direction: column; } }

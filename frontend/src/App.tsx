@@ -6,6 +6,7 @@ import {
 } from './api'
 import { AiCapturePanel } from './AiCapturePanel'
 import { TasksPanel } from './TasksPanel'
+import { DailyReportPanel } from './DailyReportPanel'
 
 const WORKBENCH_TIME_ZONE = 'Asia/Shanghai'
 const workbenchParts = (date = new Date()) => Object.fromEntries(
@@ -40,6 +41,15 @@ function App() {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [captureRevision, setCaptureRevision] = useState(0)
+  const [reportDirty, setReportDirty] = useState(false)
+
+  const changeSelectedDate = (nextDate: string) => {
+    if (nextDate === selectedDate) return true
+    if (reportDirty && !window.confirm('日报正文尚未保存，确定切换日期并放弃修改吗？')) return false
+    setSelectedDate(nextDate)
+    if (!editingId) setOccurredAt(timeForDate(nextDate))
+    return true
+  }
 
   const loadProjects = useCallback(async () => setProjects(await fetchProjects(true)), [])
   const loadRecords = useCallback(async (date: string) => setRecords(await fetchRecords(date)), [])
@@ -133,19 +143,19 @@ function App() {
 
       <section className="workspace">
         <div className="main-column">
+          <DailyReportPanel date={selectedDate} onDateChange={changeSelectedDate} onDirtyChange={setReportDirty} />
           <AiCapturePanel onGenerated={async (result: CaptureInput) => {
             const firstRecord = result.records[0]
-            if (firstRecord) setSelectedDate(localDate(new Date(firstRecord.occurredAt)))
-            await loadRecords(firstRecord ? localDate(new Date(firstRecord.occurredAt)) : selectedDate)
+            const generatedDate = firstRecord ? localDate(new Date(firstRecord.occurredAt)) : selectedDate
+            const changed = firstRecord ? changeSelectedDate(generatedDate) : true
+            await loadRecords(changed ? generatedDate : selectedDate)
             setCaptureRevision((value) => value + 1)
           }} />
           <article className="panel composer">
             <div className="section-heading">
               <div><p className="kicker">WORK LOG</p><h2>{editingId ? '编辑工作记录' : '记一笔工作'}</h2></div>
               <input aria-label="查看日期" type="date" value={selectedDate} onChange={(event) => {
-                const nextDate = event.target.value
-                setSelectedDate(nextDate)
-                if (!editingId) setOccurredAt(timeForDate(nextDate))
+                changeSelectedDate(event.target.value)
               }} />
             </div>
             <form onSubmit={submitRecord}>
