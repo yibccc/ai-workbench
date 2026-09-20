@@ -523,3 +523,94 @@ ORDER BY source_time, id;
 ```
 
 Read report evidence from the immutable snapshot, never from mutable live source rows.
+
+---
+
+## Scenario: Weekly report roles and linear version history
+
+### 1. Scope / Trigger
+
+Use this contract for WEEKLY source selection, natural-week boundaries, regeneration history, manual additions, and version-chain concurrency. Weekly reports extend the daily report pipeline; they do not create a separate persistence architecture.
+
+### 2. Signatures
+
+- `POST /api/reports { requestId, reportType: "WEEKLY", date } -> ReportResponse`
+- `GET /api/reports?reportType=WEEKLY&date=YYYY-MM-DD -> ReportResponse[]`
+- `PATCH /api/reports/{id}/manual-additions { manualAdditions, version } -> ReportResponse`
+- `ReportSourceRole = WEEK_RECORD | CURRENT_TASK | NEXT_WEEK_TASK` for weekly reports.
+- `reports.previous_report_id` links each weekly version to the prior chain tail.
+- For WEEKLY, `period_end` is the exclusive next Monday.
+
+### 3. Contracts
+
+- Normalize any requested date to its Asia/Shanghai Monday. The current week is `[periodStart Monday 00:00, periodEnd next Monday 00:00)`.
+- The next-week plan window is `[periodEnd, periodEnd + 1 week)`.
+- `WEEK_RECORD`: active work records whose `occurred_at` is in the current-week window.
+- `CURRENT_TASK`: non-deleted PENDING tasks whose `created_at`, `updated_at`, or `due_at` is in the current-week window.
+- `NEXT_WEEK_TASK`: non-deleted PENDING tasks with a non-null `due_at` in the next-week window. A task without a due date is never a next-week commitment.
+- The same task may have multiple role-specific snapshots and therefore multiple snapshot IDs. Uniqueness is `(report_id, source_role, entity_id)`.
+- ACHIEVEMENTS uses only WEEK_RECORD. PROGRESS uses WEEK_RECORD or CURRENT_TASK. PLANS uses only NEXT_WEEK_TASK.
+- Multiple factual sources may support one merged bullet; all supporting snapshot IDs must remain attached.
+- Every regeneration creates a new row and immutable snapshots. Source edits, project rename/archive, deletion, or invalidation never rewrite old versions.
+- Weekly version creation takes a transaction-scoped PostgreSQL advisory lock keyed by week. Inside the lock, choose the report with no successor as the chain tail; do not infer chain order from `created_at`.
+- Only WEEKLY reports participate in `previous_report_id` chaining. DAILY creation must not modify or join that chain.
+- AI content and `manual_additions` are separate fields with separate edited timestamps. Copy may combine them only with an explicit user-authored label.
+- The manual baseline and workbench editing time are acceptance observations, not synthetic product metrics. Missing manual timing remains “pending user measurement.”
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| Requested date is not Monday | Normalize to that date's Monday |
+| No sources for a weekly section | Deterministic section-specific placeholder |
+| Undated task | May be CURRENT_TASK if active this week; never NEXT_WEEK_TASK |
+| Wrong source role in section | Reject model result; new version FAILED |
+| Concurrent different request IDs for one week | Advisory lock creates one linear previous-report chain |
+| Manual additions stale version | HTTP 409; AI content and prior additions unchanged |
+| Source/project changes after generation | Old content and role snapshots unchanged |
+
+### 5. Good / Base / Bad Cases
+
+- Good: generate week version A, rename a project and backfill a record, then generate B; A keeps its old snapshot/name, B sees current data and points to A.
+- Base: an undated PENDING task may describe current activity but never appears as a next-week plan.
+- Bad: treating `period_end` as inclusive, ordering a version chain by transaction `CURRENT_TIMESTAMP`, overwriting the latest row, or storing manual additions inside source-backed AI content.
+
+### 6. Tests Required
+
+- Test Sunday/Monday boundaries and a historical week with fixed instants.
+- Test WEEK_RECORD, CURRENT_TASK, NEXT_WEEK_TASK, undated exclusion, completed/deleted task exclusion, and the same task in two roles.
+- Test duplicate achievement consolidation with multiple retained source IDs.
+- Generate A, mutate/backfill/rename sources, generate B, and assert version link plus immutable A snapshots.
+- Run at least six concurrent creates for the same week with distinct request IDs; assert a single linear chain with one root and one tail.
+- Test manual additions independently from AI-body edits, both with optimistic versions and copy labeling.
+- Test legacy V8 and an empty schema through V9.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```sql
+SELECT id FROM reports
+WHERE report_type='WEEKLY' AND period_start=:week
+ORDER BY created_at DESC LIMIT 1;
+```
+
+Transaction timestamps are not lock-acquisition order and can create a fork under concurrency.
+
+#### Correct
+
+```sql
+SELECT pg_advisory_xact_lock(hashtextextended('weekly-report:' || :week, 0));
+
+SELECT current_report.id
+FROM reports current_report
+WHERE current_report.report_type='WEEKLY'
+  AND current_report.period_start=:week
+  AND NOT EXISTS (
+      SELECT 1 FROM reports next_report
+      WHERE next_report.previous_report_id=current_report.id
+  )
+LIMIT 1;
+```
+
+Serialize creation per week and connect the new version to the actual unreferenced chain tail.

@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"检查 D8 复用 report 功能包且保持当前简单架构。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查自然周与下一周边界、来源角色、多版本、快照和人工补充持久化。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"检查周报三段、严格 JSON、来源 ID/角色校验、事实边界和安全错误。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查失败不覆盖旧稿、编辑冲突和历史版本访问的 problem+json。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查选周、历史、来源、AI 正文与手写补充区分、保存复制和未保存保护。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查从周期取数到快照角色、AI 要点和前端版本的全链路一致性。"}

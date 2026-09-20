@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"D8 扩展 report 功能包，不引入 DDD 或新的平行报告实现。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"D8 涉及自然周边界、周报版本关系、来源角色、手写补充和快照保护。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"D8 复用严格周报结构化输出、来源授权、超时和不可信模型边界。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"周报生成失败、来源越界、编辑冲突和旧稿保护需要稳定错误契约。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D8 新增选周、三段周报、历史版本、手写补充、编辑保存和复制。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"周边界、来源角色、模型引用、版本关系与 UI 历史跨越多层。"}

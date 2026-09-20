@@ -254,3 +254,71 @@ String body = renderWithStableSourceMarkers(validated, frozenSources);
 ```
 
 Validate authorization first, preserve the mapping, then persist the rendered report.
+
+---
+
+## Scenario: Weekly report model limits and role validation
+
+### 1. Scope / Trigger
+
+Use this contract when generating WEEKLY model prompts or changing report-specific model limits. Report calls have different latency/output needs from capture and must not weaken capture fencing.
+
+### 2. Signatures
+
+- `ReportAiGateway.generateWeekly(periodStart, periodEnd, zoneId, sources) -> AiReportResult`
+- `REPORT_AI_TIMEOUT` / `workbench.report.ai.timeout`, default `PT6M`
+- `REPORT_AI_MAX_TOKENS` / `workbench.report.ai.max-tokens`, default `4096`
+- Capture remains governed by `DEEPSEEK_TIMEOUT=PT4M` and the longer `PT5M` processing lease.
+
+### 3. Contracts
+
+- Weekly prompt sections are fixed: ACHIEVEMENTS, PROGRESS, PLANS.
+- Role authorization is enforced again in backend validation, never only in prompt text.
+- Set low temperature and a bounded report response-token limit.
+- Use the report-specific timeout for daily/weekly report generation. Do not raise the global DeepSeek capture timeout to accommodate large reports.
+- Serialize every frozen source included in the report; never silently truncate, sample, or drop evidence to manufacture a successful response.
+- A large source set that exceeds the current single-call strategy becomes FAILED with preserved snapshots and a retry/regeneration path.
+- Future batching must retain end-to-end source IDs through intermediate summaries; lossy truncation is not an acceptable fix.
+
+### 4. Validation & Error Matrix
+
+| Condition | Result |
+|---|---|
+| WEEK_RECORD in ACHIEVEMENTS | Allowed |
+| WEEK_RECORD or CURRENT_TASK in PROGRESS | Allowed |
+| NEXT_WEEK_TASK in PLANS | Allowed |
+| Any other role/section pairing | Reject report output |
+| Same achievement uses multiple sources | Allowed only when all source IDs are retained |
+| Report exceeds report-specific timeout | New version FAILED; older versions unchanged |
+| Invalid timeout/token config | Use documented safe defaults; never make capture lease invalid |
+
+### 5. Good / Base / Bad Cases
+
+- Good: a merged completion bullet references all corresponding frozen facts, and manual notes remain outside the AI body.
+- Base: a small report completes within the bounded call and missing sections use deterministic placeholders.
+- Bad: truncating 96 sources to the first N, increasing `DEEPSEEK_TIMEOUT` beyond the capture lease, or retrying a paid call automatically after a timeout.
+
+### 6. Tests Required
+
+- Prompt tests assert weekly boundaries, role instructions, untrusted input serialization, timeout, temperature, and max-token options.
+- Construct at least 96 sources locally and assert prompt generation is bounded in time and preserves every UUID; this is not proof of real-model latency.
+- Validation tests cover every allowed and forbidden role/section pair plus multi-source bullets.
+- Timeout tests use a fake gateway and assert FAILED isolation without automatic paid retry.
+- Record real-model latency/failure evidence separately. Do not claim PT6M success until explicitly revalidated.
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```java
+List<Source> promptSources = sources.stream().limit(50).toList();
+```
+
+#### Correct
+
+```java
+AiReportResult result = reportGateway.generateWeekly(start, end, zone, frozenSources);
+// If single-call scale is insufficient, fail honestly and design a source-preserving batch pipeline.
+```
+
+Keep complete evidence or fail explicitly; never hide omitted facts.
