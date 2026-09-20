@@ -97,3 +97,26 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 5: 完成 D5 统一输入与 AI 自动拆分
+<!-- trellis-session: v=2 fp=73cc61b93c0f5251 -->
+
+**Date**: 2026-09-20
+**Task**: 完成 D5 统一输入与 AI 自动拆分
+**Branch**: `master`
+
+### Summary
+
+实现原文优先保存、事务外 DeepSeek 提取、整批原子落库、基础重试和统一输入界面；补强严格 JSON、不可信提示边界、错误脱敏与有限轮询。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4e6a0d1` | feat: add AI-assisted unified capture |
+| `57f3ac9` | docs: record D5 AI capture contracts |
+
+### Status
+
+[OK] **Completed**
