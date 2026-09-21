@@ -14,7 +14,7 @@ This directory contains guidelines for backend development. Fill in each file wi
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Controller / service interfaces / service implementations / mapper layers; no DDD | Active |
+| [Directory Structure](./directory-structure.md) | Controller / service interfaces / service implementations / mapper layers | Active |
 | [Database Guidelines](./database-guidelines.md) | PostgreSQL migrations, MyBatis mapping, time ranges, and project associations | Active |
 | [Error Handling](./error-handling.md) | Problem details, validation, conflicts, and safe exception translation | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
@@ -22,6 +22,8 @@ This directory contains guidelines for backend development. Fill in each file wi
 | [Runtime Integration Contract](./runtime-integration.md) | Local infrastructure, environment variables, status APIs, and probe error behavior | Active |
 | [Pagination](./pagination.md) | PageHelper query scope, zero-based API, thread-local cleanup and browser behavior | Active |
 | [Report Deletion](./report-deletion.md) | Daily version soft deletion, concurrency, idempotency and retained evidence | Active |
+| [Local Delivery](./local-delivery.md) | Windows process ownership, WSL Docker, backup and isolated restore | Active |
+| [Linux Deployment](./linux-deployment.md) | Four-service Docker build, authenticated Nginx ingress and exact WebSocket origins | Active |
 
 ---
 

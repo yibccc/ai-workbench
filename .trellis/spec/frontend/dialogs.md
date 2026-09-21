@@ -13,7 +13,7 @@ All in-app confirmations and text prompts use `components/Dialog` and `DialogPro
 - Destructive actions have a red confirm button and explain impact; cancellation is the initial focus for destructive confirmation.
 - Prompt inputs retain their value on validation/network failure. Task results permit empty text, multiple lines and at most 4000 characters; Enter inserts a newline and Ctrl+Enter submits.
 - Guard duplicate submits synchronously as well as with disabled buttons. A second confirmation cannot replace an in-flight operation.
-- Close once the write succeeds. A subsequent list-refresh failure must not pretend the mutation failed and invite a duplicate write.
+- Close once the write succeeds. Show subsequent list-refresh failures separately from the successful write, with a refresh action.
 
 ## Verification
 

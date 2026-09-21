@@ -1,6 +1,58 @@
 name: ai-workbench
 
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      SERVER_ADDRESS: 0.0.0.0
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-ai_workbench}
+      POSTGRES_USER: ${POSTGRES_USER:-ai_workbench}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_only}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+      DEEPSEEK_TIMEOUT: ${DEEPSEEK_TIMEOUT:-PT4M}
+      REPORT_AI_TIMEOUT: ${REPORT_AI_TIMEOUT:-PT6M}
+      REPORT_AI_MAX_TOKENS: ${REPORT_AI_MAX_TOKENS:-4096}
+      WORKBENCH_WS_ALLOWED_ORIGINS: ${WORKBENCH_WS_ALLOWED_ORIGINS:-http://127.0.0.1:8088,http://localhost:8088}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      WORKBENCH_AUTH_USER: ${WORKBENCH_AUTH_USER:-}
+      WORKBENCH_AUTH_PASSWORD: ${WORKBENCH_AUTH_PASSWORD:-}
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8088}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   postgres:
     image: postgres:17.6-alpine
     environment:

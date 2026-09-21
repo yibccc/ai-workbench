@@ -2,7 +2,7 @@
 
 ## Decision
 
-The user selected conventional three-layer architecture on 2026-09-21, superseding feature-colocated controllers/services/mappers. Do not introduce DDD.
+The backend uses conventional three-layer architecture: controllers, service interfaces and implementations, and MyBatis mappers.
 
 ## Layout
 

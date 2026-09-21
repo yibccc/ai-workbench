@@ -1,106 +1,171 @@
 # AI Workbench
 
-日报允许同一天手动生成多个版本，以保留已有编辑稿。成功或失败版本可通过站内“删除此版本”确认弹窗移除，生成中不能删除。删除仅隐藏指定日报，保留其他版本、来源快照和原工作记录/待办；未保存正文会在确认后丢弃。API 为 `DELETE /api/reports/{id}?version=当前版本号`，版本冲突返回 409；同一已删除日报重复删除返回 204（忽略过期的非负版本号）。删除后普通详情和来源分页返回 404，原 requestId 再次生成返回 409，需用新 requestId 手动生成。周报暂不支持删除。
+个人 AI 工作台，用于记录工作、管理待办，以及生成可编辑、可追溯的日报和周报。支持 Windows 本机运行和 Linux Docker 部署。
 
-个人 AI 工作台的本机应用。当前已支持项目创建、改名和归档，当天或历史工作记录的维护，带项目、备注、优先级、可选期限、乐观锁和完成记录联动的待办管理，以及带来源快照和历史版本的日报、自然周周报；同时保留后端健康检查、PostgreSQL/Redis 连接探针和显式触发的 DeepSeek 最小调用。
+## 功能
 
-## 代码组织
+- 一句话拆分工作记录和待办，实时展示 AI 处理结果，支持失败重试和批次撤销。
+- 项目管理、历史日期补记、待办筛选与完成结果记录。
+- 手动选择日期生成日报，按周一至周日生成自然周周报。
+- 报告保留历史版本和来源快照，支持编辑、人工补充与复制。日报可删除指定版本，原工作记录保留。
+- 工作记录、待办任务、工作汇报、项目管理四个工作区；列表分页、项目搜索和按需编辑抽屉。
 
-后端采用常规三层架构，不使用 DDD：Controller 只依赖 Service 接口，事务和业务规则位于 `service/impl`，数据库查询位于 Mapper/XML。AI 编排服务与持久化服务仍是独立 Spring Bean，模型调用不占用数据库事务。
+工作记录是默认入口，可切换 AI 快记与手工记录。待办以列表为主，新建和编辑在右侧抽屉中完成；手机上抽屉全屏展示。已访问的工作区保留草稿与筛选状态。工作汇报集中管理日报和周报，桌面并列展示正文与来源，窄屏将来源放在正文之后。
 
-```text
-backend/src/main/
-├── java/com/aiworkbench/
-│   ├── controller/          HTTP 接口
-│   ├── service/             用例接口
-│   │   └── impl/            业务实现、事务边界
-│   ├── mapper/              MyBatis 接口
-│   ├── dto/<feature>/       请求、响应和用例数据
-│   ├── entity/<feature>/    持久化行投影
-│   ├── enums/               状态、优先级和来源角色
-│   ├── exception/           异常与 HTTP 错误转换
-│   ├── common/              分页响应与查询作用域
-│   ├── config/              配置、启动恢复、类型处理器
-│   ├── ai/                  模型适配器与模型协议
-│   ├── events/              WebSocket 与提交后通知
-│   └── e2e/                 仅测试 Profile 使用的模型替身
-└── resources/
-    ├── mapper/              SQL XML
-    └── db/migration/        不可变 Flyway 迁移
+## Linux Docker 部署
 
-frontend/src/
-├── App.tsx                  工作台编排与跨功能联动
-├── features/
-│   ├── capture/             一句话记录
-│   ├── projects/            项目面板与搜索选择器
-│   ├── records/             工作记录列表
-│   ├── tasks/               待办管理
-│   └── reports/             日报、周报与共享报告分页 hooks
-├── api/                     按功能拆分的类型/请求及统一 HTTP 错误处理
-├── components/              通用分页与折叠面板
-├── hooks/                   实时状态订阅
-└── utils/                   上海日期/时间和自然周计算
+安装 Docker Engine 和 Compose v2，在仓库根目录执行：
+
+```bash
+test -f .env || cp .env.example .env
+chmod 600 .env
+# 编辑 .env，设置数据库密码、访问密码和 DeepSeek API Key
+docker compose up -d --build --wait
 ```
 
-分页由 PageHelper Spring Boot Starter **2.1.1**（PageHelper **6.1.1**）执行，保持 MyBatis Starter **3.0.5**。`PageQueries.select` 将 API 的零起始页号转为 PageHelper 的一起始页号，紧贴目标 Mapper 查询启动分页，映射响应前释放 ThreadLocal，异常时也会清理。Mapper 不再手写列表分页 COUNT/LIMIT/OFFSET；报告全量来源查询不进入分页作用域。`reasonable=false` 保证越界返回空页，参数不合法返回 400。
+Compose 启动 PostgreSQL、Redis、Java 后端和 Nginx 前端，构建所需的 Java、Node 均由镜像提供。首次构建需要访问 Docker 镜像源、Maven 和 npm。
 
-报告历史和来源各有独立的 10/20/50 条页大小；来源编号按冻结顺序跨页连续。末页按钮禁用显示不可点击光标，请求中的报告分页显示“正在加载”。历史翻页和切换页大小会先保护未保存稿件，新生成版本会刷新总页数；过期的页/详情请求会取消。
+默认入口为 <http://127.0.0.1:8088>，使用 `.env` 中的 `WORKBENCH_AUTH_USER` 和 `WORKBENCH_AUTH_PASSWORD` 登录。
 
-## 本机启动
+远程访问可建立 SSH 隧道：
 
-1. 复制 `.env.example` 为 `.env`，本地数据库默认值可直接使用；如需模型探针，再填写 `DEEPSEEK_API_KEY`。
-2. 启动依赖：`docker compose up -d --wait`。Windows 用户也可在 WSL Ubuntu 中进入仓库的 `/mnt/<盘符>/...` 路径后执行同一命令。
-3. 在仓库根目录用 PowerShell 将 `.env` 注入当前进程，再启动后端：
+```bash
+ssh -L 8088:127.0.0.1:8088 user@server
+```
 
-   ```powershell
-   Get-Content .env | Where-Object { $_ -match '^\s*[^#][^=]*=' } | ForEach-Object {
-     $name, $value = $_ -split '=', 2
-     [Environment]::SetEnvironmentVariable($name.Trim(), $value, 'Process')
-   }
-   Push-Location backend
-   mvn spring-boot:run
-   ```
+随后在本机浏览器打开上述入口。
 
-   `mvn spring-boot:run` 本身不会自动读取根目录 `.env`；上述注入确保后端与 Compose 使用同一组数据库端口、口令和 DeepSeek 配置。结束后可在另一个终端继续后续步骤。
-4. 启动前端：`cd frontend && npm ci && npm run dev`。
-5. 打开 <http://localhost:5173>；后端状态接口为 <http://localhost:8080/api/status>，Actuator 健康接口为 <http://localhost:8080/actuator/health>。
+### 域名与 HTTPS
 
-后端启动时由 Flyway 自动执行数据库迁移。项目接口位于 `/api/projects`，工作记录接口位于 `/api/records`，待办接口位于 `/api/tasks`。待办列表可按 `status`、`projectId`、`unassigned`、`priority` 和 `due`（`ALL/OVERDUE/TODAY/UPCOMING/NONE`）筛选；更新和删除必须携带当前 `version`，过期版本返回 409。记录列表的 `date=YYYY-MM-DD` 与待办期限筛选均按 `Asia/Shanghai` 解释。项目归档后历史记录和待办仍保留原归属，但不能再把新数据关联到该项目。
+公网入口使用 HTTPS。保持 `APP_BIND=127.0.0.1`，由服务器上的反向代理连接工作台。例如 Caddy 配置：
 
-待办状态只能通过 `POST /api/tasks/{id}/complete` 和 `POST /api/tasks/{id}/reopen` 修改，不能通过通用编辑接口修改。完成待办会在同一数据库事务中生成一条自动工作记录；重复完成请求不会重复生成记录。`PUT /api/tasks/{id}/completion-result` 可补充完成结果，`GET /api/tasks/{id}/events` 可查询状态历史。重开或删除待办只会使当前自动完成记录失效，既往结果和事件保留，手工工作记录不受影响。
+```caddyfile
+workbench.example.com {
+    reverse_proxy 127.0.0.1:8088
+}
+```
 
-AI 统一输入使用 `POST /api/inputs`：后端先保存原文、客户端 `requestId`、Asia/Shanghai 解析基准和 `PROCESSING` 状态，再在事务外调用 DeepSeek。用 `GET /api/inputs/{id}` 读取状态与生成条目；失败后可调用 `POST /api/inputs/{id}/retry`，并沿用首次解析基准。同一 `requestId` 始终指向同一批次，相同文本使用不同 `requestId` 时会创建不同批次；PostgreSQL 处理令牌和租约保证并发重发、重试或服务重启后最多生成一批结果，Redis 不参与最终正确性。默认模型调用超时为 4 分钟、处理租约为 5 分钟；启动时会拒绝“租约不长于模型超时”的配置，避免仍在执行的有效请求被错误回收。未被编辑、完成、重开或删除的成功批次可通过 `POST /api/inputs/{id}/revert` 整批撤销，重复撤销幂等；原文和批次历史继续保留。AI 只关联已有活动项目，无法匹配的项目保持未分类。
+将域名解析到服务器，配置 80/443 端口，并在 `.env` 设置：
 
-手动日报使用 `POST /api/reports { reportType: "DAILY", date, requestId }` 创建独立版本，并通过 `GET /api/reports/{id}` 查询处理状态；`GET /api/reports?date=YYYY-MM-DD` 查询当天全部历史版本，`PATCH /api/reports/{id} { content, version }` 显式保存编辑后的正文。生成时会冻结所选上海本地日内的有效工作记录和当天到期的未完成待办，后续修改源数据不会改变旧版本来源；每个 AI 要点必须引用冻结来源，正文中的“来源 N”与核对列表逐项对应。同一来源可支撑多个要点，同一要点内的重复引用会规范化去重；未知来源或错误分段角色会使新版本失败且不覆盖旧稿。人工编辑后界面会明确说明引用关系不再自动适用于修改内容；切换日期、历史版本或重新生成前会提示未保存修改。前端复制的是当前编辑区文本，不会隐式保存。
+```dotenv
+WORKBENCH_WS_ALLOWED_ORIGINS=https://workbench.example.com
+```
 
-自然周周报使用相同创建接口并传入 `reportType: "WEEKLY"`。任意输入日期都会按 `Asia/Shanghai` 归一到所在周的周一，周期为 `[本周一 00:00, 下周一 00:00)`，`periodEnd` 是排他边界。固定输出“本周完成、进行中与阻碍、下周计划”；下周计划只允许引用期限明确落在下一自然周的未完成待办，无期限待办不会成为自动承诺。每次重新生成都会创建新版本并通过 `previousReportId` 指向上一版本，旧正文、项目名和来源快照保持不变。用户补充通过 `PATCH /api/reports/{id}/manual-additions` 单独保存，复制时会明确标记为“用户补充（无 AI 来源标记）”。报告生成单独使用 `REPORT_AI_TIMEOUT`（默认 6 分钟）和 `REPORT_AI_MAX_TOKENS`（默认 4096），不改变统一输入的 4 分钟超时与 5 分钟租约关系。
+执行 `docker compose up -d --build --wait` 应用配置。WebSocket Origin 与浏览器入口的协议、主机、端口一致；多个入口用逗号分隔。Caddy 会处理 HTTPS 证书和 WebSocket 转发；使用其他代理时需转发 Host、X-Forwarded-Proto 和 Upgrade 头。
 
-项目、记录、待办、报告历史和报告来源同时提供兼容分页入口，页号从 0 开始，支持每页 10/20/50 条。工作台默认每页 20 条，并按新建时间稳定倒序；项目选择器支持搜索。功能区可独立折叠且保留草稿和后台处理，输入与待办默认展开、报告默认折叠。日报与周报日期互相独立，报告只会在用户点击后手动生成。
+### 查看、停止和更新
 
-AI 输入和报告状态通过同源 `/ws/events` 推送已提交的状态元数据，正文和结果仍通过详情 API 获取。断线时客户端指数重连，并以低频 GET 兜底；刷新会恢复仍在处理的实体 ID。推送失败不影响数据库事务，也不会自动重试付费模型调用。
+```bash
+docker compose ps
+docker compose logs --tail=100 backend frontend
+docker compose stop
+# 更新源码后重新构建启动
+docker compose up -d --build --wait
+```
 
-报告失败响应包含脱敏的 `errorCode`、`errorStage` 和 `sourceCount`，可区分 JSON、输出截断、未知来源、来源角色、无效要点和超时。模型提示使用本报告内的短来源别名，服务端再映射回冻结 UUID；不会为缩短提示而静默丢弃来源。
+数据存储于 `ai-workbench_postgres-data` 和 `ai-workbench_redis-data` 命名卷。日常停服使用 `stop`；`down -v` 会删除数据卷。已有数据库的密码变更需要同时在 PostgreSQL 中执行，修改 `.env` 仅更新连接配置。
 
-Compose 端口由 `.env` 中的 `POSTGRES_PORT` 与 `REDIS_PORT` 控制，后端使用同名变量连接本机映射端口。默认分别为 5432 和 6379；若本机确有不可移除的端口冲突，可在 `.env` 中改为其他未占用端口，容器内部端口无需修改。
+## 配置
 
-后端、PostgreSQL 与 Redis 都只监听 `127.0.0.1`，避免开发口令或可产生费用的模型探针暴露到局域网。如未来需要从其他设备访问，应先补充认证与网络访问控制，而不是直接扩大监听地址。
+配置模板见 [.env.example](.env.example)。
 
-模型调用不会随普通健康检查自动发生。配置凭据后，手动执行：
+| 配置 | 用途 |
+|---|---|
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | 数据库连接信息；新部署设置独立密码 |
+| `DEEPSEEK_API_KEY` | 后端模型调用凭据 |
+| `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` | 模型地址和名称 |
+| `DEEPSEEK_TIMEOUT` | 输入解析超时，默认 `PT4M` |
+| `REPORT_AI_TIMEOUT` / `REPORT_AI_MAX_TOKENS` | 报告超时与输出长度，默认 `PT6M` / `4096` |
+| `WORKBENCH_AUTH_USER` / `WORKBENCH_AUTH_PASSWORD` | Docker 入口账号密码，启动前填写；密码为单行、最多 72 个 UTF-8 字节 |
+| `APP_BIND` / `APP_PORT` | Docker 入口绑定地址与端口，默认 `127.0.0.1:8088` |
+| `WORKBENCH_WS_ALLOWED_ORIGINS` | WebSocket 允许的完整入口地址；开发默认 5173/15173，Compose 默认 8088 |
+| `POSTGRES_PORT` / `REDIS_PORT` | 数据库宿主机端口，默认 5432/6379 |
+
+模型凭据放在后端环境变量中；前端的 `VITE_` 变量用于可公开的构建配置。AI 输入和报告生成会调用付费模型，健康检查只检查服务状态。
+
+## Windows 本机运行
+
+准备 Java 17、Maven、Node.js，以及 Docker。本机验证环境为 Maven 3.9.9、Node 25.2.1、npm 11.6.2；Node 版本约束见 [frontend/package.json](frontend/package.json)。
+
+以下命令在仓库根目录 PowerShell 执行，每条成功后继续：
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:8080/api/ai/probe
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# Docker 位于 WSL Ubuntu 时，按实际仓库位置调整 --cd
+wsl.exe -d Ubuntu --cd /mnt/e/projects/workbench -- docker compose up -d --wait postgres redis
+Push-Location backend
+mvn clean verify
+Pop-Location
+Push-Location frontend
+npm ci
+npm run build
+Pop-Location
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/start.ps1
 ```
+
+若 Docker CLI 安装在 Windows，依赖启动命令为 `docker compose up -d --wait postgres redis`。
+
+打开 <http://127.0.0.1:5173>。本机模式运行打包 JAR 和 Vite 开发服务器，模型配置由启动脚本从 `.env` 加载；日志和进程记录保存在 `.local-runtime/`。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/stop.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/start.ps1
+```
+
+重复启动会复用已登记的进程。端口被其他进程占用时，脚本提示在原终端停止。更新后端前先执行停止脚本，再构建和启动，以释放 Windows JAR 文件锁。依赖容器和数据卷在停止应用后继续保留。
+
+重启 Windows 后，依次启动 WSL/Docker、数据库依赖和应用。健康检查地址为 <http://127.0.0.1:8080/actuator/health>。
+
+## 备份与恢复
+
+备份包含业务数据，请存放在受保护目录并保留异机副本。恢复演练使用新的数据库，核对数据后再切换应用连接。
+
+### Linux
+
+```bash
+umask 077
+mkdir -p .local-backups
+backup=".local-backups/workbench-$(date +%Y%m%d-%H%M%S).dump"
+docker compose exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$backup"
+# 确认备份成功后，恢复到尚不存在的新库
+docker compose exec -T postgres sh -c 'createdb -U "$POSTGRES_USER" d10_restore_check'
+docker compose exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d d10_restore_check --no-owner --exit-on-error' < "$backup"
+```
+
+### Windows
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/backup.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/backup.ps1 -RestoreTo d10_restore_mycheck
+# 将 ArchivePath 换成实际备份文件
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/backup.ps1 -RestoreTo d10_restore_recovery -ArchivePath .local-backups/d10/ai_workbench_REPLACE.dump
+```
+
+脚本针对本机 `ai-workbench-postgres-1` 容器，使用 PostgreSQL 标准 custom archive，输出文件路径和 SHA256。`RestoreTo` 要求一个全新的 `d10_restore_*` 库名；恢复失败时该验证库保留供排查。使用 `DATABASE_URL` 连接其他数据库时，应按目标数据库单独执行备份。
+
+恢复后核对迁移版本、业务表和报告来源，停止应用，将 `.env` 中的 `POSTGRES_DB` 改为恢复库，再启动。原库保留供回退。
+
+## 开发与架构
+
+后端采用 Controller → Service 接口 → Service 实现 → MyBatis Mapper 三层架构，事务位于 Service 实现；PageHelper 提供数据库分页。前端按 `features / components / api / hooks / utils` 组织。
+
+- [后端目录结构](.trellis/spec/backend/directory-structure.md)
+- [前端目录结构](.trellis/spec/frontend/directory-structure.md)
+- [数据库与接口合同](.trellis/spec/backend/database-guidelines.md)
+- [日报版本删除接口](.trellis/spec/backend/report-deletion.md)
+- [分页约定](.trellis/spec/backend/pagination.md)
+- [一页架构说明](.trellis/tasks/archive/2026-09/09-15-d10-local-delivery/research/architecture.md)
 
 ## 回归测试
 
-后端全量测试使用本机真实 PostgreSQL：
+后端测试使用真实 PostgreSQL 的隔离 schema `d9_backend_tests`：
 
 ```powershell
 cd backend
 mvn clean verify
 ```
 
-浏览器回归使用 Playwright 与显式 `e2e` Profile。该 Profile 使用隔离的 `d9_e2e` schema 和确定性模型替身，不读取 DeepSeek 密钥、不产生付费调用，也不会清理正常开发数据。Maven 集成测试使用独立的 `d9_backend_tests` schema：
+浏览器回归使用 Playwright、`e2e` Profile、隔离 schema `d9_e2e` 和确定性模型替身：
 
 ```powershell
 cd frontend
@@ -111,6 +176,12 @@ npm run build
 npm run e2e
 ```
 
-失败时截图、视频和首次重试 trace 写入 `frontend/test-results/`；HTML 报告写入 `frontend/playwright-report/`，两者均为可重建的本地文件。`live-acceptance` Profile 只用于显式真实模型语义验收，并使用独立的 `d9_live_acceptance` schema；不要把测试 Profile 用于日常或部署启动。
+截图、视频和 trace 保存在 `frontend/test-results/`，HTML 报告在 `frontend/playwright-report/`。真实模型验收使用独立的 `live-acceptance` Profile 和 schema，调用次数记录在验收日志中。
 
-D9 的 A01—A13 矩阵、真实模型调用账本、复现命令与仍待用户反馈的项目记录在 `.trellis/tasks/09-15-d9-e2e-feedback/research/acceptance-log.md`。
+## 功能限制与验收记录
+
+- 日报生成完成或失败后可删除；周报目前保留全部历史版本。
+- 大来源报告的真实模型耗时仍在观察，当前报告超时为 6 分钟。
+- 连续五个工作日使用与人工耗时对比等待使用记录。
+
+[五分钟演示](.trellis/tasks/archive/2026-09/09-15-d10-local-delivery/research/demo.md) · [D9 验收记录](.trellis/tasks/archive/2026-09/09-15-d9-e2e-feedback/research/acceptance-log.md) · [本机交付验证](.trellis/tasks/archive/2026-09/09-15-d10-local-delivery/research/delivery-validation.md) · [Linux 部署验证](.trellis/tasks/archive/2026-09/09-15-d10-local-delivery/research/linux-deployment-validation.md)

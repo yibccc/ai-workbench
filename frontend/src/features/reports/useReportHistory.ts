@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchDailyReport } from '../../api/reports'
 import { fetchReportPage, type DailyReport } from '../../api/reports'
 
 /** One request owns the history page and detail together; cleanup prevents late responses winning. */
 export function useReportHistory(type: 'DAILY' | 'WEEKLY', date: string,
-  onSelect: (report: DailyReport | null) => void, onError: (message: string) => void) {
+  onSelect: (report: DailyReport | null) => void, onError: (message: string | null) => void) {
+  const dateRef = useRef(date)
   const [query, setQuery] = useState({ date, page: 0, size: 20, revision: 0, preferredId: '' })
   const page = query.date === date ? query.page : 0
   const [reports, setReports] = useState<DailyReport[]>([])
@@ -21,7 +22,8 @@ export function useReportHistory(type: 'DAILY' | 'WEEKLY', date: string,
   useEffect(() => {
     const controller = new AbortController()
     const load = async () => {
-      setLoading(true)
+      setLoading(true); onError(null)
+      if (dateRef.current !== date) { dateRef.current = date; setReports([]); setTotal(0); setTotalPages(0); onSelect(null) }
       try {
         const result = await fetchReportPage(type, date, page, query.size, controller.signal)
         const preferred = result.items.find(item => query.date === date && item.id === query.preferredId) ?? result.items[0]

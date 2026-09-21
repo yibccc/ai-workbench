@@ -3,7 +3,7 @@
   "name": "d10-local-delivery",
   "title": "本机交付与验收收尾",
   "description": "完成 Windows 本机运行、备份恢复、架构说明、演示与最终验收记录",
-  "status": "planning",
+  "status": "completed",
   "dev_type": null,
   "scope": null,
   "package": null,
@@ -11,16 +11,18 @@
   "creator": "kira",
   "assignee": "kira",
   "createdAt": "2026-09-15",
-  "completedAt": null,
-  "branch": null,
-  "base_branch": "main",
+  "completedAt": "2026-09-22",
+  "branch": "release/d10-workbench-delivery",
+  "base_branch": "master",
   "worktree_path": null,
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [],
+  "children": [
+    "09-21-d10-ui-workspaces"
+  ],
   "parent": "09-15-ai-workbench-mvp",
   "relatedFiles": [],
-  "notes": "",
+  "notes": "2026-09-22用户确认全部验收通过并授权公开发布。Windows启停/备份恢复与Linux四容器构建/认证/API/WS/持久化已验证，四工作区子任务验收通过。实际域名HTTPS需部署方配置，持续使用和耗时仍记录为观察项。",
   "meta": {}
 }

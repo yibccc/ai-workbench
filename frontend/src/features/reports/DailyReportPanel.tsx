@@ -6,6 +6,9 @@ import { Pagination } from '../../components/Pagination'
 import { useReportHistory } from './useReportHistory'
 import { useReportSources } from './useReportSources'
 import { useDialog } from '../../components/dialogContext'
+import { Icon } from '../../components/Icon'
+
+const statusLabel = { PROCESSING: '生成中', SUCCEEDED: '已生成', FAILED: '生成失败' } as const
 
 const wait = (milliseconds: number, signal: AbortSignal) => new Promise<void>((resolve, reject) => {
   const timer = window.setTimeout(resolve, milliseconds)
@@ -174,16 +177,17 @@ export function DailyReportPanel({ date, onDateChange, onDirtyChange, onSummaryC
   }
 
   return <article className="panel daily-report" data-testid="daily-report">
-    <div className="section-heading"><div><p className="kicker">DAILY REPORT</p><h2>当天汇总</h2></div><input aria-label="日报日期" type="date" value={date} onChange={(event) => { onDateChange(event.target.value) }} /></div>
-    <div className="report-toolbar"><button disabled={busy} type="button" onClick={() => void generate()}>{busy ? '生成中…' : '手动生成新版本'}</button><select aria-label="日报历史版本" value={selected?.id ?? ''} onChange={async (event) => { const report = reports.find((item) => item.id === event.target.value); if (report && await confirmDiscard()) selectReport(report.id) }}><option value="">{reports.length ? '选择历史版本' : '暂无历史版本'}</option>{reports.map((report) => <option key={report.id} value={report.id}>{new Date(report.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} · {report.status}</option>)}</select></div>
+    <div className="section-heading"><div><p className="kicker">DAILY REPORT</p><h2>日报编辑</h2></div><input aria-label="日报日期" type="date" value={date} onChange={(event) => { if (event.target.value) onDateChange(event.target.value) }} /></div>
+    <div className="report-toolbar"><button disabled={busy} type="button" onClick={() => void generate()}>{busy ? '生成中…' : '生成新日报'}</button><select aria-label="日报历史版本" value={selected?.id ?? ''} onChange={async (event) => { const report = reports.find((item) => item.id === event.target.value); if (report && await confirmDiscard()) selectReport(report.id) }}><option value="">{reports.length ? '选择历史版本' : '暂无历史版本'}</option>{reports.map((report) => <option key={report.id} value={report.id}>{new Date(report.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} · {statusLabel[report.status]}</option>)}</select></div>
     <Pagination page={page} totalPages={totalPages} size={size} loading={loading} onPage={async (value) => { if (await confirmDiscard()) setPage(value) }} onSize={async (value) => { if (await confirmDiscard()) setSize(value) }} />
     {error && <p className="inline-notice inline-error" role="alert">{error}</p>}{message && <p className="inline-notice inline-success" role="status">{message}</p>}
-    {selected && <><p className="report-meta">{selected.status} · 版本 {selected.version} · {selected.sourceCount} 个冻结来源{selected.editedAt ? ' · 已人工编辑' : ''}</p>
-      {selected.status !== 'PROCESSING' && <button className="danger" type="button" disabled={busy || deleting} onClick={() => void remove()}>{deleting ? '删除中…' : '删除此版本'}</button>}
-      {selected.status === 'SUCCEEDED' && <form onSubmit={save}><label>日报正文<textarea data-testid="daily-content" rows={14} maxLength={20000} value={draft} onChange={(event) => { setDraft(event.target.value); draftRef.current = event.target.value; userDirtyRef.current = true }} /></label><div className="actions"><button disabled={busy} type="submit">明确保存正文</button><button className="secondary" type="button" onClick={() => void copy()}>复制当前正文</button></div></form>}
-      {selected.status === 'PROCESSING' && <p className="capture-state">来源已冻结，AI 正在生成本版本；折叠面板也不会中断。</p>}{selected.status === 'FAILED' && <p className="inline-notice inline-error">{selected.errorMessage}{selected.errorCode ? ` · ${selected.errorCode} / ${selected.errorStage} · ${selected.sourceCount} 个来源` : ''}</p>}
+    {!selected && !loading && !error && <div className="empty report-empty"><span className="empty-icon"><Icon name="report" size={30} /></span><strong>还没有这一天的日报</strong><span>选择日期，生成第一份日报；之后可编辑正文、核对来源。</span></div>}
+    {selected && <div className="report-layout"><div className="report-document">{dirty && <span className="unsaved-badge">未保存修改</span>}<p className="report-meta">{statusLabel[selected.status]} · 版本 {selected.version} · {selected.sourceCount} 个冻结来源{selected.editedAt ? ' · 已人工编辑' : ''}</p>
+      {selected.status !== 'PROCESSING' && <button className="text-button danger report-delete" type="button" disabled={busy || deleting} onClick={() => void remove()}>{deleting ? '删除中…' : '删除此版本'}</button>}
+      {selected.status === 'SUCCEEDED' && <form onSubmit={save}><label>日报正文<textarea data-testid="daily-content" rows={16} maxLength={20000} value={draft} onChange={(event) => { setDraft(event.target.value); draftRef.current = event.target.value; userDirtyRef.current = true }} /></label><div className="actions"><button disabled={busy} type="submit">保存正文</button><button className="secondary" type="button" onClick={() => void copy()}>复制正文</button></div></form>}
+      {selected.status === 'PROCESSING' && <p className="capture-state">来源已冻结，AI 正在生成本版本；切换工作区也不会中断。</p>}{selected.status === 'FAILED' && <p className="inline-notice inline-error">{selected.errorMessage}{selected.errorCode ? ` · ${selected.errorCode} / ${selected.errorStage} · ${selected.sourceCount} 个来源` : ''}</p>}
       {selected.editedAt && <p className="muted">正文已由用户编辑；“来源 N”仅代表生成时的 AI 引用，人工修改内容不自动继承该引用关系。</p>}
-      <details className="report-sources"><summary>核对本版本来源（{selected.sourceCount}）</summary>{selected.sourceCount === 0 ? <p className="muted">该日期没有有效记录或已安排计划。</p> : sources.items.map((source, index) => <article key={source.id}><strong>来源 {sources.page * sources.size + index + 1} · {source.type === 'RECORD' ? '记录' : '计划'} · {source.projectName ?? '未归属项目'}</strong><p>{source.content}</p><small>{new Date(source.sourceTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} · {source.status}</small></article>)}<Pagination page={sources.page} totalPages={sources.pages} size={sources.size} loading={sources.loading} onPage={sources.setPage} onSize={sources.setSize} /></details>
-    </>}
+      </div><aside className="report-evidence"><details className="report-sources" open><summary>核对本版本来源（{selected.sourceCount}）</summary>{selected.sourceCount === 0 ? <p className="muted">该日期没有有效记录或已安排计划。</p> : sources.items.map((source, index) => <article key={source.id}><strong>来源 {sources.page * sources.size + index + 1} · {source.type === 'RECORD' ? '记录' : '计划'} · {source.projectName ?? '未归属项目'}</strong><p>{source.content}</p><small>{new Date(source.sourceTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} · {source.status}</small></article>)}<Pagination page={sources.page} totalPages={sources.pages} size={sources.size} loading={sources.loading} onPage={sources.setPage} onSize={sources.setSize} /></details></aside>
+    </div>}
   </article>
 }

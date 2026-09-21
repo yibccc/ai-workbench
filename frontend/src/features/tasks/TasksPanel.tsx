@@ -1,129 +1,104 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
-import {
-  completeTask } from '../../api/tasks'
-import { createTask, deleteTask, fetchTask, fetchTaskPage, reopenTask, updateTask, updateTaskCompletionResult, type TaskDueFilter, type TaskItem, type TaskPriority, type TaskStatus } from '../../api/tasks'
-import { type Project } from '../../api/projects'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { completeTask, deleteTask, fetchTask, fetchTaskPage, reopenTask, updateTaskCompletionResult, type TaskDueFilter, type TaskItem, type TaskPriority, type TaskStatus } from '../../api/tasks'
+import type { Project } from '../../api/projects'
 import { Pagination } from '../../components/Pagination'
-import { ProjectPicker } from '../projects/ProjectPicker'
+import { Icon } from '../../components/Icon'
+import { SegmentedControl } from '../../components/SegmentedControl'
 import { usePagedList } from '../../hooks/usePagedList'
-import { TaskCompletionDialog } from './TaskCompletionDialog'
 import { useDialog } from '../../components/dialogContext'
+import { WORKBENCH_TIME_ZONE } from '../../utils/date'
+import { TaskCompletionDialog } from './TaskCompletionDialog'
+import { TaskEditorDialog } from './TaskEditorDialog'
 
-import { WORKBENCH_TIME_ZONE, localDateTime, toInstant } from '../../utils/date'
+const ignoreListError = () => undefined
 
-export function TasksPanel({ projects, onRecordsChanged, onSummaryChange }: {
+export type TaskEditRequest = { id: string; request: number }
+const priorityLabel: Record<TaskPriority, string> = { HIGH: '高优先级', MEDIUM: '中优先级', LOW: '低优先级' }
+export function TasksPanel({ projects, onRecordsChanged, onSummaryChange, refreshKey = 0, editRequest }: {
   projects: Project[]; onRecordsChanged: () => Promise<void>; onSummaryChange?: (summary: string) => void
+  refreshKey?: number; editRequest?: TaskEditRequest | null
 }) {
   const showDialog = useDialog()
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(20)
-  const [title, setTitle] = useState('')
-  const [notes, setNotes] = useState('')
-  const [projectId, setProjectId] = useState('')
-  const [dueAt, setDueAt] = useState('')
-  const [priority, setPriority] = useState<TaskPriority>('MEDIUM')
-  const [editing, setEditing] = useState<TaskItem | null>(null)
+  const [editor, setEditor] = useState<{ task: TaskItem | null } | null>(null)
   const [completionTask, setCompletionTask] = useState<TaskItem | null>(null)
   const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('PENDING')
   const [projectFilter, setProjectFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<TaskPriority | ''>('')
   const [dueFilter, setDueFilter] = useState<TaskDueFilter>('ALL')
-  const [busy, setBusy] = useState(false)
+  const [workingId, setWorkingId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const queryTasks = useCallback((signal: AbortSignal) => fetchTaskPage({
-    status: statusFilter || undefined,
+  const queryTasks = useCallback((signal: AbortSignal) => fetchTaskPage({ status: statusFilter || undefined,
     projectId: projectFilter && projectFilter !== 'UNASSIGNED' ? projectFilter : undefined,
-    unassigned: projectFilter === 'UNASSIGNED',
-    priority: priorityFilter || undefined,
-    due: dueFilter,
-    }, page, size, signal), [dueFilter, page, priorityFilter, projectFilter, size, statusFilter])
-  const { data, loading, refresh: load } = usePagedList(queryTasks, setError, setPage, projects)
-  const tasks = data?.items ?? []
-  const totalPages = data?.totalPages ?? 0
+    unassigned: projectFilter === 'UNASSIGNED', priority: priorityFilter || undefined, due: dueFilter,
+  }, page, size, signal), [dueFilter, page, priorityFilter, projectFilter, size, statusFilter])
+  const refreshToken = useMemo(() => ({ projects, refreshKey }), [projects, refreshKey])
+  const { data, loading, error: listError, refresh: load } = usePagedList(queryTasks, ignoreListError, setPage, refreshToken)
   const total = data?.totalElements ?? 0
+  const tasks = data?.items ?? []
   useEffect(() => onSummaryChange?.(`${total} 项`), [onSummaryChange, total])
-
-  const reset = () => {
-    setTitle(''); setNotes(''); setProjectId(''); setDueAt(''); setPriority('MEDIUM'); setEditing(null)
-  }
-  const run = async (action: () => Promise<void>, success: string) => {
-    setBusy(true); setError(null); setMessage(null)
-    try { await action(); setMessage(success) }
-    catch (caught) { setError(caught instanceof Error ? caught.message : '操作失败') }
-    finally { setBusy(false) }
-  }
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    void run(async () => {
-      const input = { projectId: projectId || null, title, notes, dueAt: dueAt ? toInstant(dueAt) : null, priority }
-      if (editing) await updateTask(editing.id, { ...input, version: editing.version })
-      else await createTask(input)
-      reset(); setPage(0); await load()
-    }, editing ? '待办已更新' : '待办已创建')
-  }
-  const beginEdit = (task: TaskItem) => {
-    setEditing(task); setTitle(task.title); setNotes(task.notes); setProjectId(task.project?.id ?? '')
-    setDueAt(task.dueAt ? localDateTime(task.dueAt) : ''); setPriority(task.priority)
-  }
   useEffect(() => {
-    const open = (event: Event) => {
-      const id = (event as CustomEvent<string>).detail
-      void fetchTask(id).then(beginEdit).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : '无法加载待办'))
-    }
-    window.addEventListener('ai-workbench:edit-task', open)
-    return () => window.removeEventListener('ai-workbench:edit-task', open)
-  }, [])
+    if (!editRequest) return
+    let cancelled = false
+    void fetchTask(editRequest.id).then(task => { if (!cancelled) setEditor({ task }) }).catch((caught: unknown) => {
+      if (!cancelled) setError(caught instanceof Error ? caught.message : '无法加载待办')
+    })
+    return () => { cancelled = true }
+  }, [editRequest])
+  const refreshViews = async () => {
+    try { await Promise.all([load(), onRecordsChanged()]) }
+    catch { setError('操作已保存，但列表刷新失败。请重新加载，不要重复提交。') }
+  }
   const changeStatus = (task: TaskItem) => {
+    if (workingId) return
     if (task.status === 'PENDING') { setCompletionTask(task); return }
-    void run(async () => {
-      await reopenTask(task.id, task.version)
-      await Promise.all([load(), onRecordsChanged()])
-    }, '待办已重开，原完成记录已转为历史')
+    setWorkingId(task.id); setError(null)
+    void reopenTask(task.id, task.version).then(async () => { setMessage('待办已重开，原完成记录已转为历史'); await refreshViews() })
+      .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : '重开失败')).finally(() => setWorkingId(null))
   }
   const saveCompletion = async (result: string) => {
     if (!completionTask) return
-    const task = completionTask
-    if (task.status === 'PENDING') await completeTask(task.id, task.version, result)
-    else await updateTaskCompletionResult(task.id, task.version, result)
-    setError(null)
-    setMessage(task.status === 'PENDING' ? '待办已完成，并生成工作记录' : '完成结果已更新')
-    void Promise.all([load(), onRecordsChanged()]).catch(() => setError('操作已保存，但列表刷新失败，请刷新页面'))
+    if (completionTask.status === 'PENDING') await completeTask(completionTask.id, completionTask.version, result)
+    else await updateTaskCompletionResult(completionTask.id, completionTask.version, result)
+    setError(null); setMessage(completionTask.status === 'PENDING' ? '待办已完成，并生成工作记录' : '完成结果已更新')
+    void refreshViews()
   }
-
-  return <article className="panel task-panel" data-testid="task-panel">
-    <div className="section-heading"><div><p className="kicker">TASKS</p><h2>{editing ? '编辑待办' : '添加待办'}</h2></div><span>{total} 项</span></div>
-    {(error || message) && <p className={error ? 'inline-notice inline-error' : 'inline-notice inline-success'} role={error ? 'alert' : 'status'}>{error ?? message}</p>}
-    <form onSubmit={submit}>
-      <label>标题<input data-testid="task-title" required maxLength={240} value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={(event) => { if (event.ctrlKey && event.key === 'Enter') event.currentTarget.form?.requestSubmit() }} placeholder="下一步要完成什么？（Ctrl+Enter 提交）" /></label>
-      <label className="task-notes">备注<textarea maxLength={4000} rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="可选：补充背景或验收条件" /></label>
-      <div className="task-fields">
-        <label>项目<ProjectPicker projects={projects} value={projectId} onChange={setProjectId} currentId={editing?.project?.id} /></label>
-        <label>优先级<select data-testid="task-priority" value={priority} onChange={(event) => setPriority(event.target.value as TaskPriority)}><option value="HIGH">高</option><option value="MEDIUM">中</option><option value="LOW">低</option></select></label>
-        <label>截止时间<input type="datetime-local" value={dueAt} onChange={(event) => setDueAt(event.target.value)} /></label>
+  const clearFilters = () => { setProjectFilter(''); setPriorityFilter(''); setDueFilter('ALL'); setPage(0) }
+  return <div className="page tasks-page" data-testid="task-panel">
+    <header className="page-header"><div><p className="page-eyebrow">把精力留给下一步</p><h1>待办任务</h1><p className="page-description">集中查看计划，完成后自动沉淀为工作记录。</p></div><button type="button" onClick={() => setEditor({ task: null })}><Icon name="plus" size={17} />新建待办</button></header>
+    {(error || message) && !listError && <div className={error ? 'notice error' : 'notice success'} role={error ? 'alert' : 'status'}><span>{error ?? message}</span><button className="text-button" type="button" onClick={() => { setError(null); setMessage(null) }}>关闭</button></div>}
+    <section className="task-panel panel" aria-label="待办列表">
+      <div className="list-toolbar"><SegmentedControl<TaskStatus | ''> label="任务状态" value={statusFilter} onChange={value => { setStatusFilter(value); setPage(0) }} options={[{ value: 'PENDING', label: '待处理' }, { value: 'COMPLETED', label: '已完成' }, { value: '', label: '全部任务' }]} /><span className="field-hint">当前筛选 · {loading ? '加载中' : `${total} 项`}</span></div>
+      <div className="task-filters" aria-label="待办筛选">
+        <label>项目<select aria-label="项目筛选" value={projectFilter} onChange={event => { setProjectFilter(event.target.value); setPage(0) }}><option value="">全部项目</option><option value="UNASSIGNED">未归属项目</option>{projects.map(project => <option key={project.id} value={project.id}>{project.name}{project.status === 'ARCHIVED' ? '（已归档）' : ''}</option>)}</select></label>
+        <label>优先级<select aria-label="优先级筛选" value={priorityFilter} onChange={event => { setPriorityFilter(event.target.value as TaskPriority | ''); setPage(0) }}><option value="">全部优先级</option><option value="HIGH">高优先级</option><option value="MEDIUM">中优先级</option><option value="LOW">低优先级</option></select></label>
+        <label>截止日期<select aria-label="截止日期筛选" value={dueFilter} onChange={event => { setDueFilter(event.target.value as TaskDueFilter); setPage(0) }}><option value="ALL">全部期限</option><option value="OVERDUE">已逾期</option><option value="TODAY">今天到期</option><option value="UPCOMING">之后到期</option><option value="NONE">无期限</option></select></label>
+        {(projectFilter || priorityFilter || dueFilter !== 'ALL') && <button className="text-button filter-reset" type="button" onClick={clearFilters}>重置筛选</button>}
       </div>
-      <div className="actions"><button disabled={busy} type="submit">{editing ? '保存修改' : '创建待办'}</button>{editing && <button className="secondary" type="button" onClick={reset}>取消编辑</button>}</div>
-    </form>
-
-    <div className="task-filters" aria-label="待办筛选">
-      <select aria-label="状态筛选" value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as TaskStatus | ''); setPage(0) }}><option value="">全部状态</option><option value="PENDING">待处理</option><option value="COMPLETED">已完成</option></select>
-      <select aria-label="项目筛选" value={projectFilter} onChange={(event) => { setProjectFilter(event.target.value); setPage(0) }}><option value="">全部项目</option><option value="UNASSIGNED">未分类</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}{project.status === 'ARCHIVED' ? '（已归档）' : ''}</option>)}</select>
-      <select aria-label="优先级筛选" value={priorityFilter} onChange={(event) => { setPriorityFilter(event.target.value as TaskPriority | ''); setPage(0) }}><option value="">全部优先级</option><option value="HIGH">高优先级</option><option value="MEDIUM">中优先级</option><option value="LOW">低优先级</option></select>
-      <select aria-label="截止日期筛选" value={dueFilter} onChange={(event) => { setDueFilter(event.target.value as TaskDueFilter); setPage(0) }}><option value="ALL">全部期限</option><option value="OVERDUE">已逾期</option><option value="TODAY">今天到期</option><option value="UPCOMING">之后到期</option><option value="NONE">无期限</option></select>
-    </div>
-
-    <div className="task-list">
-      {tasks.length === 0 ? <div className="empty"><strong>没有符合条件的待办</strong><span>调整筛选条件，或在上方创建一项。</span></div> : tasks.map((task) => <div id={`task-${task.id}`} data-testid="task-item" className={`task task-${task.priority.toLowerCase()}`} key={task.id}>
-        <div className="task-copy"><div className="task-meta"><span>{task.status === 'PENDING' ? '待处理' : '已完成'}</span><span>{task.priority === 'HIGH' ? '高优先级' : task.priority === 'MEDIUM' ? '中优先级' : '低优先级'}</span><span className={task.project?.status === 'ARCHIVED' ? 'archived' : ''}>{task.project ? `${task.project.name}${task.project.status === 'ARCHIVED' ? '（已归档）' : ''}` : '未分类'}</span>{task.dueAt && <span>截止 {new Date(task.dueAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE })}</span>}</div><strong>{task.title}</strong>{task.notes && <p>{task.notes}</p>}</div>
-        <div className="record-actions">
-          <button className="text-button" type="button" onClick={() => changeStatus(task)}>{task.status === 'PENDING' ? '完成' : '重开'}</button>
-          {task.status === 'COMPLETED' && <button className="text-button" type="button" onClick={() => setCompletionTask(task)}>{task.completionResult ? '修改结果' : '补充结果'}</button>}
-          <button className="text-button" type="button" onClick={() => beginEdit(task)}>编辑</button>
-          <button className="text-button danger" type="button" onClick={() => void showDialog({ title: '删除待办？', description: `删除“${task.title}”后，自动完成记录将转为历史。`, confirmLabel: '确认删除', danger: true, onConfirm: async () => { await deleteTask(task.id, task.version); if (editing?.id === task.id) reset(); setError(null); setMessage('待办已删除'); void Promise.all([load(), onRecordsChanged()]).catch(() => setError('删除已保存，但列表刷新失败，请刷新页面')) } })}>删除</button>
-        </div>
-      </div>)}
-    </div>
-    <Pagination page={page} totalPages={totalPages} size={size} loading={loading} onPage={setPage} onSize={(value) => { setSize(value); setPage(0) }} />
+      <div className="task-list" aria-busy={loading}>
+        {listError ? <div className="empty error-state" role="alert"><Icon name="alert" size={24} /><strong>暂时无法读取待办</strong><span>{listError}</span><button className="secondary" type="button" onClick={() => void load()}>重新加载</button></div>
+          : loading && tasks.length === 0 ? <div className="loading-state" role="status"><span className="loading-dot" />正在读取待办…</div>
+          : tasks.length === 0 ? <div className="empty"><span className="empty-icon"><Icon name="checklist" size={28} /></span><strong>这里暂时没有待办</strong><span>调整筛选，或者为下一步创建一项任务。</span><button className="secondary" type="button" onClick={() => setEditor({ task: null })}><Icon name="plus" size={16} />新建待办</button></div>
+          : tasks.map(task => {
+            const overdue = !!task.dueAt && task.status === 'PENDING' && new Date(task.dueAt).getTime() < now
+            return <article id={`task-${task.id}`} data-testid="task-item" className={`task task-${task.priority.toLowerCase()} ${task.status === 'COMPLETED' ? 'task-completed' : ''}`} key={task.id}>
+              <button className="task-check" type="button" disabled={!!workingId} aria-label={`${task.status === 'PENDING' ? '完成任务' : '重开任务'}：${task.title}`} title={task.status === 'PENDING' ? '完成并记录成果' : '重新打开任务'} onClick={() => changeStatus(task)}>{task.status === 'COMPLETED' && <Icon name="check" size={14} />}</button>
+              <div className="task-copy"><strong>{task.title}</strong>{task.notes && <p>{task.notes}</p>}<div className="task-meta"><span className={`priority-badge priority-${task.priority.toLowerCase()}`}>{priorityLabel[task.priority]}</span><span className={task.project?.status === 'ARCHIVED' ? 'archived' : ''}><Icon name="folder" size={12} />{task.project ? `${task.project.name}${task.project.status === 'ARCHIVED' ? '（已归档）' : ''}` : '未归属项目'}</span>{task.dueAt && <span className={overdue ? 'overdue' : ''}><Icon name="clock" size={12} />{overdue ? '已逾期 · ' : '截止 '}{new Date(task.dueAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}</div>{task.completionResult && <p className="completion-result">完成结果：{task.completionResult}</p>}</div>
+              <div className="record-actions task-actions">{task.status === 'COMPLETED' && <button className="text-button" type="button" onClick={() => setCompletionTask(task)}>{task.completionResult ? '修改结果' : '补充结果'}</button>}<button className="text-button" type="button" disabled={!!workingId} onClick={() => setEditor({ task })}>编辑</button><button className="text-button danger" type="button" disabled={!!workingId} onClick={() => void showDialog({ title: '删除待办？', description: `删除“${task.title}”后，自动完成记录将转为历史。`, confirmLabel: '确认删除', danger: true, onConfirm: async () => { await deleteTask(task.id, task.version); setError(null); setMessage('待办已删除'); void refreshViews() } })}>删除</button></div>
+            </article>
+          })}
+      </div>
+      {!listError && <Pagination page={page} totalPages={data?.totalPages ?? 0} size={size} loading={loading} onPage={setPage} onSize={value => { setSize(value); setPage(0) }} />}
+    </section>
+    <p className="page-footnote"><Icon name="check" size={14} />完成任务时可填写成果，系统会生成对应工作记录。</p>
+    {editor && <TaskEditorDialog key={editor.task?.id ?? 'new'} task={editor.task} projects={projects} onClose={() => setEditor(null)} onSaved={async () => { setMessage(editor.task ? '待办已更新' : '待办已创建'); setError(null); setPage(0); void refreshViews() }} />}
     {completionTask && <TaskCompletionDialog task={completionTask} onSave={saveCompletion} onClose={() => setCompletionTask(null)} />}
-  </article>
+  </div>
 }
