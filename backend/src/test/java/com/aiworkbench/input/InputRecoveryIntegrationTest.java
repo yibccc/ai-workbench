@@ -1,25 +1,24 @@
 package com.aiworkbench.input;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.doAnswer;
-
 import com.aiworkbench.ai.AiCaptureResult;
 import com.aiworkbench.ai.WorkbenchAiGateway;
-import com.aiworkbench.record.UpdateWorkRecordRequest;
-import com.aiworkbench.record.WorkRecordService;
-import com.aiworkbench.task.CompleteTaskRequest;
-import com.aiworkbench.task.TaskPriority;
-import com.aiworkbench.task.TaskService;
-import com.aiworkbench.task.TaskVersionRequest;
-import com.aiworkbench.task.UpdateTaskRequest;
+import com.aiworkbench.dto.input.CreateInputRequest;
+import com.aiworkbench.dto.input.InputResponse;
+import com.aiworkbench.dto.input.PreparedCapture;
+import com.aiworkbench.dto.input.ProcessingClaim;
+import com.aiworkbench.dto.record.UpdateWorkRecordRequest;
+import com.aiworkbench.dto.task.CompleteTaskRequest;
+import com.aiworkbench.dto.task.TaskVersionRequest;
+import com.aiworkbench.dto.task.UpdateTaskRequest;
+import com.aiworkbench.enums.InputStatus;
+import com.aiworkbench.enums.TaskPriority;
+import com.aiworkbench.service.InputPersistenceService;
+import com.aiworkbench.service.InputService;
+import com.aiworkbench.service.TaskService;
+import com.aiworkbench.service.WorkRecordService;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -27,14 +26,21 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.reset;
 
 @SpringBootTest
 class InputRecoveryIntegrationTest {

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.mapper.InputMapper">
+    <resultMap id="inputRow" type="com.aiworkbench.entity.input.InputRow"><constructor>
+        <arg column="id" javaType="java.util.UUID"/><arg column="client_request_id" javaType="java.lang.String"/>
+        <arg column="content" javaType="java.lang.String"/><arg column="reference_at" javaType="java.time.Instant"/>
+        <arg column="zone_id" javaType="java.lang.String"/><arg column="status" javaType="com.aiworkbench.enums.InputStatus"/>
+        <arg column="error_message" javaType="java.lang.String"/><arg column="attempt_count" javaType="int"/>
+        <arg column="completed_at" javaType="java.time.Instant"/><arg column="created_at" javaType="java.time.Instant"/>
+        <arg column="updated_at" javaType="java.time.Instant"/><arg column="revertible" javaType="boolean"/>
+    </constructor></resultMap>
+    <sql id="columns">id, client_request_id, content, reference_at, zone_id, status, error_message, attempt_count, completed_at, created_at, updated_at, revertible</sql>
+    <insert id="insert">
+        INSERT INTO capture_inputs
+            (id, client_request_id, content, source, captured_at, reference_at, zone_id, status,
+             processing_token, lease_expires_at, revertible)
+        VALUES
+            (#{id}, #{requestId}, #{content}, 'AI', #{referenceAt}, #{referenceAt}, #{zoneId}, 'PROCESSING',
+             #{token}, #{leaseExpiresAt}, TRUE)
+        ON CONFLICT (client_request_id) DO NOTHING
+    </insert>
+    <select id="findById" resultMap="inputRow">SELECT <include refid="columns"/> FROM capture_inputs WHERE id=#{id}</select>
+    <select id="findByRequestId" resultMap="inputRow">SELECT <include refid="columns"/> FROM capture_inputs WHERE client_request_id=#{requestId}</select>
+    <select id="findByIdForUpdate" resultMap="inputRow">SELECT <include refid="columns"/> FROM capture_inputs WHERE id=#{id} FOR UPDATE</select>
+    <update id="beginRetry">
+        UPDATE capture_inputs
+        SET status='PROCESSING', error_message=NULL, completed_at=NULL, attempt_count=attempt_count+1,
+            processing_token=#{token}, lease_expires_at=#{leaseExpiresAt}, updated_at=CURRENT_TIMESTAMP
+        WHERE id=#{id} AND status='FAILED'
+    </update>
+    <update id="markSucceeded">
+        UPDATE capture_inputs
+        SET status='SUCCEEDED', error_message=NULL, completed_at=#{completedAt}, processing_token=NULL,
+            lease_expires_at=NULL, updated_at=#{completedAt}
+        WHERE id=#{id} AND status='PROCESSING' AND processing_token=#{token}
+    </update>
+    <update id="markFailed">
+        UPDATE capture_inputs
+        SET status='FAILED', error_message=#{errorMessage}, completed_at=#{completedAt}, processing_token=NULL,
+            lease_expires_at=NULL, updated_at=#{completedAt}
+        WHERE id=#{id} AND status='PROCESSING' AND processing_token=#{token}
+    </update>
+    <update id="recoverExpiredProcessing">
+        UPDATE capture_inputs
+        SET status='FAILED', error_message=#{message}, completed_at=#{now}, processing_token=NULL,
+            lease_expires_at=NULL, updated_at=#{now}
+        WHERE status='PROCESSING' AND (lease_expires_at IS NULL OR lease_expires_at &lt;= #{now})
+    </update>
+    <insert id="insertRecord">INSERT INTO work_records (id, project_id, content, occurred_at, capture_input_id) VALUES (#{id}, #{projectId}, #{content}, #{occurredAt}, #{inputId})</insert>
+    <insert id="insertTask">INSERT INTO todo_items (id, project_id, title, notes, due_at, priority, capture_input_id) VALUES (#{id}, #{projectId}, #{title}, #{notes}, #{dueAt}, #{priority}, #{inputId})</insert>
+    <insert id="insertGeneratedItem">
+        INSERT INTO capture_generated_items (input_id, entity_type, entity_id, initial_version)
+        VALUES (#{inputId}, #{entityType}, #{entityId}, #{initialVersion})
+    </insert>
+    <select id="countGeneratedItems" resultType="int">
+        SELECT count(*) FROM capture_generated_items WHERE input_id=#{inputId} AND entity_type=#{entityType}
+    </select>
+    <select id="countUnchangedRecords" resultType="int">
+        SELECT count(*)
+        FROM capture_generated_items gi
+        JOIN work_records wr ON wr.id=gi.entity_id
+        WHERE gi.input_id=#{inputId} AND gi.entity_type='RECORD'
+          AND wr.capture_input_id=gi.input_id AND wr.version=gi.initial_version AND wr.is_active
+          AND wr.source='MANUAL'
+    </select>
+    <select id="countUnchangedTasks" resultType="int">
+        SELECT count(*)
+        FROM capture_generated_items gi
+        JOIN todo_items t ON t.id=gi.entity_id
+        WHERE gi.input_id=#{inputId} AND gi.entity_type='TASK'
+          AND t.capture_input_id=gi.input_id AND t.version=gi.initial_version
+          AND t.status='PENDING' AND t.deleted_at IS NULL
+    </select>
+    <update id="deactivateGeneratedRecords">
+        UPDATE work_records SET is_active=FALSE, version=version+1, updated_at=#{now}
+        WHERE capture_input_id=#{inputId} AND is_active
+          AND EXISTS (
+              SELECT 1 FROM capture_generated_items gi
+              WHERE gi.input_id=#{inputId} AND gi.entity_type='RECORD'
+                AND gi.entity_id=work_records.id AND gi.initial_version=work_records.version
+          )
+    </update>
+    <update id="softDeleteGeneratedTasks">
+        UPDATE todo_items SET deleted_at=#{now}, version=version+1, updated_at=#{now}
+        WHERE capture_input_id=#{inputId} AND status='PENDING' AND deleted_at IS NULL
+          AND EXISTS (
+              SELECT 1 FROM capture_generated_items gi
+              WHERE gi.input_id=#{inputId} AND gi.entity_type='TASK'
+                AND gi.entity_id=todo_items.id AND gi.initial_version=todo_items.version
+          )
+    </update>
+    <update id="markReverted">
+        UPDATE capture_inputs SET status='REVERTED', updated_at=#{now}
+        WHERE id=#{id} AND status='SUCCEEDED'
+    </update>
+    <resultMap id="generatedRecord" type="com.aiworkbench.entity.input.GeneratedRecordRow"><constructor>
+        <arg column="id" javaType="java.util.UUID"/><arg column="project_id" javaType="java.util.UUID"/><arg column="project_name" javaType="java.lang.String"/><arg column="content" javaType="java.lang.String"/><arg column="occurred_at" javaType="java.time.Instant"/>
+    </constructor></resultMap>
+    <select id="findRecords" resultMap="generatedRecord">SELECT wr.id, wr.project_id, p.name project_name, wr.content, wr.occurred_at FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id WHERE wr.capture_input_id=#{inputId} ORDER BY wr.created_at, wr.id</select>
+    <resultMap id="generatedTask" type="com.aiworkbench.entity.input.GeneratedTaskRow"><constructor>
+        <arg column="id" javaType="java.util.UUID"/><arg column="project_id" javaType="java.util.UUID"/><arg column="project_name" javaType="java.lang.String"/><arg column="title" javaType="java.lang.String"/><arg column="notes" javaType="java.lang.String"/><arg column="due_at" javaType="java.time.Instant"/><arg column="priority" javaType="com.aiworkbench.enums.TaskPriority"/><arg column="version" javaType="long"/>
+    </constructor></resultMap>
+    <select id="findTasks" resultMap="generatedTask">SELECT t.id, t.project_id, p.name project_name, t.title, t.notes, t.due_at, t.priority, t.version FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id WHERE t.capture_input_id=#{inputId} ORDER BY t.created_at, t.id</select>
+</mapper>

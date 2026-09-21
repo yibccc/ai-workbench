@@ -1,0 +1,189 @@
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { createDailyReport, deleteDailyReport } from '../../api/reports'
+import { fetchDailyReport, saveDailyReport, type DailyReport } from '../../api/reports'
+import { finishTracking, trackEntity, trackedIds } from '../../hooks/realtime'
+import { Pagination } from '../../components/Pagination'
+import { useReportHistory } from './useReportHistory'
+import { useReportSources } from './useReportSources'
+import { useDialog } from '../../components/dialogContext'
+
+const wait = (milliseconds: number, signal: AbortSignal) => new Promise<void>((resolve, reject) => {
+  const timer = window.setTimeout(resolve, milliseconds)
+  signal.addEventListener('abort', () => { window.clearTimeout(timer); reject(new DOMException('Aborted', 'AbortError')) }, { once: true })
+})
+
+export function DailyReportPanel({ date, onDateChange, onDirtyChange, onSummaryChange }: {
+  date: string
+  onDateChange: (date: string) => void
+  onDirtyChange: (dirty: boolean) => void
+  onSummaryChange?: (summary?: string) => void
+}) {
+  const showDialog = useDialog()
+  const [selected, setSelected] = useState<DailyReport | null>(null)
+  const [draft, setDraft] = useState('')
+  const draftRef = useRef('')
+  const selectedRef = useRef<DailyReport | null>(null)
+  const userDirtyRef = useRef(false)
+  const [busy, setBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const deletedIds = useRef(new Set<string>())
+  const dateRef = useRef(date)
+  useEffect(() => { dateRef.current = date }, [date])
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const active = useRef<AbortController | null>(null)
+  const sourceReset = useRef<() => void>(() => undefined)
+  const dirty = selected?.status === 'SUCCEEDED' && draft !== selected.content
+  const select = useCallback((report: DailyReport) => {
+    if (deletedIds.current.has(report.id)) return
+    setSelected(report); selectedRef.current = report; setDraft(report.content); draftRef.current = report.content; userDirtyRef.current = false
+    sourceReset.current()
+  }, [])
+  const mergeRealtime = useCallback((report: DailyReport) => {
+    if (deletedIds.current.has(report.id)) return
+    const current = selectedRef.current
+    if (current?.id === report.id && (report.version < current.version
+        || (current.status !== 'PROCESSING' && report.status === 'PROCESSING'))) return
+    const preserve = selectedRef.current?.id === report.id && userDirtyRef.current
+    setSelected(report); selectedRef.current = report
+    if (!preserve) { setDraft(report.content); draftRef.current = report.content }
+  }, [])
+  const onHistorySelect = useCallback((report: DailyReport | null) => {
+    if (report) {
+      if (selectedRef.current?.id === report.id) mergeRealtime(report)
+      else select(report)
+    } else { setSelected(null); selectedRef.current = null; setDraft(''); draftRef.current = ''; userDirtyRef.current = false }
+  }, [mergeRealtime, select])
+  const { reports, setReports, page, size, total, totalPages, loading, setPage, setSize, refresh, selectReport } =
+    useReportHistory('DAILY', date, onHistorySelect, setError)
+  const sources = useReportSources(selected?.id, selected?.sourceCount, setError)
+  const removeFromView = useCallback((id: string) => {
+    deletedIds.current.add(id)
+    finishTracking('REPORT', id)
+    if (selectedRef.current?.id !== id) return
+    active.current?.abort()
+    onHistorySelect(null)
+    refresh()
+  }, [onHistorySelect, refresh])
+  useEffect(() => { sourceReset.current = sources.reset })
+  useEffect(() => () => { active.current?.abort(); active.current = null }, [])
+  useEffect(() => { active.current?.abort() }, [date])
+  useEffect(() => {
+    const id = selected?.id
+    if (!id) return
+    const stop = trackEntity('REPORT', id, event => {
+      if (event?.state === 'DELETED') { removeFromView(id); return }
+      void fetchDailyReport(id).then(report => {
+      if (selectedRef.current?.id !== id) return
+      mergeRealtime(report)
+      if (report.status !== 'PROCESSING') {
+        finishTracking('REPORT', id)
+        if (selected?.status === 'PROCESSING') refresh(id)
+      }
+    }).catch((caught: unknown) => {
+      if (caught instanceof Error && 'status' in caught && caught.status === 404) removeFromView(id)
+    })
+    })
+    if (selected?.status !== 'PROCESSING') finishTracking('REPORT', id)
+    return stop
+  }, [mergeRealtime, refresh, removeFromView, selected?.id, selected?.status])
+  useEffect(() => {
+    const controller = new AbortController()
+    for (const id of trackedIds('REPORT')) void fetchDailyReport(id, controller.signal).then(report => {
+      if (controller.signal.aborted || report.reportType !== 'DAILY' || report.date !== date) return
+      if (!selectedRef.current) select(report)
+      else if (selectedRef.current.id === report.id) mergeRealtime(report)
+    }).catch((caught: unknown) => {
+      if (!controller.signal.aborted && caught instanceof Error && 'status' in caught && caught.status === 404) {
+        finishTracking('REPORT', id)
+      }
+    })
+    return () => controller.abort()
+  }, [date, mergeRealtime, select])
+  useEffect(() => { onDirtyChange(dirty); return () => onDirtyChange(false) }, [dirty, onDirtyChange])
+  useEffect(() => onSummaryChange?.(dirty ? '有未保存修改' : selected?.status === 'PROCESSING' ? '生成中'
+    : selected?.status === 'FAILED' ? '生成失败' : `${total} 个版本`), [dirty, onSummaryChange, selected?.status, total])
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+
+  const confirmDiscard = async () => !dirty || await showDialog({ title: '放弃未保存修改？', description: '日报还有未保存修改，继续操作会放弃这些内容。', confirmLabel: '放弃修改', danger: true })
+
+  const generate = async () => {
+    if (!await confirmDiscard()) return
+    active.current?.abort(); const controller = new AbortController(); active.current = controller
+    setBusy(true); setError(null); setMessage(null)
+    try {
+      let report = await createDailyReport(date, crypto.randomUUID(), controller.signal); select(report); refresh(report.id)
+      for (let attempt = 0; report.status === 'PROCESSING' && attempt < 15; attempt += 1) {
+        await wait(800, controller.signal); report = await fetchDailyReport(report.id, controller.signal); if (selectedRef.current?.id === report.id) mergeRealtime(report)
+      }
+      if (report.status === 'PROCESSING') {
+        setMessage('日报仍在后台生成，完成后会自动显示。')
+        return
+      }
+      if (selectedRef.current?.id === report.id) refresh(report.id)
+      if (report.status === 'FAILED') throw new Error(report.errorMessage ?? '日报生成失败')
+      setBusy(false)
+      setMessage('日报已生成；修改正文后需要明确保存。')
+    } catch (caught) {
+      if (!(caught instanceof DOMException && caught.name === 'AbortError')) setError(caught instanceof Error ? caught.message : '日报生成失败')
+    } finally {
+      if (active.current === controller) { active.current = null; setBusy(false) }
+    }
+  }
+  const save = (event: FormEvent) => {
+    event.preventDefault(); if (!selected) return
+    const savedDraft = draft
+    setBusy(true); setError(null); setMessage(null)
+    void saveDailyReport(selected.id, draft, selected.version).then((saved) => {
+      setReports((items) => items.map((item) => item.id === saved.id ? saved : item))
+      if (selectedRef.current?.id !== saved.id) return
+      if (draftRef.current === savedDraft) userDirtyRef.current = false
+      mergeRealtime(saved); setMessage('日报正文已保存。')
+    }).catch((caught: unknown) => setError(caught instanceof Error ? caught.message : '保存失败')).finally(() => setBusy(false))
+  }
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(draft); setMessage('已复制当前编辑区内容（未自动保存）。') }
+    catch { setError('复制失败，请手动选择正文复制') }
+  }
+
+  const remove = async () => {
+    const report = selectedRef.current
+    if (!report || report.status === 'PROCESSING' || busy || deleting) return
+    const targetDate = date
+    await showDialog({ title: '删除此日报版本？',
+      description: `仅删除当前日报版本，其他版本、工作记录和待办均保留。${dirty ? '当前未保存的正文修改也会丢弃。' : ''}`,
+      confirmLabel: '删除此版本', danger: true, onConfirm: async () => {
+        if (dateRef.current !== targetDate || selectedRef.current?.id !== report.id) throw new Error('当前日报已切换，请关闭弹窗后重新操作')
+        setDeleting(true); setError(null); setMessage(null)
+        try {
+          await deleteDailyReport(report.id, report.version)
+          deletedIds.current.add(report.id); finishTracking('REPORT', report.id)
+          if (dateRef.current !== targetDate || selectedRef.current?.id !== report.id) return
+          active.current?.abort(); onHistorySelect(null); sourceReset.current()
+          refresh(); setMessage('此日报版本已删除，工作记录和其他版本已保留。')
+        } catch (caught) {
+          if (dateRef.current === targetDate && selectedRef.current?.id === report.id) setError(caught instanceof Error ? caught.message : '删除失败')
+          throw caught
+        } finally { setDeleting(false) }
+      } })
+  }
+
+  return <article className="panel daily-report" data-testid="daily-report">
+    <div className="section-heading"><div><p className="kicker">DAILY REPORT</p><h2>当天汇总</h2></div><input aria-label="日报日期" type="date" value={date} onChange={(event) => { onDateChange(event.target.value) }} /></div>
+    <div className="report-toolbar"><button disabled={busy} type="button" onClick={() => void generate()}>{busy ? '生成中…' : '手动生成新版本'}</button><select aria-label="日报历史版本" value={selected?.id ?? ''} onChange={async (event) => { const report = reports.find((item) => item.id === event.target.value); if (report && await confirmDiscard()) selectReport(report.id) }}><option value="">{reports.length ? '选择历史版本' : '暂无历史版本'}</option>{reports.map((report) => <option key={report.id} value={report.id}>{new Date(report.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} · {report.status}</option>)}</select></div>
+    <Pagination page={page} totalPages={totalPages} size={size} loading={loading} onPage={async (value) => { if (await confirmDiscard()) setPage(value) }} onSize={async (value) => { if (await confirmDiscard()) setSize(value) }} />
+    {error && <p className="inline-notice inline-error" role="alert">{error}</p>}{message && <p className="inline-notice inline-success" role="status">{message}</p>}
+    {selected && <><p className="report-meta">{selected.status} · 版本 {selected.version} · {selected.sourceCount} 个冻结来源{selected.editedAt ? ' · 已人工编辑' : ''}</p>
+      {selected.status !== 'PROCESSING' && <button className="danger" type="button" disabled={busy || deleting} onClick={() => void remove()}>{deleting ? '删除中…' : '删除此版本'}</button>}
+      {selected.status === 'SUCCEEDED' && <form onSubmit={save}><label>日报正文<textarea data-testid="daily-content" rows={14} maxLength={20000} value={draft} onChange={(event) => { setDraft(event.target.value); draftRef.current = event.target.value; userDirtyRef.current = true }} /></label><div className="actions"><button disabled={busy} type="submit">明确保存正文</button><button className="secondary" type="button" onClick={() => void copy()}>复制当前正文</button></div></form>}
+      {selected.status === 'PROCESSING' && <p className="capture-state">来源已冻结，AI 正在生成本版本；折叠面板也不会中断。</p>}{selected.status === 'FAILED' && <p className="inline-notice inline-error">{selected.errorMessage}{selected.errorCode ? ` · ${selected.errorCode} / ${selected.errorStage} · ${selected.sourceCount} 个来源` : ''}</p>}
+      {selected.editedAt && <p className="muted">正文已由用户编辑；“来源 N”仅代表生成时的 AI 引用，人工修改内容不自动继承该引用关系。</p>}
+      <details className="report-sources"><summary>核对本版本来源（{selected.sourceCount}）</summary>{selected.sourceCount === 0 ? <p className="muted">该日期没有有效记录或已安排计划。</p> : sources.items.map((source, index) => <article key={source.id}><strong>来源 {sources.page * sources.size + index + 1} · {source.type === 'RECORD' ? '记录' : '计划'} · {source.projectName ?? '未归属项目'}</strong><p>{source.content}</p><small>{new Date(source.sourceTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} · {source.status}</small></article>)}<Pagination page={sources.page} totalPages={sources.pages} size={sources.size} loading={sources.loading} onPage={sources.setPage} onSize={sources.setSize} /></details>
+    </>}
+  </article>
+}

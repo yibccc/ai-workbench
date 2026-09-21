@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${E2E_DATABASE_URL:jdbc:postgresql://localhost:5432/ai_workbench?currentSchema=d9_e2e}
+  flyway:
+    schemas: d9_e2e
+    default-schema: d9_e2e
+    create-schemas: true
+
+server:
+  port: ${E2E_BACKEND_PORT:18080}
+
+workbench:
+  deepseek:
+    api-key: ""

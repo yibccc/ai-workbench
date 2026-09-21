@@ -1,5 +1,28 @@
 package com.aiworkbench.input;
 
+import com.aiworkbench.ai.AiCaptureResult;
+import com.aiworkbench.ai.WorkbenchAiGateway;
+import com.aiworkbench.dto.input.CreateInputRequest;
+import com.aiworkbench.dto.input.InputResponse;
+import com.aiworkbench.dto.project.CreateProjectRequest;
+import com.aiworkbench.dto.project.ProjectResponse;
+import com.aiworkbench.enums.InputStatus;
+import com.aiworkbench.enums.TaskPriority;
+import com.aiworkbench.service.InputService;
+import com.aiworkbench.service.ProjectService;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,26 +33,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import com.aiworkbench.ai.AiCaptureResult;
-import com.aiworkbench.ai.WorkbenchAiGateway;
-import com.aiworkbench.project.CreateProjectRequest;
-import com.aiworkbench.project.ProjectResponse;
-import com.aiworkbench.project.ProjectService;
-import com.aiworkbench.task.TaskPriority;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.web.server.ResponseStatusException;
 
 @SpringBootTest
 class AiCaptureIntegrationTest {

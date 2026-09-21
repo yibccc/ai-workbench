@@ -1,7 +1,5 @@
 package com.aiworkbench.task;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Map;
@@ -13,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class TaskMigrationIntegrationTest {

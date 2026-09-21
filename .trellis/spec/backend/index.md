@@ -14,12 +14,14 @@ This directory contains guidelines for backend development. Fill in each file wi
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Feature-first modular monolith; no DDD or global technical-layer packages | Active |
+| [Directory Structure](./directory-structure.md) | Controller / service interfaces / service implementations / mapper layers; no DDD | Active |
 | [Database Guidelines](./database-guidelines.md) | PostgreSQL migrations, MyBatis mapping, time ranges, and project associations | Active |
 | [Error Handling](./error-handling.md) | Problem details, validation, conflicts, and safe exception translation | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
 | [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
 | [Runtime Integration Contract](./runtime-integration.md) | Local infrastructure, environment variables, status APIs, and probe error behavior | Active |
+| [Pagination](./pagination.md) | PageHelper query scope, zero-based API, thread-local cleanup and browser behavior | Active |
+| [Report Deletion](./report-deletion.md) | Daily version soft deletion, concurrency, idempotency and retained evidence | Active |
 
 ---
 

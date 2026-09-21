@@ -1,49 +1,49 @@
 # Directory Structure
 
-## Overview
+## Decision
 
-The backend is a modular monolith organized by business feature. It deliberately does not use DDD, hexagonal architecture, or global technical-layer packages.
+The user selected conventional three-layer architecture on 2026-09-21, superseding feature-colocated controllers/services/mappers. Do not introduce DDD.
 
-Each small feature keeps its HTTP, application, and persistence types together so a change can be understood without navigating separate global `controller/`, `service/`, and `mapper/` trees.
-
-## Directory Layout
+## Layout
 
 ```text
-backend/src/main/
-├── java/com/aiworkbench/
-│   ├── project/       project Controller, Service, Mapper, DTO, Row
-│   ├── record/        work-record Controller, Service, Mapper, DTO, Row
-│   ├── task/          task Controller, Service, Mapper, DTO, Row, enums
-│   ├── ai/            model gateway and adapter
-│   ├── status/        runtime status endpoint and probes
-│   ├── config/        cross-feature Spring/MyBatis configuration
-│   └── web/           cross-feature HTTP exception translation
-└── resources/
-    ├── com/aiworkbench/<feature>/*Mapper.xml
-    └── db/migration/V*__*.sql
+backend/src/main/java/com/aiworkbench/
+├── controller/         HTTP entry points
+├── service/            Service interfaces
+│   └── impl/           Spring implementations and transaction boundaries
+├── mapper/             MyBatis interfaces
+├── dto/<feature>/      Request, response and service command records
+├── entity/<feature>/   Persistence row projections
+├── enums/              Status, priority and source-role values
+├── exception/          Typed exceptions and HTTP advice
+├── common/             PageResponse and PageQueries
+├── ai/                 Model interfaces and SDK adapters
+├── events/             WebSocket infrastructure
+├── config/             Spring, recovery, profile guards and MyBatis configuration
+└── e2e/                Explicit-profile deterministic gateways
+
+backend/src/main/resources/
+├── mapper/*Mapper.xml
+└── db/migration/V*__*.sql
 ```
 
-## Module Organization
+## Dependencies and transactions
 
-- Create one package per business capability, such as `project`, `record`, or `task`.
-- Keep Controller, Service, Mapper interface, request/response records, persistence Row, and small feature enums in that package.
-- Keep MyBatis XML under the matching resource namespace.
-- Put only genuinely cross-feature infrastructure in `config` or `web`.
-- Services own transactions and business validation. Controllers translate HTTP input; Mappers own SQL access.
-- Do not add domain aggregates, repository abstractions, ports/adapters, or extra mapping layers unless a future task explicitly changes this architectural decision.
-- Do not reorganize features into global `controller`, `service`, `mapper`, or `dto` packages.
+- Controllers inject service interfaces. Implementations reside in `service.impl`, contain validation and use Mapper interfaces for SQL access.
+- Input and Report orchestration/persistence remain separate Spring beans: first commit the request, call the model outside a transaction, then commit the validated result in a short transaction.
+- Do not replace separate-bean transactions with self-invocation during refactoring.
+- Mapper XML namespaces reference `com.aiworkbench.mapper.*`; result mappings reference `entity.*`. Configure `mybatis.mapper-locations=classpath*:mapper/*.xml`.
+- Projection records crossing packages must be accessible. Do not duplicate rows merely to bypass package visibility.
+- Synchronize Java imports, XML mappings, test packages/mocks, constructors and Spring scanning when moving classes.
+- Retain immutable Flyway migrations during package-only refactors.
 
-## Naming Conventions
+## Naming and examples
 
-- `<Feature>Controller`, `<Feature>Service`, `<Feature>Mapper`
-- `Create<Feature>Request`, `Update<Feature>Request`, `<Feature>Response`
-- `<Feature>Row` for package-private persistence projections
-- `<Feature>Mapper.xml` matching the Java mapper namespace
-- `V<number>__<description>.sql` for immutable Flyway migrations
+- `ProjectController -> ProjectService -> ProjectServiceImpl -> ProjectMapper` is the reference dependency chain.
+- `CreateProjectRequest` and `ProjectResponse` live under `dto.project`; `ProjectRow` lives under `entity.project`.
+- `common.PageQueries` scopes a single PageHelper query and clears thread-local state before DTO conversion. See [Pagination](pagination.md).
+- Existing arrays and zero-based paged APIs remain compatible; introducing PageHelper does not authorize changing report date semantics or full source selection.
 
-## Examples
+## Verification
 
-- `com.aiworkbench.project` is the reference for a simple lifecycle module.
-- `com.aiworkbench.task` is the reference for a feature with enums, dynamic filters, and optimistic locking.
-
-Prefer extracting a small shared helper only after two or more feature packages require the same stable behavior. Co-location is intentional; duplicating business rules across packages is not.
+Run real PostgreSQL integration tests after structural moves. Specifically retain transaction rollback, optimistic-lock, input fencing, report snapshot, mapper UUID and after-commit notification assertions. Compilation alone does not validate Spring transaction behavior.

@@ -1,15 +1,18 @@
 package com.aiworkbench.ai;
 
 import com.aiworkbench.config.DeepSeekProperties;
+import com.aiworkbench.exception.DeepSeekNotConfiguredException;
 import io.agentscope.core.message.TextBlock;
 import io.agentscope.core.message.UserMessage;
 import io.agentscope.core.model.ChatResponse;
 import io.agentscope.extensions.model.openai.OpenAIChatModel;
 import io.agentscope.extensions.model.openai.compat.deepseek.DeepSeekFormatter;
 import java.util.List;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("!e2e & !test")
 public class AgentScopeDeepSeekGateway implements DeepSeekGateway {
 
     private final DeepSeekProperties properties;

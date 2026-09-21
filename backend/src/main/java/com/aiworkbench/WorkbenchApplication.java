@@ -1,7 +1,7 @@
 package com.aiworkbench;
 
 import com.aiworkbench.config.DeepSeekProperties;
-import com.aiworkbench.report.ReportAiProperties;
+import com.aiworkbench.config.ReportAiProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

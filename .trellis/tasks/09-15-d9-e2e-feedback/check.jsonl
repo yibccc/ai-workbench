@@ -1,0 +1,8 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"检查最新三层架构、service接口与impl事务边界、Mapper XML扫描和PageHelper分页；旧功能分包限制已由用户覆盖。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"检查完整流程下事务、幂等、日期、状态、版本和快照契约。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"检查真实模型调用预算、语义证据、超时和安全边界。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"检查浏览器和 API 错误路径均有可操作反馈。"}
+{"file":".trellis/spec/frontend/index.md","reason":"检查 E2E 对页面加载、空态、错误、键盘、长文本、编辑复制的真实断言。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"检查 A01-A13 每条验收从 UI 到数据库和报告来源闭环。"}
+{"file":".trellis/spec/backend/pagination.md","reason":"检查PageHelper物理分页、零基API、线程清理与后续全量查询。"}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"检查新目录结构及来源/历史分页、loading与dirty guard。"}

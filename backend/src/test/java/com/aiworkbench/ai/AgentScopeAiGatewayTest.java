@@ -1,14 +1,13 @@
 package com.aiworkbench.ai;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.aiworkbench.config.DeepSeekProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AgentScopeAiGatewayTest {
     private final AgentScopeAiGateway gateway = new AgentScopeAiGateway(

@@ -1,5 +1,7 @@
 # Database Guidelines
 
+> Current package and pagination ownership (2026-09-21): follow [Directory Structure](directory-structure.md) for controller/service/impl/mapper layers and `resources/mapper` XML. Follow [Pagination](pagination.md) for PageHelper. Older feature-relative class references below identify the same business contracts after their package move; they do not mandate co-locating classes. Database migrations remain immutable.
+
 ## Scenario: PostgreSQL persistence for projects and work records
 
 ### 1. Scope / Trigger

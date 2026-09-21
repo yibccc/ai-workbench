@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: ${LIVE_ACCEPTANCE_DATABASE_URL:jdbc:postgresql://localhost:5432/ai_workbench?currentSchema=d9_live_acceptance}
+  flyway:
+    schemas: d9_live_acceptance
+    default-schema: d9_live_acceptance
+    create-schemas: true
+
+server:
+  port: ${LIVE_ACCEPTANCE_BACKEND_PORT:18082}

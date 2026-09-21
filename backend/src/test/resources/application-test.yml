@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: ${TEST_DATABASE_URL:jdbc:postgresql://localhost:5432/ai_workbench?currentSchema=d9_backend_tests}
+    username: ${POSTGRES_USER:ai_workbench}
+    password: ${POSTGRES_PASSWORD:local_dev_only}
+  flyway:
+    schemas: d9_backend_tests
+    default-schema: d9_backend_tests
+    create-schemas: true

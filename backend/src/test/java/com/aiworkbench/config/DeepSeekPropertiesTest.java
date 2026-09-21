@@ -1,9 +1,8 @@
 package com.aiworkbench.config;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DeepSeekPropertiesTest {
 

@@ -48,6 +48,13 @@ workbench:
     timeout: ${DEEPSEEK_TIMEOUT:PT4M}
 
 mybatis:
+  mapper-locations: classpath*:mapper/*.xml
   type-handlers-package: com.aiworkbench.config.mybatis
   configuration:
     map-underscore-to-camel-case: true
+
+pagehelper:
+  helper-dialect: postgresql
+  reasonable: false
+  support-methods-arguments: false
+  page-size-zero: false

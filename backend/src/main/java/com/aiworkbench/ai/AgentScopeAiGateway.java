@@ -1,6 +1,7 @@
 package com.aiworkbench.ai;
 
 import com.aiworkbench.config.DeepSeekProperties;
+import com.aiworkbench.exception.DeepSeekNotConfiguredException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,9 +16,11 @@ import io.agentscope.extensions.model.openai.compat.deepseek.DeepSeekFormatter;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("!e2e & !test")
 public class AgentScopeAiGateway implements WorkbenchAiGateway {
     private final DeepSeekProperties properties;
     private final ObjectMapper objectMapper;

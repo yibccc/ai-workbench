@@ -1,0 +1,8 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"2026-09-21用户明确授权改为controller/service/impl/mapper三层，覆盖旧功能分包限制；仍不引入DDD。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"A01-A13 涉及事务、幂等、日期、状态、撤销、报告快照和版本链。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"D9 区分离线替身和付费真实模型，检查超时、严格 JSON、来源和调用预算。"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"浏览器回归需要稳定检查校验、冲突、失败和恢复错误。"}
+{"file":".trellis/spec/frontend/index.md","reason":"D9 覆盖页面加载、空态、键盘、长文本、轮询、dirty guard 和复制。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"A01-A13 是输入到报告的完整跨层回归。"}
+{"file":".trellis/spec/backend/pagination.md","reason":"PageHelper分页页号转换、查询作用域与异常ThreadLocal清理合同。"}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"前端features/api/components/hooks/utils组织和分页状态归属。"}

@@ -1,38 +1,32 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import {
-  archiveProject, createProject, createRecord, deleteRecord, fetchProjects, fetchRecords,
-  fetchWorkbenchStatus, renameProject, updateRecord,
-  type CaptureInput, type Project, type WorkRecord, type WorkbenchStatus,
-} from './api'
-import { AiCapturePanel } from './AiCapturePanel'
-import { TasksPanel } from './TasksPanel'
-import { DailyReportPanel } from './DailyReportPanel'
-import { WeeklyReportPanel } from './WeeklyReportPanel'
-
-const WORKBENCH_TIME_ZONE = 'Asia/Shanghai'
-const workbenchParts = (date = new Date()) => Object.fromEntries(
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: WORKBENCH_TIME_ZONE,
-    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date).map(({ type, value }) => [type, value]),
-)
-const localDate = (date = new Date()) => {
-  const parts = workbenchParts(date)
-  return `${parts.year}-${parts.month}-${parts.day}`
-}
-const localDateTime = (iso?: string) => {
-  const parts = workbenchParts(iso ? new Date(iso) : new Date())
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`
-}
-const timeForDate = (date: string) => `${date}T${localDateTime().slice(11)}`
-const toInstant = (dateTime: string) => new Date(`${dateTime}:00+08:00`).toISOString()
+  archiveProject } from './api/projects'
+import { createProject, fetchProjects, fetchProjectPage, renameProject, type Project } from './api/projects'
+import { createRecord, deleteRecord, fetchRecord, fetchRecordPage, updateRecord, type WorkRecord } from './api/records'
+import { type CaptureInput } from './api/capture'
+import { AiCapturePanel } from './features/capture/AiCapturePanel'
+import { TasksPanel } from './features/tasks/TasksPanel'
+import { DailyReportPanel } from './features/reports/DailyReportPanel'
+import { WeeklyReportPanel } from './features/reports/WeeklyReportPanel'
+import { CollapsibleSection } from './components/CollapsibleSection'
+import { ProjectPicker } from './features/projects/ProjectPicker'
+import { ProjectsPanel } from './features/projects/ProjectsPanel'
+import { RecordsList } from './features/records/RecordsList'
+import { WORKBENCH_TIME_ZONE, localDate, localDateTime, timeForDate, toInstant } from './utils/date'
+import { usePagedList } from './hooks/usePagedList'
+import { useDialog } from './components/dialogContext'
 
 function App() {
-  const [status, setStatus] = useState<WorkbenchStatus | null>(null)
+  const showDialog = useDialog()
   const [projects, setProjects] = useState<Project[]>([])
-  const [records, setRecords] = useState<WorkRecord[]>([])
+  const [projectSearch, setProjectSearch] = useState('')
+  const [projectPage, setProjectPage] = useState(0)
+  const [projectSize, setProjectSize] = useState(20)
+  const [recordPage, setRecordPage] = useState(0)
+  const [recordSize, setRecordSize] = useState(20)
   const [selectedDate, setSelectedDate] = useState(localDate)
+  const [dailyDate, setDailyDate] = useState(localDate)
+  const [weeklyDate, setWeeklyDate] = useState(localDate)
   const [projectName, setProjectName] = useState('')
   const [content, setContent] = useState('')
   const [projectId, setProjectId] = useState('')
@@ -44,26 +38,37 @@ function App() {
   const [captureRevision, setCaptureRevision] = useState(0)
   const [dailyReportDirty, setDailyReportDirty] = useState(false)
   const [weeklyReportDirty, setWeeklyReportDirty] = useState(false)
-  const reportDirty = dailyReportDirty || weeklyReportDirty
-
+  const [captureSummary, setCaptureSummary] = useState<string>()
+  const [taskSummary, setTaskSummary] = useState('0 项')
+  const [dailySummary, setDailySummary] = useState<string | undefined>('0 个版本')
+  const [weeklySummary, setWeeklySummary] = useState<string | undefined>('0 个版本')
   const changeSelectedDate = (nextDate: string) => {
     if (nextDate === selectedDate) return true
-    if (reportDirty && !window.confirm('报告还有未保存修改，确定切换日期并放弃吗？')) return false
     setSelectedDate(nextDate)
+    setRecordPage(0)
     if (!editingId) setOccurredAt(timeForDate(nextDate))
     return true
   }
 
   const loadProjects = useCallback(async () => setProjects(await fetchProjects(true)), [])
-  const loadRecords = useCallback(async (date: string) => setRecords(await fetchRecords(date)), [])
+  const queryProjects = useCallback((signal: AbortSignal) =>
+    fetchProjectPage(projectPage, projectSize, projectSearch, false, signal), [projectPage, projectSearch, projectSize])
+  const queryRecords = useCallback((signal: AbortSignal) =>
+    fetchRecordPage(selectedDate, recordPage, recordSize, signal), [selectedDate, recordPage, recordSize])
+  const projectList = usePagedList(queryProjects, setError, setProjectPage)
+  const recordList = usePagedList(queryRecords, setError, setRecordPage)
+  const loadProjectPage = projectList.refresh
+  const loadRecords = recordList.refresh
+  const projectItems = projectList.data?.items ?? []
+  const projectTotalPages = projectList.data?.totalPages ?? 0
+  const records = recordList.data?.items ?? []
+  const recordTotalPages = recordList.data?.totalPages ?? 0
+  const recordTotal = recordList.data?.totalElements ?? 0
 
   useEffect(() => {
     const controller = new AbortController()
-    void Promise.all([fetchWorkbenchStatus(controller.signal), fetchProjects(true)])
-      .then(([nextStatus, nextProjects]) => {
-        setStatus(nextStatus)
-        setProjects(nextProjects)
-      })
+    void fetchProjects(true, controller.signal)
+      .then(setProjects)
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === 'AbortError') return
         setError(caught instanceof Error ? caught.message : '无法加载工作台')
@@ -71,22 +76,13 @@ function App() {
     return () => controller.abort()
   }, [])
 
-  useEffect(() => {
-    let active = true
-    void fetchRecords(selectedDate)
-      .then((nextRecords) => { if (active) setRecords(nextRecords) })
-      .catch((caught: unknown) => {
-        if (active) setError(caught instanceof Error ? caught.message : '无法读取工作记录')
-      })
-    return () => { active = false }
-  }, [selectedDate])
-
-  const run = async (action: () => Promise<void>, success: string) => {
+  const run = async (action: () => Promise<void>, success: string, propagate = false) => {
     setBusy(true); setError(null); setMessage(null)
     try {
       await action()
       setMessage(success)
     } catch (caught) {
+      if (propagate) throw caught
       setError(caught instanceof Error ? caught.message : '操作失败')
     } finally {
       setBusy(false)
@@ -98,7 +94,7 @@ function App() {
     void run(async () => {
       await createProject(projectName)
       setProjectName('')
-      await loadProjects()
+      setProjectPage(0); await loadProjects(); await loadProjectPage()
     }, '项目已创建')
   }
 
@@ -109,7 +105,7 @@ function App() {
       if (editingId) await updateRecord(editingId, input)
       else await createRecord(input)
       setContent(''); setProjectId(''); setOccurredAt(timeForDate(selectedDate)); setEditingId(null)
-      await loadRecords(selectedDate)
+      setRecordPage(0); await loadRecords()
     }, editingId ? '工作记录已更新' : '工作记录已保存')
   }
 
@@ -122,40 +118,46 @@ function App() {
   }
 
   const refreshProjectRelatedViews = async () => {
-    await Promise.all([loadProjects(), loadRecords(selectedDate)])
+    await Promise.all([loadProjects(), loadRecords()])
+    await loadProjectPage()
   }
 
   return (
-    <main className="shell">
+    <main className="shell" data-testid="workbench">
       <header className="hero">
         <div>
           <p className="eyebrow">LOCAL AI WORKBENCH</p>
           <h1>今日工作台</h1>
-          <p className="lede">记录真实发生的工作，也可以切换日期补记历史。所有数据保存在本机 PostgreSQL。</p>
+          <p className="lede">快速记录成果与安排，按日期整理工作，并生成可核对来源的日报和周报。</p>
         </div>
-        <div className="health" aria-label="运行状态">
-          {status ? Object.entries(status.components).map(([name, component]) => (
-            <span className={`health-item health-${component.status.toLowerCase()}`} key={name} title={component.detail}>
-              {name} · {component.status}
-            </span>
-          )) : <span>正在连接本机服务…</span>}
-        </div>
+        <p className={`weekday weekday-${new Intl.DateTimeFormat('en-US', { timeZone: WORKBENCH_TIME_ZONE, weekday: 'short' }).format(new Date()).toLowerCase()}`}>今天是{new Intl.DateTimeFormat('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, weekday: 'long' }).format(new Date())}</p>
       </header>
 
       {(error || message) && <p className={error ? 'notice error' : 'notice success'} role={error ? 'alert' : 'status'}>{error ?? message}</p>}
 
       <section className="workspace">
         <div className="main-column">
-          <WeeklyReportPanel date={selectedDate} onDateChange={changeSelectedDate} onDirtyChange={setWeeklyReportDirty} />
-          <DailyReportPanel date={selectedDate} onDateChange={changeSelectedDate} onDirtyChange={setDailyReportDirty} />
-          <AiCapturePanel onGenerated={async (result: CaptureInput) => {
+          <CollapsibleSection id="weekly" title="自然周汇总" summary={weeklyReportDirty ? '有未保存修改' : weeklySummary} defaultOpen={false}><WeeklyReportPanel date={weeklyDate} onDateChange={async (date) => {
+            if (!weeklyReportDirty || await showDialog({ title: '放弃未保存修改？', description: '周报还有未保存修改，切换日期会放弃这些内容。', confirmLabel: '放弃修改', danger: true })) setWeeklyDate(date)
+          }} onDirtyChange={setWeeklyReportDirty} onSummaryChange={setWeeklySummary} /></CollapsibleSection>
+          <CollapsibleSection id="daily" title="当天汇总" summary={dailyReportDirty ? '有未保存修改' : dailySummary} defaultOpen={false}><DailyReportPanel date={dailyDate} onDateChange={async (date) => {
+            if (!dailyReportDirty || await showDialog({ title: '放弃未保存修改？', description: '日报正文尚未保存，切换日期会放弃这些内容。', confirmLabel: '放弃修改', danger: true })) setDailyDate(date)
+          }} onDirtyChange={setDailyReportDirty} onSummaryChange={setDailySummary} /></CollapsibleSection>
+          <CollapsibleSection id="capture" title="一句话记录与安排" summary={captureSummary} defaultOpen><AiCapturePanel onSummaryChange={setCaptureSummary} onEditRecord={(id) => {
+            window.dispatchEvent(new CustomEvent('ai-workbench:open-panel', { detail: 'record-composer' }))
+            void fetchRecord(id).then(beginEdit)
+          }} onEditTask={(id) => {
+            window.dispatchEvent(new CustomEvent('ai-workbench:open-panel', { detail: 'tasks' }))
+            window.dispatchEvent(new CustomEvent('ai-workbench:edit-task', { detail: id }))
+          }} onGenerated={async (result: CaptureInput) => {
             const firstRecord = result.records[0]
             const generatedDate = firstRecord ? localDate(new Date(firstRecord.occurredAt)) : selectedDate
-            const changed = firstRecord ? changeSelectedDate(generatedDate) : true
-            await loadRecords(changed ? generatedDate : selectedDate)
+            if (firstRecord) changeSelectedDate(generatedDate)
+            setRecordPage(0)
+            if (recordPage === 0 && generatedDate === selectedDate) await loadRecords()
             setCaptureRevision((value) => value + 1)
-          }} />
-          <article className="panel composer">
+          }} /></CollapsibleSection>
+          <CollapsibleSection id="record-composer" title="手工记录" defaultOpen><article className="panel composer" data-testid="record-composer">
             <div className="section-heading">
               <div><p className="kicker">WORK LOG</p><h2>{editingId ? '编辑工作记录' : '记一笔工作'}</h2></div>
               <input aria-label="查看日期" type="date" value={selectedDate} onChange={(event) => {
@@ -163,77 +165,35 @@ function App() {
               }} />
             </div>
             <form onSubmit={submitRecord}>
-              <label>工作内容<textarea required maxLength={4000} rows={4} value={content} onChange={(event) => setContent(event.target.value)} placeholder="完成了什么、解决了什么问题？" /></label>
+              <label>工作内容<textarea data-testid="record-content" required maxLength={4000} rows={4} value={content} onChange={(event) => setContent(event.target.value)} onKeyDown={(event) => { if (event.ctrlKey && event.key === 'Enter') event.currentTarget.form?.requestSubmit() }} placeholder="完成了什么、解决了什么问题？（Ctrl+Enter 提交）" /></label>
               <div className="form-row">
-                <label>所属项目<select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">未归属项目</option>{projects.map((project) => <option disabled={project.status === 'ARCHIVED' && project.id !== projectId} key={project.id} value={project.id}>{project.name}{project.status === 'ARCHIVED' ? '（已归档）' : ''}</option>)}</select></label>
+                <label>所属项目<ProjectPicker projects={projects} value={projectId} onChange={setProjectId} emptyLabel="未归属项目" currentId={editingId ? projectId : null} /></label>
                 <label>发生时间<input required type="datetime-local" value={occurredAt} onChange={(event) => setOccurredAt(event.target.value)} /></label>
               </div>
               <div className="actions">
-                <button disabled={busy} type="submit">{editingId ? '保存修改' : '保存记录'}</button>
+                <button data-testid="record-submit" disabled={busy} type="submit">{editingId ? '保存修改' : '保存记录'}</button>
                 {editingId && <button className="secondary" type="button" onClick={() => { setEditingId(null); setContent(''); setProjectId(''); setOccurredAt(timeForDate(selectedDate)) }}>取消编辑</button>}
               </div>
             </form>
-          </article>
+          </article></CollapsibleSection>
 
-          <TasksPanel key={captureRevision} projects={projects} onRecordsChanged={() => loadRecords(selectedDate)} />
+          <CollapsibleSection id="tasks" title="待办" summary={taskSummary} defaultOpen><TasksPanel key={captureRevision} projects={projects} onSummaryChange={setTaskSummary} onRecordsChanged={loadRecords} /></CollapsibleSection>
 
-          <section className="records" aria-labelledby="records-title">
-            <div className="section-heading"><div><p className="kicker">TIMELINE</p><h2 id="records-title">{selectedDate} 的记录</h2></div><span>{records.length} 条</span></div>
-            {records.length === 0 ? (
-              <div className="empty"><strong>这一天还没有记录</strong><span>在上方写下第一条，或切换日期补记历史工作。</span></div>
-            ) : records.map((record) => (
-              <article id={`record-${record.id}`} className={`record ${record.source === 'TASK_COMPLETION' ? 'record-automatic' : ''}`} key={record.id}>
-                <time>{new Date(record.occurredAt).toLocaleTimeString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, hour: '2-digit', minute: '2-digit' })}</time>
-                <div className="record-body">
-                  <div className="record-meta">
-                    {record.project ? <span className={record.project.status === 'ARCHIVED' ? 'archived' : ''}>{record.project.name}{record.project.status === 'ARCHIVED' ? '（已归档）' : ''}</span> : <span>未归属项目</span>}
-                    <span>{record.source === 'TASK_COMPLETION' ? '待办自动完成记录' : '手工记录'}</span>
-                    <span>录入于 {new Date(record.createdAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE })}</span>
-                  </div>
-                  <p>{record.content}</p>
-                  {record.completionResult && <p className="completion-result">完成结果：{record.completionResult}</p>}
-                </div>
-                {record.source === 'MANUAL' && <div className="record-actions">
-                  <button className="text-button" type="button" onClick={() => beginEdit(record)}>编辑</button>
-                  <button className="text-button danger" type="button" onClick={() => {
-                    if (window.confirm('确定删除这条工作记录吗？')) void run(async () => {
-                      await deleteRecord(record.id); await loadRecords(selectedDate)
-                    }, '工作记录已删除')
-                  }}>删除</button>
-                </div>}
-              </article>
-            ))}
-          </section>
+          <CollapsibleSection id="records" title="工作记录" summary={`${recordTotal} 条`} defaultOpen>
+            <RecordsList selectedDate={selectedDate} records={records} recordTotal={recordTotal}
+              recordPage={recordPage} recordSize={recordSize} recordTotalPages={recordTotalPages} loading={recordList.loading}
+              setRecordPage={setRecordPage} setRecordSize={setRecordSize} beginEdit={beginEdit}
+              onDelete={id => run(async () => { await deleteRecord(id); void loadRecords() }, '工作记录已删除', true)} />
+          </CollapsibleSection>
         </div>
 
-        <aside className="panel projects">
-          <p className="kicker">PROJECTS</p><h2>项目</h2>
-          <form className="project-form" onSubmit={submitProject}>
-            <input required maxLength={120} value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="新项目名称" />
-            <button disabled={busy} type="submit">创建</button>
-          </form>
-          <div className="project-list">
-            {projects.length === 0 ? <p className="muted">还没有项目，先创建一个吧。</p> : projects.map((project) => (
-              <div className={`project ${project.status === 'ARCHIVED' ? 'project-archived' : ''}`} key={project.id}>
-                <div><strong>{project.name}</strong><span>{project.status === 'ACTIVE' ? '进行中' : '已归档'}</span></div>
-                <div className="project-actions">
-                  <button className="text-button" type="button" onClick={() => {
-                    const name = window.prompt('新的项目名称', project.name)
-                    if (name?.trim() && name.trim() !== project.name) void run(async () => {
-                      await renameProject(project.id, name); await refreshProjectRelatedViews()
-                    }, '项目已改名')
-                  }}>改名</button>
-                  {project.status === 'ACTIVE' && <button className="text-button danger" type="button" onClick={() => {
-                    if (window.confirm(`归档“${project.name}”？历史记录仍会保留。`)) void run(async () => {
-                      await archiveProject(project.id); await refreshProjectRelatedViews()
-                      if (projectId === project.id && !editingId) setProjectId('')
-                    }, '项目已归档')
-                  }}>归档</button>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
+        <ProjectsPanel items={projectItems} name={projectName} search={projectSearch}
+          page={projectPage} size={projectSize} totalPages={projectTotalPages} busy={busy} loading={projectList.loading}
+          onName={setProjectName} onSearch={value => { setProjectSearch(value); setProjectPage(0) }}
+          onPage={setProjectPage} onSize={value => { setProjectSize(value); setProjectPage(0) }} onSubmit={submitProject}
+          onRename={(id, name) => run(async () => { await renameProject(id, name); void refreshProjectRelatedViews().catch(() => setError('项目已改名，但列表刷新失败，请刷新页面')) }, '项目已改名', true)}
+          onArchive={id => run(async () => { await archiveProject(id); void refreshProjectRelatedViews().catch(() => setError('项目已归档，但列表刷新失败，请刷新页面'))
+            if (projectId === id && !editingId) setProjectId('') }, '项目已归档', true)} />
       </section>
     </main>
   )

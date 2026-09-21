@@ -1,17 +1,19 @@
 package com.aiworkbench.task;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import com.aiworkbench.record.CreateWorkRecordRequest;
-import com.aiworkbench.record.WorkRecordResponse;
-import com.aiworkbench.record.WorkRecordService;
+import com.aiworkbench.dto.record.CreateWorkRecordRequest;
+import com.aiworkbench.dto.record.WorkRecordResponse;
+import com.aiworkbench.dto.task.CompleteTaskRequest;
+import com.aiworkbench.dto.task.CreateTaskRequest;
+import com.aiworkbench.dto.task.TaskEventResponse;
+import com.aiworkbench.dto.task.TaskResponse;
+import com.aiworkbench.dto.task.TaskVersionRequest;
+import com.aiworkbench.dto.task.UpdateCompletionResultRequest;
+import com.aiworkbench.dto.task.UpdateTaskRequest;
+import com.aiworkbench.enums.TaskDueFilter;
+import com.aiworkbench.enums.TaskPriority;
+import com.aiworkbench.enums.TaskStatus;
+import com.aiworkbench.service.TaskService;
+import com.aiworkbench.service.WorkRecordService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
@@ -26,11 +28,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc

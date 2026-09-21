@@ -1,7 +1,5 @@
 package com.aiworkbench.report;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Map;
@@ -13,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class ReportMigrationIntegrationTest {
@@ -69,6 +68,11 @@ class ReportMigrationIntegrationTest {
                         SELECT count(*) FROM information_schema.columns
                         WHERE table_schema=? AND table_name='reports' AND column_name='processing_token'
                         """, Integer.class, schema)).isEqualTo(1);
+                assertThat(jdbc.queryForObject("""
+                        SELECT count(*) FROM information_schema.columns
+                        WHERE table_schema=? AND table_name='reports'
+                          AND column_name IN ('error_code','error_stage','source_count')
+                        """, Integer.class, schema)).isEqualTo(3);
             });
         } finally {
             dropSchema(schema);
@@ -99,11 +103,16 @@ class ReportMigrationIntegrationTest {
                 assertThat(jdbc.queryForObject("SELECT source_role FROM report_sources WHERE id=?", String.class, sourceId))
                         .isEqualTo("DAILY_RECORD");
                 Map<String, Object> report = jdbc.queryForMap("""
-                        SELECT manual_additions, previous_report_id, manual_edited_at FROM reports WHERE id=?
+                        SELECT manual_additions, previous_report_id, manual_edited_at,
+                               error_code, error_stage, source_count
+                        FROM reports WHERE id=?
                         """, reportId);
                 assertThat(report).containsEntry("manual_additions", "")
                         .containsEntry("previous_report_id", null)
-                        .containsEntry("manual_edited_at", null);
+                        .containsEntry("manual_edited_at", null)
+                        .containsEntry("error_code", null)
+                        .containsEntry("error_stage", null)
+                        .containsEntry("source_count", 1);
             });
         } finally {
             dropSchema(schema);
