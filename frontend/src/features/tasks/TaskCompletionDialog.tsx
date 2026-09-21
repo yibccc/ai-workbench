@@ -27,11 +27,11 @@ export function TaskCompletionDialog({ task, onSave, onClose }: {
       <p className="completion-task-title">{task.title}</p>
       <p id="completion-description" className="completion-description">{completing ? '完成后会自动生成一条工作记录，你也可以留下这次的成果。' : '更新的结果会同步到这项待办的完成记录。'}</p>
       <label htmlFor="completion-result">完成结果 <span className="muted">选填</span></label>
-      <textarea id="completion-result" autoFocus rows={5} maxLength={4000} disabled={busy} value={result}
+      <textarea id="completion-result" autoFocus data-dialog-autofocus rows={5} maxLength={4000} disabled={busy} value={result}
         placeholder="例如：已完成第一章阅读，整理了 3 条笔记。"
         onChange={(event) => setResult(event.target.value)}
-        onKeyDown={(event) => { if (event.ctrlKey && event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} />
-      <div className="completion-hint"><span>Ctrl + Enter 提交 · Esc 取消</span><span>{result.length} / 4000</span></div>
+        onKeyDown={(event) => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} />
+      <div className="completion-hint"><span>Ctrl / ⌘ + Enter 提交 · Esc 取消</span><span>{result.length} / 4000</span></div>
       {error && <p className="inline-notice inline-error" role="alert">{error}</p>}
       <div className="actions completion-actions"><button type="button" className="secondary" disabled={busy} onClick={onClose}>取消</button><button type="submit" disabled={busy}>{busy ? '正在保存…' : completing ? '确认完成' : '保存结果'}</button></div>
     </form>

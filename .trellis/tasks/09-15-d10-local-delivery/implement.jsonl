@@ -1,0 +1,6 @@
+{"file":".trellis/spec/backend/directory-structure.md","reason":"实际controller/service/impl/mapper架构与事务边界。"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"PostgreSQL持久化、迁移、幂等、快照和恢复不变量。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"本机配置、AI凭据、端口与模型超时。"}
+{"file":".trellis/spec/backend/pagination.md","reason":"PageHelper及现有接口兼容合同。"}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"前端模块及运行结构。"}
+{"file":".trellis/tasks/archive/2026-09/09-15-d9-e2e-feedback/research/acceptance-log.md","reason":"已有验收与真实调用证据，区分已通过及未观察指标。"}

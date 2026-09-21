@@ -1,5 +1,7 @@
 # Runtime Integration Contract
 
+> Deployment scope: host development remains loopback-only. The container backend deliberately listens on 0.0.0.0 inside the Compose network and publishes no host port; authenticated Nginx is the ingress. See [Linux Deployment](linux-deployment.md) for exact-origin configuration, runtime credentials and HTTPS deployment boundaries.
+
 ## Scenario: Local infrastructure and runtime status
 
 ### 1. Scope / Trigger
@@ -304,7 +306,7 @@ Use this contract when generating WEEKLY model prompts or changing report-specif
 - Construct at least 96 sources locally and assert prompt generation is bounded in time and preserves every UUID; this is not proof of real-model latency.
 - Validation tests cover every allowed and forbidden role/section pair plus multi-source bullets.
 - Timeout tests use a fake gateway and assert FAILED isolation without automatic paid retry.
-- Record real-model latency/failure evidence separately. Do not claim PT6M success until explicitly revalidated.
+- Record real-model latency and failures separately; mark the PT6M boundary as pending until measured.
 
 ### 7. Wrong vs Correct
 

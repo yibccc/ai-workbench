@@ -1,0 +1,6 @@
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"前端模块归属、分页状态与请求竞态。"}
+{"file":".trellis/spec/frontend/dialogs.md","reason":"统一弹窗、取消/错误/焦点语义。"}
+{"file":".trellis/spec/backend/pagination.md","reason":"真实分页和零基接口合同。"}
+{"file":".trellis/spec/backend/report-deletion.md","reason":"保留日报删除及历史语义。"}
+{"file":".trellis/spec/backend/runtime-integration.md","reason":"真实API/模型/WS运行合同。"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"跨页面刷新与后端数据一致性。"}

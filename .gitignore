@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 *.log
+changes/
 
 .idea/
 .vscode/
@@ -14,6 +15,7 @@ frontend/.vite/
 frontend/test-results/
 frontend/playwright-report/
 .local-backups/
+.local-runtime/
 
 ### OS files ###
 .DS_Store

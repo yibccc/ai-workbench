@@ -306,7 +306,7 @@ Use this contract for natural-language input, request idempotency, AI-processing
 - Basic retry is accepted only from `FAILED`, increments `attempt_count`, clears the previous failure, and reuses the original `reference_at` and `zone_id`.
 - Generated projects are resolved only against the current active-project snapshot. Unknown or non-unique names become `NULL`; the system never creates a project from model output.
 - Unknown priority becomes `MEDIUM`. Dates must be explicit ISO-8601 instants after model parsing.
-- D6 owns cross-process retry locking, abandoned `PROCESSING` recovery, and batch revert; D5 must not claim those guarantees early.
+- Cross-process retry ownership, abandoned `PROCESSING` recovery, and batch revert follow the capture recovery contract below.
 
 ### 4. Validation & Error Matrix
 
@@ -476,7 +476,7 @@ Use this contract for daily-report source selection, generation requests, report
 - Source snapshot text, project identity/name, status, time, and structured metadata never change after insertion, even if the source is edited, archived, invalidated, or deleted later.
 - Success requires the processing token and writes content/status/version. Failure affects only the new report row and never overwrites an older successful or edited report.
 - Content edits are allowed only for `SUCCEEDED`, require the current version, increment it, and set `edited_at`.
-- Generated source markers describe the AI-generated content. Once a user edits the body, the UI must state that source markers are not automatically recalculated and must not claim that new user text has AI evidence.
+- Generated source markers describe the AI-generated content. After a user edits the body, label it as user-edited and explain that source markers still refer to the original generated content.
 
 ### 4. Validation & Error Matrix
 

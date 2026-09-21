@@ -28,6 +28,11 @@ src/
 - `useReportHistory` owns history paging/metadata. `useReportSources` owns source paging, size and stale-request cancellation.
 - App composes feature components and coordinates editing/navigation; new feature-specific list logic belongs in its feature directory.
 - Keep WebSocket lifecycle shared so collapsing a panel does not open duplicate connections or discard pending requests.
+- AppShell provides records/tasks/reports/projects navigation. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions across navigation.
+- RecordsPage owns its date and AI/manual input mode; TasksPanel keeps filters while refreshing via a revision prop. Do not use a changing React key to refresh business lists.
+- RecordForm and TaskEditorDialog provide right-side editor drawers, full-screen on narrow viewports, with unsaved-change confirmation and focus restoration.
+- ReportsPage retains both daily and weekly editors after first visit; switching report type preserves drafts. Date/version changes retain their explicit discard guard.
+- ProjectPicker uses the complete loaded option set and current archived association; do not truncate it to 50 options.
 - Avoid forwarding-only old root modules after moving components; update imports directly.
 
 ## Pagination behavior

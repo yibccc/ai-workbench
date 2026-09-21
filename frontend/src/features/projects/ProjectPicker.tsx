@@ -1,19 +1,14 @@
-import { useMemo, useState } from 'react'
 import type { Project } from '../../api/projects'
 
-export function ProjectPicker({ projects, value, onChange, emptyLabel = '未分类', currentId }: {
+/** Native single-line control: keeps keyboard support and never silently truncates to 50 projects. */
+export function ProjectPicker({ projects, value, onChange, emptyLabel = '未归属项目', currentId }: {
   projects: Project[]; value: string; onChange: (value: string) => void
   emptyLabel?: string; currentId?: string | null
 }) {
-  const [query, setQuery] = useState('')
-  const options = useMemo(() => projects.filter(project =>
-    project.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
-    && (project.status === 'ACTIVE' || project.id === currentId)).slice(0, 50), [currentId, projects, query])
-  return <div className="project-picker" data-testid="project-picker">
-    <input aria-label="搜索项目" value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索项目" />
-    <select aria-label="选择项目" size={Math.min(6, options.length + 1)} value={value} onChange={event => onChange(event.target.value)}>
-      <option value="">{emptyLabel}</option>
-      {options.map(project => <option key={project.id} value={project.id}>{project.name}{project.status === 'ARCHIVED' ? '（已归档）' : ''}</option>)}
-    </select>
-  </div>
+  const options = projects.filter(project => project.status === 'ACTIVE' || project.id === currentId || project.id === value)
+  return <select className="project-picker" data-testid="project-picker" value={value} onChange={event => onChange(event.target.value)}>
+    <option value="">{emptyLabel}</option>
+    {value && !options.some(project => project.id === value) && <option value={value}>当前项目（详情暂不可用）</option>}
+    {options.map(project => <option key={project.id} value={project.id}>{project.name}{project.status === 'ARCHIVED' ? '（已归档）' : ''}</option>)}
+  </select>
 }
