@@ -4,5 +4,5 @@ import { useState, type ReactNode } from 'react'
 export function RetainedView({ active, children, id }: { active: boolean; children: ReactNode; id?: string }) {
   const [visited, setVisited] = useState(active)
   if (active && !visited) setVisited(true)
-  return visited || active ? <div id={id} hidden={!active}>{children}</div> : null
+  return visited || active ? <div id={id} className="retained-view" hidden={!active}>{children}</div> : null
 }

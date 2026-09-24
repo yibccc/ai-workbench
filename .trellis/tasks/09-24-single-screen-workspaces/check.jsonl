@@ -1,0 +1,8 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend quality checklist entry point"}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"Verify state ownership and retained views"}
+{"file":".trellis/spec/frontend/viewport-layout.md","reason":"Verify bounded shell and reachable scroll regions"}
+{"file":".trellis/spec/frontend/dialogs.md","reason":"Verify dialogs, focus, and narrow viewport behavior"}
+{"file":".trellis/spec/backend/index.md","reason":"Backend quality requirements for pagination change"}
+{"file":".trellis/spec/backend/pagination.md","reason":"Verify size 5 support and old page sizes remain compatible"}
+{"file":".trellis/tasks/09-24-single-screen-workspaces/research/layout-audit.md","reason":"Verify all original layout risks are addressed"}
+{"file":".trellis/tasks/09-24-single-screen-workspaces/research/five-row-pagination-and-scroll.md","reason":"Verify five-row UI and independent report scroll behavior"}

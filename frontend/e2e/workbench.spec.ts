@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 const apiBase = 'http://127.0.0.1:18080'
 
@@ -26,6 +26,51 @@ async function openSection(page: Page, id: string) {
 
 async function navigate(page: Page, name: string) {
   await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: new RegExp(`^${name}`) }).click()
+}
+
+async function assertIndependentReportPanes(page: Page, kind: 'daily' | 'weekly') {
+  const report = page.getByTestId(`${kind}-report`)
+  const documentPane = report.getByRole('region', { name: kind === 'daily' ? '日报正文' : '周报正文' })
+  const evidencePane = report.getByRole('region', { name: kind === 'daily' ? '日报来源数据' : '周报来源数据' })
+  const evidencePager = report.locator('.report-sources > .pagination')
+  await expect.poll(() => documentPane.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
+  await expect.poll(() => evidencePane.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
+  await evidencePager.scrollIntoViewIfNeeded()
+  await documentPane.evaluate(element => { element.scrollTop = 0 })
+  await evidencePane.evaluate(element => { element.scrollTop = 0 })
+  const pagerPosition = await evidencePager.boundingBox()
+  await evidencePane.evaluate(element => { element.scrollTop = element.scrollHeight })
+  await expect.poll(() => evidencePane.evaluate(element => element.scrollTop > 0)).toBe(true)
+  expect(await documentPane.evaluate(element => element.scrollTop)).toBe(0)
+  await expect(evidencePager).toBeInViewport()
+  expect(Math.round((await evidencePager.boundingBox())?.y ?? -1)).toBe(Math.round(pagerPosition?.y ?? -2))
+  const evidencePosition = await evidencePane.evaluate(element => element.scrollTop)
+  await documentPane.evaluate(element => { element.scrollTop = element.scrollHeight })
+  await expect.poll(() => documentPane.evaluate(element => element.scrollTop > 0)).toBe(true)
+  expect(await evidencePane.evaluate(element => element.scrollTop)).toBe(evidencePosition)
+}
+
+async function assertPinnedPager(rows: Locator, pager: Locator, lastRow?: Locator) {
+  await pager.scrollIntoViewIfNeeded()
+  await rows.evaluate(element => { element.scrollTop = 0 })
+  const before = await pager.boundingBox()
+  await rows.evaluate(element => { element.scrollTop = element.scrollHeight })
+  await expect.poll(() => rows.evaluate(element => element.scrollTop > 0)).toBe(true)
+  const after = await pager.boundingBox()
+  expect(Math.abs((after?.y ?? -1) - (before?.y ?? -2))).toBeLessThanOrEqual(2)
+  await expect(pager).toBeInViewport()
+  if (lastRow) {
+    await lastRow.scrollIntoViewIfNeeded()
+    await expect(lastRow).toBeInViewport({ ratio: 0.1 })
+    await expect(pager).toBeInViewport()
+  }
+  const next = pager.getByRole('button', { name: '下一页' })
+  if (await next.isEnabled()) {
+    await next.click()
+    await expect(pager).toContainText('第 2 /')
+    await pager.getByRole('button', { name: '上一页' }).click()
+    await expect(pager).toContainText('第 1 /')
+  }
 }
 
 test.beforeEach(async ({ request }) => reset(request))
@@ -90,27 +135,103 @@ test('手工记录IME不误提交，Command快捷提交防重，抽屉取消保�
   expect((await (await request.get(`${apiBase}/api/records`)).json())[0].content).toBe('输入法和防重测试')
 })
 
-test('五个宽度四区和编辑抽屉布局无横向溢出', async ({ page, request }, testInfo) => {
-  await createProject(request, '响应式项目')
-  await request.post(`${apiBase}/api/tasks`, { data: { title: '响应式任务标题', notes: '测试抽屉布局', priority: 'HIGH' } })
+test('四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用', async ({ page, request }, testInfo) => {
+  for (let index = 0; index < 6; index++) await createProject(request, `响应式项目-${index}`)
+  for (let index = 0; index < 6; index++) {
+    await request.post(`${apiBase}/api/tasks`, { data: {
+      title: `响应式任务标题-${index}`, notes: '测试抽屉布局。'.repeat(8), priority: 'HIGH',
+    } })
+  }
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
-  await request.post(`${apiBase}/api/records`, { data: { projectId: null, content: '完成四工作区接入，核对正文和来源的响应式布局。', occurredAt: `${date}T09:00:00+08:00` } })
+  for (let index = 0; index < 8; index++) {
+    await request.post(`${apiBase}/api/records`, { data: { projectId: null,
+      content: `响应式记录-${index}：完成四工作区接入，核对正文和来源的响应式布局。`,
+      occurredAt: `${date}T09:00:00+08:00` } })
+  }
   const response = await request.post(`${apiBase}/api/reports`, { data: { reportType: 'DAILY', date, requestId: crypto.randomUUID() } })
   expect(response.ok()).toBeTruthy()
   const report = await response.json()
   await expect.poll(async () => (await (await request.get(`${apiBase}/api/reports/${report.id}`)).json()).status).toBe('SUCCEEDED')
+  const pagedRequests: string[] = []
+  page.on('request', outgoing => {
+    if (/\/api\/(?:projects|records|tasks|reports)(?:\/[^/]+\/sources)?\/page/.test(outgoing.url())) pagedRequests.push(outgoing.url())
+  })
   await openWorkbench(page)
-  for (const width of [320, 390, 768, 1024, 1440]) {
-    await page.setViewportSize({ width, height: 900 })
+  for (const [width, height] of [[320, 520], [390, 900], [768, 520], [1024, 900], [1440, 900]]) {
+    await page.setViewportSize({ width, height })
     for (const [name, slug] of [['工作记录', 'records'], ['待办任务', 'tasks'], ['工作汇报', 'reports'], ['项目管理', 'projects']]) {
       await navigate(page, name)
       await expect(page.getByRole('heading', { name, exact: true, level: 1 })).toBeVisible()
-      if (slug === 'reports') await expect(page.getByTestId('daily-content')).toBeVisible()
+      if (slug === 'reports') {
+        await expect(page.getByTestId('daily-content')).toBeVisible()
+        await expect(page.locator('.reports-page > .page-header').getByRole('group', { name: '报告类型' })).toBeVisible()
+        await expect(page.getByText('生成内容可核对')).toHaveCount(0)
+        await expect(page.getByText('选日期 → 生成版本 → 编辑并保存')).toHaveCount(0)
+      }
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true)
+      const content = slug === 'reports' ? page.locator('.reports-page .report-scroll') : page.locator(`.${slug}-page .workspace-scroll`)
+      const control = slug === 'reports' ? page.locator('.report-controls') : slug === 'tasks'
+        ? page.locator('.task-controls') : slug === 'projects' ? page.locator('.project-controls') : page.locator('.date-navigation')
+      await expect.poll(() => content.evaluate(element => element.clientHeight > 0)).toBe(true)
+      if (width === 1440 && slug === 'projects') {
+        await expect(page.locator('.project-list .project')).toHaveCount(5)
+        await expect.poll(() => content.evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true)
+      }
+      if (width === 1440 && slug === 'tasks') {
+        const [status, project, priority, due] = await Promise.all([
+          page.getByRole('group', { name: '任务状态' }).boundingBox(),
+          page.getByLabel('项目筛选').boundingBox(), page.getByLabel('优先级筛选').boundingBox(),
+          page.getByLabel('截止日期筛选').boundingBox(),
+        ])
+        const filterRows = await page.locator('.task-controls .task-filters label').evaluateAll(labels =>
+          labels.map(label => Math.round(label.getBoundingClientRect().top)))
+        expect(Math.max(...filterRows) - Math.min(...filterRows)).toBeLessThan(2)
+        expect(Math.abs((status?.y ?? 0) - filterRows[0])).toBeLessThan(2)
+        expect((project?.x ?? 0)).toBeGreaterThan((status?.x ?? 0) + (status?.width ?? 0))
+        expect((priority?.x ?? 0)).toBeGreaterThan((project?.x ?? 0) + (project?.width ?? 0))
+        expect((due?.x ?? 0)).toBeGreaterThan((priority?.x ?? 0) + (priority?.width ?? 0))
+      }
+      await expect.poll(() => content.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+      await expect.poll(() => control.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+      const before = await control.boundingBox()
+      await content.evaluate(element => { element.scrollTop = element.scrollHeight })
+      await expect.poll(() => content.evaluate(element => element.scrollTop + element.clientHeight >= element.scrollHeight - 2)).toBe(true)
+      const after = await control.boundingBox()
+      expect(Math.round(after?.y ?? -1)).toBe(Math.round(before?.y ?? -2))
+      expect(after?.y ?? height).toBeLessThan(height)
+      expect((after?.y ?? height) + (after?.height ?? 0)).toBeLessThanOrEqual(height + 1)
+      const lastAction = slug === 'records' ? content.locator('.workflow-footer') : slug === 'tasks'
+        ? content.locator('.task-panel > .pagination') : slug === 'projects' ? content.locator('.projects > .pagination')
+          : content.locator('.report-sources .pagination')
+      if (slug === 'reports') {
+        await page.getByTestId('daily-report').getByRole('region', { name: '日报来源数据' })
+          .evaluate(element => { element.scrollTop = element.scrollHeight })
+      }
+      await expect(lastAction).toBeVisible()
+      expect((await lastAction.boundingBox())?.y ?? height).toBeLessThan(height)
+      if (height === 520 && slug !== 'records') {
+        const finalControl = slug === 'reports' ? control.getByLabel('日报日期') : slug === 'tasks'
+          ? control.getByLabel('截止日期筛选') : control.getByLabel('搜索项目列表')
+        await control.evaluate(element => { element.scrollTop = element.scrollHeight })
+        const controlBounds = await control.boundingBox()
+        const actionBounds = await finalControl.boundingBox()
+        expect(actionBounds?.y ?? 0).toBeGreaterThanOrEqual((controlBounds?.y ?? 0) - 1)
+        expect((actionBounds?.y ?? height) + (actionBounds?.height ?? 0)).toBeLessThanOrEqual((controlBounds?.y ?? 0) + (controlBounds?.height ?? 0) + 1)
+      }
+      if (width === 320) {
+        if (slug === 'records') await assertPinnedPager(page.getByRole('region', { name: '记录数据' }),
+          page.getByTestId('record-list').getByRole('navigation', { name: '分页' }), page.getByTestId('record-item').last())
+        if (slug === 'tasks') await assertPinnedPager(page.getByRole('region', { name: '待办数据' }),
+          page.getByTestId('task-panel').getByRole('navigation', { name: '分页' }), page.getByTestId('task-item').last())
+        if (slug === 'projects') await assertPinnedPager(page.getByRole('region', { name: '项目数据' }),
+          page.locator('.projects > .pagination'), page.locator('.project-list .project').last())
+        if (slug === 'reports') await assertPinnedPager(content, page.getByTestId('daily-report').locator(':scope > .pagination'))
+      }
       await page.screenshot({ path: testInfo.outputPath(`${slug}-${width}.png`), fullPage: true })
     }
     await navigate(page, '待办任务')
-    await page.getByTestId('task-item').getByRole('button', { name: '编辑' }).click()
+    await page.getByTestId('task-item').first().getByRole('button', { name: '编辑' }).click()
     const drawer = page.getByRole('dialog', { name: '编辑待办' })
     await expect(drawer.getByTestId('task-title')).toBeFocused()
     await expect.poll(() => drawer.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
@@ -122,6 +243,48 @@ test('五个宽度四区和编辑抽屉布局无横向溢出', async ({ page, re
     await page.keyboard.press('Escape')
     await expect(drawer).toHaveCount(0)
   }
+  await page.setViewportSize({ width: 320, height: 520 })
+  await navigate(page, '工作记录')
+  await page.locator('.records-page .workspace-scroll').evaluate(element => { element.scrollTop = element.scrollHeight })
+  await navigate(page, '待办任务')
+  await navigate(page, '工作记录')
+  await expect.poll(() => page.locator('.records-page .workspace-scroll').evaluate(element => element.scrollTop)).toBe(0)
+  await page.setViewportSize({ width: 1440, height: 400 })
+  await openSection(page, 'daily')
+  await assertIndependentReportPanes(page, 'daily')
+  await page.setViewportSize({ width: 1440, height: 700 })
+  const sourceToggle = page.getByTestId('daily-report').getByRole('button', { name: /核对本版本来源/ })
+  await sourceToggle.click()
+  await expect(sourceToggle).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByRole('region', { name: '日报来源数据' })).toHaveCount(0)
+  await sourceToggle.click()
+  await expect(sourceToggle).toHaveAttribute('aria-expanded', 'true')
+  await page.getByTestId('daily-report').locator('.report-sources > .pagination').getByRole('button', { name: '下一页' }).click()
+  await expect(page.getByRole('region', { name: '日报来源数据' })).toContainText('来源 6 ·')
+  await page.setViewportSize({ width: 320, height: 520 })
+  await openSection(page, 'weekly')
+  const weeklyControls = page.getByTestId('weekly-report').getByRole('region', { name: '周报操作' })
+  await weeklyControls.evaluate(element => { element.scrollTop = element.scrollHeight })
+  await expect(weeklyControls.getByLabel('周报历史版本')).toBeInViewport()
+  await expect.poll(() => page.getByTestId('weekly-report').getByRole('region', { name: '周报内容' }).evaluate(element => element.clientHeight > 0)).toBe(true)
+  await page.locator('.reports-page .retained-view:not([hidden]) .report-scroll').evaluate(element => { element.scrollTop = element.scrollHeight })
+  await navigate(page, '工作记录')
+  await navigate(page, '工作汇报')
+  await expect.poll(() => page.locator('.reports-page .retained-view:not([hidden]) .report-scroll').evaluate(element => element.scrollTop)).toBe(0)
+  await page.setViewportSize({ width: 390, height: 900 })
+  await openSection(page, 'daily')
+  const dailyControlHeight = (await page.getByTestId('daily-report').getByRole('region', { name: '日报操作' }).boundingBox())?.height ?? 0
+  await openSection(page, 'weekly')
+  const weeklyControlHeight = (await page.getByTestId('weekly-report').getByRole('region', { name: '周报操作' }).boundingBox())?.height ?? 0
+  expect(weeklyControlHeight).toBeLessThan(dailyControlHeight)
+  await expect(page.getByLabel('周报所在日期')).toBeInViewport()
+  await expect(page.getByRole('button', { name: '生成新周报' })).toBeInViewport()
+  expect(pagedRequests.length).toBeGreaterThan(0)
+  expect(new Set(pagedRequests.map(url => new URL(url).pathname).filter(path => !path.includes('/sources/')))).toEqual(new Set([
+    '/api/projects/page', '/api/records/page', '/api/tasks/page', '/api/reports/page',
+  ]))
+  expect(pagedRequests.every(url => new URL(url).searchParams.get('size') === '5')).toBe(true)
+  await expect(page.getByLabel('每页')).toHaveCount(0)
 })
 
 test('日报接收其他窗口删除事件并清理已删除的恢复跟踪', async ({ page, request }) => {
@@ -438,7 +601,7 @@ test('待办筛选、乐观锁、完整状态循环与自动完成事实', async
   await page.getByTestId('task-item').getByRole('button', { name: '编辑' }).click()
   await page.getByTestId('task-title').fill('高优先级发布任务（已编辑）')
   await page.getByRole('dialog').getByRole('button', { name: '保存修改' }).click()
-  await expect(page.getByTestId('task-panel').getByRole('status')).toContainText('待办已更新')
+  await expect(page.locator('.viewport-toast')).toContainText('待办已更新')
   await page.reload()
   await expect(page.getByTestId('task-item')).toContainText('（已编辑）')
 
@@ -464,7 +627,7 @@ test('待办筛选、乐观锁、完整状态循环与自动完成事实', async
   await page.getByTestId('task-item').getByRole('button', { name: /^完成任务：/ }).click()
   await page.getByRole('dialog').getByLabel('完成结果').fill('完成结果')
   await page.getByRole('dialog').getByRole('button', { name: '确认完成' }).click()
-  await expect(page.getByTestId('task-panel').getByRole('status')).toContainText('待办已完成')
+  await expect(page.locator('.viewport-toast')).toContainText('待办已完成')
   await page.getByRole('group', { name: '任务状态' }).getByRole('button', { name: '已完成', exact: true }).click()
   await expect(page.getByTestId('task-item').getByRole('button', { name: /^重开任务：/ })).toBeVisible()
   await navigate(page, '工作记录')
@@ -475,14 +638,14 @@ test('待办筛选、乐观锁、完整状态循环与自动完成事实', async
   const repeated = await request.post(`${apiBase}/api/tasks/${task.id}/complete`, { data: { version: completed.version, result: '不得覆盖' } })
   expect(repeated.ok()).toBeTruthy()
   await page.getByTestId('task-item').getByRole('button', { name: /^重开任务：/ }).click()
-  await expect(page.getByTestId('task-panel').getByRole('status')).toContainText('待办已重开')
+  await expect(page.locator('.viewport-toast')).toContainText('待办已重开')
   await page.getByRole('group', { name: '任务状态' }).getByRole('button', { name: '待处理', exact: true }).click()
   await expect(page.getByTestId('task-item').getByRole('button', { name: /^完成任务：/ })).toBeVisible()
   await expect(page.getByTestId('record-item')).toHaveCount(0)
   await page.getByTestId('task-item').getByRole('button', { name: /^完成任务：/ }).click()
   await page.getByRole('dialog').getByLabel('完成结果').fill('再次完成')
   await page.getByRole('dialog').getByRole('button', { name: '确认完成' }).click()
-  await expect(page.getByTestId('task-panel').getByRole('status')).toContainText('待办已完成')
+  await expect(page.locator('.viewport-toast')).toContainText('待办已完成')
   await expect.poll(async () => (await (await request.get(`${apiBase}/api/records`)).json() as unknown[]).length).toBe(1)
 })
 
@@ -575,16 +738,32 @@ test('日报周报来源、版本、编辑、复制和 dirty guard', async ({ pa
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('人工修订日报')
 
   await openSection(page, 'weekly')
+  await page.setViewportSize({ width: 1440, height: 800 })
   await page.getByTestId('weekly-report').getByRole('button', { name: '生成新周报' }).click()
   await expect(page.getByTestId('weekly-content')).toContainText('本周完成', { timeout: 15_000 })
   await expect(page.getByTestId('weekly-content')).toContainText('下周明确计划')
+  const aiCard = page.locator('.weekly-ai-card')
+  const manualCard = page.locator('.weekly-manual-card')
+  const aiBounds = await aiCard.boundingBox()
+  const manualBounds = await manualCard.boundingBox()
+  expect((manualBounds?.x ?? 0)).toBeGreaterThan((aiBounds?.x ?? 0) + (aiBounds?.width ?? 0) - 2)
+  expect(Math.abs((manualBounds?.y ?? 0) - (aiBounds?.y ?? 0))).toBeLessThanOrEqual(2)
+  const saveAiButton = manualCard.getByRole('button', { name: '保存 AI 正文' })
+  const copyButton = manualCard.getByRole('button', { name: '复制组合周报' })
+  await expect(saveAiButton).toHaveAttribute('form', 'weekly-ai-form')
+  expect((await saveAiButton.boundingBox())?.y ?? 800).toBeLessThan((manualBounds?.y ?? 0) + 80)
+  expect((await copyButton.boundingBox())?.y ?? 800).toBeLessThan((manualBounds?.y ?? 0) + 80)
   const weeklyBody = await page.getByTestId('weekly-content').inputValue()
   const plansSection = weeklyBody.split('## 下周计划')[1] ?? ''
   expect(plansSection).not.toContain('无期限事项')
 
   await page.getByTestId('weekly-content').fill('旧周报人工编辑稿')
-  await page.getByTestId('weekly-report').getByRole('button', { name: '保存 AI 正文' }).click()
-  await expect(page.getByTestId('weekly-report').getByRole('status')).toContainText('AI 正文已保存')
+  const firstWeeklyId = await page.getByLabel('周报历史版本').inputValue()
+  await saveAiButton.click()
+  await expect(page.locator('.viewport-toast')).toContainText('AI 正文已保存')
+  const savedAi = await (await request.get(`${apiBase}/api/reports/${firstWeeklyId}`)).json() as { content: string; manualAdditions: string }
+  expect(savedAi.content).toBe('旧周报人工编辑稿')
+  expect(savedAi.manualAdditions).toBe('')
   const updateSource = await request.put(`${apiBase}/api/records/${sourceRecord.id}`, { data: {
     projectId: null, content: '日报事实（来源已修改）', occurredAt: workInstant.toISOString(),
   } })
@@ -598,10 +777,30 @@ test('日报周报来源、版本、编辑、复制和 dirty guard', async ({ pa
   expect(weeklyVersions[0].previousReportId).toBe(weeklyVersions[1].id)
   expect(weeklyVersions[1].content).toBe('旧周报人工编辑稿')
   expect(weeklyVersions[1].sources.some(source => source.content === '日报事实')).toBeTruthy()
+  await page.setViewportSize({ width: 390, height: 740 })
+  const mobileAiBounds = await aiCard.boundingBox()
+  const mobileManualBounds = await manualCard.boundingBox()
+  expect((mobileManualBounds?.y ?? 0)).toBeGreaterThanOrEqual((mobileAiBounds?.y ?? 0) + (mobileAiBounds?.height ?? 0) - 2)
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await saveAiButton.scrollIntoViewIfNeeded()
+  await expect(saveAiButton).toBeInViewport()
+  await copyButton.scrollIntoViewIfNeeded()
+  await expect(copyButton).toBeInViewport()
   await page.getByTestId('weekly-manual').fill('用户补充：风险待确认')
-  await page.getByRole('button', { name: '独立保存用户补充' }).click()
-  await page.getByTestId('weekly-report').getByRole('button', { name: '复制组合周报' }).click()
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('用户补充（无 AI 来源标记）')
+  await manualCard.getByRole('button', { name: '独立保存用户补充' }).click()
+  await expect(page.locator('.viewport-toast')).toContainText('用户补充已独立保存')
+  const currentWeeklyId = await page.getByLabel('周报历史版本').inputValue()
+  const savedManual = await (await request.get(`${apiBase}/api/reports/${currentWeeklyId}`)).json() as { content: string; manualAdditions: string }
+  expect(savedManual.manualAdditions).toBe('用户补充：风险待确认')
+  expect(savedManual.content).toContain('来源已修改')
+  await copyButton.click()
+  const copied = await page.evaluate(() => navigator.clipboard.readText())
+  expect(copied).toContain('来源已修改')
+  expect(copied).toContain('用户补充（无 AI 来源标记）')
+  expect(copied).toContain('用户补充：风险待确认')
+  await page.getByTestId('weekly-report').getByRole('button', { name: /核对本版本来源/ }).scrollIntoViewIfNeeded()
+  await expect(page.getByTestId('weekly-report').getByRole('button', { name: /核对本版本来源/ })).toBeInViewport()
+  await page.setViewportSize({ width: 1440, height: 800 })
 
   await page.getByTestId('weekly-content').fill('尚未保存的周报正文')
   await navigate(page, '工作记录')
@@ -617,6 +816,202 @@ test('日报周报来源、版本、编辑、复制和 dirty guard', async ({ pa
   await expect(page.getByTestId('weekly-content')).toHaveValue('尚未保存的周报正文')
   await page.screenshot({ path: 'test-results/d9-desktop-workflow.png', fullPage: true })
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+})
+
+test('操作提示五秒消失、重复提示重新计时且可手动关闭', async ({ page }) => {
+  await openWorkbench(page)
+  await navigate(page, '项目管理')
+  await page.clock.install()
+  const name = page.getByLabel('新项目名称')
+  const create = page.getByRole('button', { name: '创建项目', exact: true })
+  await name.fill(`提示验证一-${crypto.randomUUID()}`)
+  await create.click()
+  const toast = page.locator('.viewport-toast')
+  await expect(toast).toContainText('项目已创建')
+  await page.clock.fastForward(3000)
+  await name.fill(`提示验证二-${crypto.randomUUID()}`)
+  await create.click()
+  await expect(toast).toContainText('项目已创建')
+  await page.clock.fastForward(2100)
+  await expect(toast).toBeVisible()
+  await page.clock.fastForward(3000)
+  await expect(toast).toHaveCount(0)
+  await name.fill(`提示验证三-${crypto.randomUUID()}`)
+  await create.click()
+  await expect(toast).toBeVisible()
+  await toast.getByRole('button', { name: '关闭提示' }).click()
+  await expect(toast).toHaveCount(0)
+  await name.fill(`提示验证四-${crypto.randomUUID()}`)
+  await create.click()
+  await expect(toast).toBeVisible()
+  await navigate(page, '待办任务')
+  await expect(toast).toHaveCount(0)
+
+  let releaseCreate!: () => void
+  const heldCreate = new Promise<void>(resolve => { releaseCreate = resolve })
+  await page.route('**/api/projects', async route => {
+    if (route.request().method() === 'POST') await heldCreate
+    await route.continue()
+  })
+  await navigate(page, '项目管理')
+  await name.fill(`隐藏页面提示验证-${crypto.randomUUID()}`)
+  await create.click()
+  const created = page.waitForResponse(response => response.url().endsWith('/api/projects') && response.request().method() === 'POST')
+  await navigate(page, '待办任务')
+  releaseCreate()
+  await created
+  await expect(page.locator('.project-form button[type="submit"]')).toHaveText('创建项目')
+  await expect(toast).toHaveCount(0)
+})
+
+test('日报版本信息右侧集中操作，长正文滚动且删除保存复制正确', async ({ page, request }) => {
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
+  expect((await request.post(`${apiBase}/api/records`, { data: {
+    projectId: null, content: '日报编辑布局验证', occurredAt: `${date}T09:00:00+08:00`,
+  } })).ok()).toBeTruthy()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openWorkbench(page)
+  await openSection(page, 'daily')
+  const panel = page.getByTestId('daily-report')
+  await panel.getByRole('button', { name: '生成新日报' }).click()
+  const input = panel.getByTestId('daily-content')
+  await expect(input).toBeVisible({ timeout: 15_000 })
+  const actions = panel.locator('.daily-report-actions')
+  const deleteButton = actions.getByRole('button', { name: '删除此版本' })
+  const saveButton = actions.getByRole('button', { name: '保存正文' })
+  const copyButton = actions.getByRole('button', { name: '复制正文' })
+  const [metaBox, actionsBox, deleteBox, saveBox, copyBox, inputBox] = await Promise.all([
+    panel.locator('.daily-report-meta-row .report-meta').boundingBox(), actions.boundingBox(),
+    deleteButton.boundingBox(), saveButton.boundingBox(), copyButton.boundingBox(), input.boundingBox(),
+  ])
+  expect(metaBox?.x ?? 0).toBeLessThan(deleteBox?.x ?? 0)
+  expect((metaBox?.x ?? 0) + (metaBox?.width ?? 0)).toBeLessThanOrEqual((deleteBox?.x ?? 0) + 2)
+  expect(Math.abs((metaBox?.y ?? 0) + (metaBox?.height ?? 0) / 2 - (deleteBox?.y ?? 0) - (deleteBox?.height ?? 0) / 2)).toBeLessThanOrEqual(2)
+  expect((deleteBox?.x ?? 0) + (deleteBox?.width ?? 0)).toBeLessThan(saveBox?.x ?? 0)
+  expect((saveBox?.x ?? 0) + (saveBox?.width ?? 0)).toBeLessThan(copyBox?.x ?? 0)
+  expect((actionsBox?.y ?? 0) + (actionsBox?.height ?? 0)).toBeLessThan(inputBox?.y ?? 0)
+  await expect(saveButton).toHaveAttribute('form', 'daily-report-form')
+  await expect(deleteButton).toBeInViewport()
+  await expect(saveButton).toBeInViewport()
+  await expect(copyButton).toBeInViewport()
+  await deleteButton.click()
+  const deleteDialog = page.getByRole('dialog', { name: '删除此日报版本？' })
+  await expect(deleteDialog).toBeVisible()
+  await deleteDialog.getByRole('button', { name: '取消' }).click()
+  await expect(input).toBeVisible()
+
+  const longText = Array.from({ length: 80 }, (_, index) => `日报正文段落 ${index + 1}`).join('\n') + '\n日报正文末段'
+  await input.fill(longText)
+  await expect.poll(() => input.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
+  await input.evaluate(element => { element.scrollTop = element.scrollHeight })
+  expect(await input.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+  await panel.getByRole('region', { name: '日报正文' }).evaluate(element => { element.scrollTop = 0 })
+  await expect(saveButton).toBeInViewport()
+  await saveButton.click()
+  const id = await panel.getByLabel('日报历史版本').inputValue()
+  await expect.poll(async () => (await (await request.get(`${apiBase}/api/reports/${id}`)).json() as { content: string }).content).toBe(longText)
+  await copyButton.click()
+  await expect.poll(() => page.evaluate(async () => (await navigator.clipboard.readText()).replace(/\r\n/g, '\n'))).toBe(longText)
+
+  await page.setViewportSize({ width: 320, height: 520 })
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  for (const button of [deleteButton, saveButton, copyButton]) {
+    await button.scrollIntoViewIfNeeded()
+    await expect(button).toBeInViewport()
+  }
+  await expect(input).toHaveValue(longText)
+})
+
+test('日报周报顶部顺序和周报紧凑双卡长文本滚动', async ({ page, request }, testInfo) => {
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
+  await request.post(`${apiBase}/api/records`, { data: {
+    projectId: null, content: '周报双卡布局验证', occurredAt: `${date}T09:00:00+08:00`,
+  } })
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openWorkbench(page)
+  for (const kind of ['daily', 'weekly'] as const) {
+    await openSection(page, kind)
+    const panel = page.getByTestId(`${kind}-report`)
+    const toolbar = panel.locator('.report-toolbar')
+    const history = toolbar.getByLabel(kind === 'daily' ? '日报历史版本' : '周报历史版本')
+    const generate = toolbar.getByRole('button', { name: kind === 'daily' ? '生成新日报' : '生成新周报' })
+    const dateInput = toolbar.getByLabel(kind === 'daily' ? '日报日期' : '周报所在日期')
+    expect(await toolbar.locator(':scope > *').evaluateAll(nodes => nodes.map(node => node.tagName))).toEqual(['SELECT', 'BUTTON', 'INPUT'])
+    const [historyBox, generateBox, dateBox, panelBox] = await Promise.all([
+      history.boundingBox(), generate.boundingBox(), dateInput.boundingBox(), panel.boundingBox(),
+    ])
+    expect((historyBox?.x ?? 0) + (historyBox?.width ?? 0)).toBeLessThanOrEqual((generateBox?.x ?? 0) + 2)
+    expect((generateBox?.x ?? 0) + (generateBox?.width ?? 0)).toBeLessThanOrEqual((dateBox?.x ?? 0) + 2)
+    expect(historyBox?.x ?? 0).toBeGreaterThan((panelBox?.x ?? 0) + (panelBox?.width ?? 0) * 0.35)
+  }
+  await openSection(page, 'daily')
+  await page.getByTestId('daily-report').getByRole('button', { name: '生成新日报' }).click()
+  const dailyInput = page.getByTestId('daily-content')
+  await expect(dailyInput).toBeVisible({ timeout: 15_000 })
+  await dailyInput.fill('日报正文布局验证')
+  await page.getByTestId('daily-report').getByRole('button', { name: '保存正文' }).click()
+  const dailyNote = page.getByTestId('daily-report').getByText(/正文已由用户编辑；“来源 N”仅代表/)
+  await expect(dailyNote).toBeVisible()
+  await page.getByTestId('daily-report').getByRole('region', { name: '日报正文' })
+    .evaluate(element => { element.scrollTop = element.scrollHeight })
+  const [dailyNoteBox, dailyPagerBox] = await Promise.all([
+    dailyNote.boundingBox(), page.getByTestId('daily-report').locator(':scope > .pagination').boundingBox(),
+  ])
+  expect((dailyPagerBox?.y ?? 0) - ((dailyNoteBox?.y ?? 0) + (dailyNoteBox?.height ?? 0))).toBeLessThan(35)
+  await openSection(page, 'weekly')
+  await page.getByTestId('weekly-report').getByRole('button', { name: '生成新周报' }).click()
+  await expect(page.getByTestId('weekly-content')).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId('weekly-report').getByRole('button', { name: '生成新周报' })).toBeEnabled()
+  const aiText = Array.from({ length: 90 }, (_, index) => `AI 周报段落 ${index + 1}`).join('\n') + '\nAI 正文末段'
+  const manualText = Array.from({ length: 80 }, (_, index) => `用户补充段落 ${index + 1}`).join('\n') + '\n补充末段'
+  const aiInput = page.getByTestId('weekly-content')
+  const manualInput = page.getByTestId('weekly-manual')
+  await aiInput.fill(aiText)
+  await manualInput.fill(manualText)
+  for (const input of [aiInput, manualInput]) {
+    await expect.poll(() => input.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
+    await input.evaluate(element => { element.scrollTop = element.scrollHeight })
+    expect(await input.evaluate(element => element.scrollTop)).toBeGreaterThan(0)
+  }
+  await expect(aiInput).toHaveValue(aiText)
+  await expect(manualInput).toHaveValue(manualText)
+  for (const card of [page.locator('.weekly-ai-card'), page.locator('.weekly-manual-card')]) {
+    expect((await card.boundingBox())?.height ?? 900).toBeLessThan(470)
+  }
+  const manualSave = page.locator('.weekly-manual-card').getByRole('button', { name: '独立保存用户补充' })
+  await page.getByTestId('weekly-report').getByRole('region', { name: '周报内容' }).evaluate(element => { element.scrollTop = 0 })
+  await page.getByTestId('weekly-report').getByRole('region', { name: '周报正文' }).evaluate(element => { element.scrollTop = 0 })
+  const documentBounds = await page.getByTestId('weekly-report').getByRole('region', { name: '周报正文' }).boundingBox()
+  const manualSaveBounds = await manualSave.boundingBox()
+  expect(manualSaveBounds?.y ?? -1).toBeGreaterThanOrEqual((documentBounds?.y ?? 0) - 1)
+  expect((manualSaveBounds?.y ?? 900) + (manualSaveBounds?.height ?? 0)).toBeLessThanOrEqual(
+    (documentBounds?.y ?? 0) + (documentBounds?.height ?? 0) + 1)
+  await expect(manualSave).toBeInViewport()
+  await page.locator('.weekly-manual-card').getByRole('button', { name: '保存 AI 正文' }).click()
+  const note = page.getByTestId('weekly-report').getByText('AI 正文已由用户编辑；来源标记不会因人工修改自动重算。')
+  await expect(note).toBeVisible()
+  const [noteBox, pagerBox] = await Promise.all([note.boundingBox(), page.getByTestId('weekly-report').locator(':scope > .pagination').boundingBox()])
+  expect((pagerBox?.y ?? 0) - ((noteBox?.y ?? 0) + (noteBox?.height ?? 0))).toBeLessThan(35)
+  await page.screenshot({ path: testInfo.outputPath('weekly-compact-desktop.png') })
+
+  await page.setViewportSize({ width: 320, height: 520 })
+  const aiCardBox = await page.locator('.weekly-ai-card').boundingBox()
+  const manualCardBox = await page.locator('.weekly-manual-card').boundingBox()
+  expect(manualCardBox?.y ?? 0).toBeGreaterThanOrEqual((aiCardBox?.y ?? 0) + (aiCardBox?.height ?? 0) - 2)
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  for (const label of ['周报历史版本', '周报所在日期']) {
+    const control = page.getByLabel(label)
+    await control.scrollIntoViewIfNeeded()
+    await expect(control).toBeInViewport()
+  }
+  await page.getByTestId('weekly-report').getByRole('button', { name: '生成新周报' }).scrollIntoViewIfNeeded()
+  await expect(page.getByTestId('weekly-report').getByRole('button', { name: '生成新周报' })).toBeInViewport()
+  await page.locator('.weekly-manual-card').getByRole('button', { name: '保存 AI 正文' }).scrollIntoViewIfNeeded()
+  await expect(page.locator('.weekly-manual-card').getByRole('button', { name: '保存 AI 正文' })).toBeInViewport()
+  const sourceToggle = page.getByTestId('weekly-report').getByRole('button', { name: /核对本版本来源/ })
+  await sourceToggle.scrollIntoViewIfNeeded()
+  await expect(sourceToggle).toBeInViewport()
+  await page.screenshot({ path: testInfo.outputPath('weekly-compact-mobile.png') })
 })
 
 test('100+ 项目分页搜索、新建倒序与筛选保留', async ({ page, request }) => {
@@ -638,7 +1033,9 @@ test('100+ 项目分页搜索、新建倒序与筛选保留', async ({ page, req
   })
   await openWorkbench(page)
   await navigate(page, '项目管理')
-  await expect(page.getByRole('navigation', { name: '分页', exact: true }).last()).toContainText('第 1 / 6 页')
+  await expect(page.getByRole('navigation', { name: '分页', exact: true }).last()).toContainText('第 1 / 21 页')
+  await expect(page.locator('.project-list .project')).toHaveCount(5)
+  await expect(page.getByLabel('每页')).toHaveCount(0)
   await page.getByLabel('搜索项目列表').fill('分页项目-0')
   await page.getByLabel('搜索项目列表').fill('分页项目-104')
   await page.waitForTimeout(700)
@@ -650,9 +1047,10 @@ test('100+ 项目分页搜索、新建倒序与筛选保留', async ({ page, req
   await page.getByLabel('搜索项目列表').fill('')
   await expect(page.locator('.project-list .project').first()).toContainText('最新项目')
   await page.getByRole('navigation', { name: '分页', exact: true }).last().getByRole('button', { name: '下一页' }).click()
-  await expect(page.getByRole('navigation', { name: '分页', exact: true }).last()).toContainText('第 2 / 6 页')
+  await expect(page.getByRole('navigation', { name: '分页', exact: true }).last()).toContainText('第 2 / 22 页')
   await navigate(page, '待办任务')
-  await expect(page.getByTestId('task-panel').getByRole('navigation', { name: '分页', exact: true })).toContainText('第 1 / 6 页')
+  await expect(page.getByTestId('task-panel').getByRole('navigation', { name: '分页', exact: true })).toContainText('第 1 / 21 页')
+  await expect(page.getByTestId('task-item')).toHaveCount(5)
   await page.getByRole('button', { name: '新建待办', exact: true }).first().click()
   const picker = page.getByRole('dialog').getByTestId('project-picker')
   await expect(picker.locator('option')).toHaveCount(107)
@@ -691,6 +1089,100 @@ test('超过8秒的输入通过WebSocket自动完成，断线后GET恢复并提�
   await expect(page.getByTestId('record-item')).toHaveCount(1)
 })
 
+test('日报周报短来源不产生双滚动，长来源内部滚动且分页固定', async ({ page, request }) => {
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
+  const contents = [
+    '完成待办：阅读 hello-agent 第二章\n完成结果：已经完成阅读第二章',
+    '阅读完了 hello-agent 第三章',
+    '继续补充 AI 工作台浏览器验收',
+  ]
+  for (const content of contents) {
+    const response = await request.post(`${apiBase}/api/records`, {
+      data: { projectId: null, content, occurredAt: `${date}T09:00:00+08:00` },
+    })
+    expect(response.ok()).toBeTruthy()
+  }
+  await openWorkbench(page)
+  for (const kind of ['daily', 'weekly'] as const) {
+    await openSection(page, kind)
+    const panel = page.getByTestId(`${kind}-report`)
+    await panel.getByRole('button', { name: kind === 'daily' ? '生成新日报' : '生成新周报' }).click()
+    await expect(panel.locator('.source-rows article')).toHaveCount(3, { timeout: 15_000 })
+    for (const [width, height] of [[1440, 900], [1920, 1080], [1024, 900]]) {
+      await page.setViewportSize({ width, height })
+      const geometry = await panel.evaluate(element => {
+        const outer = element.querySelector<HTMLElement>('.report-scroll')!
+        const rows = element.querySelector<HTMLElement>('.source-rows')!
+        const card = element.querySelector<HTMLElement>('.report-evidence')!
+        const pager = element.querySelector<HTMLElement>('.report-sources > .pagination')!
+        const historyPager = element.querySelector<HTMLElement>(':scope > .pagination')!
+        const textarea = element.querySelector<HTMLElement>('.report-document textarea')!
+        const manualTextarea = element.querySelector<HTMLElement>('.weekly-manual-card textarea')
+        return {
+          outerOverflow: outer.scrollHeight - outer.clientHeight,
+          rowsOverflow: rows.scrollHeight - rows.clientHeight,
+          pagerBottom: pager.getBoundingClientRect().bottom,
+          cardBottom: card.getBoundingClientRect().bottom,
+          evidenceHeight: card.getBoundingClientRect().height,
+          textareaHeight: textarea.getBoundingClientRect().height,
+          manualTextareaHeight: manualTextarea?.getBoundingClientRect().height,
+          historyBottomGap: element.getBoundingClientRect().bottom - historyPager.getBoundingClientRect().bottom,
+        }
+      })
+      expect(geometry.outerOverflow).toBeLessThanOrEqual(1)
+      expect(geometry.rowsOverflow).toBeLessThanOrEqual(1)
+      expect(geometry.pagerBottom).toBeLessThanOrEqual(geometry.cardBottom - 8)
+      if (width >= 1440) {
+        expect(geometry.historyBottomGap).toBeLessThanOrEqual(35)
+        expect(geometry.evidenceHeight).toBeGreaterThan(height === 900 ? 450 : 620)
+        expect(geometry.textareaHeight).toBeGreaterThan(height === 900 ? 280 : 450)
+        if (kind === 'weekly') expect(geometry.manualTextareaHeight).toBeGreaterThan(height === 900 ? 280 : 450)
+      }
+      await expect(panel.locator('.report-sources > .pagination')).toBeInViewport()
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 520 })
+  const weekly = page.getByTestId('weekly-report')
+  const outer = weekly.getByRole('region', { name: '周报内容' })
+  await expect.poll(() => outer.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true)
+  const pager = weekly.locator('.report-sources > .pagination')
+  await pager.scrollIntoViewIfNeeded()
+  await expect(pager).toBeInViewport()
+  await weekly.locator('.source-rows article').last().scrollIntoViewIfNeeded()
+  await expect(weekly.locator('.source-rows article').last()).toBeInViewport({ ratio: 0.1 })
+  await pager.scrollIntoViewIfNeeded()
+  await expect(pager).toBeInViewport()
+
+  await page.setViewportSize({ width: 1440, height: 520 })
+  const manualSave = weekly.getByRole('button', { name: '独立保存用户补充' })
+  await manualSave.scrollIntoViewIfNeeded()
+  await expect(manualSave).toBeInViewport()
+  await pager.scrollIntoViewIfNeeded()
+  await expect(pager).toBeInViewport()
+  await expect(weekly.locator(':scope > .pagination')).toBeInViewport()
+
+  const longSource = await request.post(`${apiBase}/api/records`, {
+    data: { projectId: null, content: '长来源内容'.repeat(300), occurredAt: `${date}T10:00:00+08:00` },
+  })
+  expect(longSource.ok()).toBeTruthy()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  for (const kind of ['daily', 'weekly'] as const) {
+    await openSection(page, kind)
+    const panel = page.getByTestId(`${kind}-report`)
+    await panel.getByRole('button', { name: kind === 'daily' ? '生成新日报' : '生成新周报' }).click()
+    const rows = panel.locator('.source-rows')
+    await expect(panel.locator('.source-rows article')).toHaveCount(4, { timeout: 15_000 })
+    await expect.poll(() => rows.evaluate(element => element.scrollHeight > element.clientHeight + 1)).toBe(true)
+    const sourcePager = panel.locator('.report-sources > .pagination')
+    const before = await sourcePager.boundingBox()
+    await rows.evaluate(element => { element.scrollTop = element.scrollHeight })
+    await expect(panel.locator('.source-rows article').last()).toBeInViewport({ ratio: 0.1 })
+    const after = await sourcePager.boundingBox()
+    expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(2)
+    await expect(sourcePager).toBeInViewport()
+  }
+})
+
 test('143来源使用完整快照和局部别名生成，不发生静默截断', async ({ page, request }) => {
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai' }).format(new Date())
   const occurredAt = new Date(`${date}T09:00:00+08:00`).toISOString()
@@ -704,25 +1196,19 @@ test('143来源使用完整快照和局部别名生成，不发生静默截断',
   await page.getByTestId('weekly-report').getByRole('button', { name: '生成新周报' }).click()
   await expect(page.getByTestId('weekly-report')).toContainText('143 个冻结来源', { timeout: 20_000 })
   await expect(page.getByTestId('weekly-report')).toContainText('来源 1 ·')
-  await page.getByTestId('weekly-report').locator('.report-sources').getByRole('navigation', { name: '分页', exact: true }).getByRole('button', { name: '下一页' }).click()
-  await expect(page.getByTestId('weekly-report')).toContainText('来源 21 ·')
   const sources = page.getByTestId('weekly-report').locator('.report-sources')
-  await sources.getByLabel('每页').selectOption('10')
-  await expect(sources.locator('article')).toHaveCount(10)
-  await expect(sources.getByRole('navigation', { name: '分页', exact: true })).toContainText('第 1 / 15 页')
+  await expect(sources.locator('article')).toHaveCount(5)
+  await expect(sources.getByRole('navigation', { name: '分页', exact: true })).toContainText('第 1 / 29 页')
+  await expect(sources.getByLabel('每页')).toHaveCount(0)
+  await page.setViewportSize({ width: 1440, height: 700 })
+  await assertIndependentReportPanes(page, 'weekly')
+  await sources.getByRole('button', { name: '下一页' }).click()
+  await expect(sources).toContainText('来源 6 ·')
+  await expect(sources.locator('article')).toHaveCount(5)
+  await expect(sources.getByRole('navigation', { name: '分页', exact: true })).toContainText('第 2 / 29 页')
   await sources.getByRole('button', { name: '下一页' }).click()
   await expect(sources).toContainText('来源 11 ·')
-  await expect(sources.locator('article')).toHaveCount(10)
-  await sources.getByLabel('每页').selectOption('50')
-  await expect(sources.getByRole('navigation', { name: '分页', exact: true })).toContainText('第 1 / 3 页')
-  await expect(sources.locator('article')).toHaveCount(50)
-  await sources.getByRole('button', { name: '下一页' }).click()
-  await expect(sources).toContainText('来源 51 ·')
-  await sources.getByRole('button', { name: '下一页' }).click()
-  await expect(sources).toContainText('来源 101 ·')
-  await expect(sources.locator('article')).toHaveCount(43)
-  await expect(sources.getByRole('button', { name: '下一页' })).toBeDisabled()
-  await expect(sources.getByRole('button', { name: '下一页' })).toHaveCSS('cursor', 'not-allowed')
+  await expect(sources.locator('article')).toHaveCount(5)
   const reports = await (await request.get(`${apiBase}/api/reports?reportType=WEEKLY&date=${date}`)).json() as Array<{ status: string; sourceCount: number; errorCode: string | null }>
   expect(reports[0]).toMatchObject({ status: 'SUCCEEDED', sourceCount: 143, errorCode: null })
 })
@@ -742,19 +1228,19 @@ test('记录和待办三页可用、末页删除回退与筛选重置', async ({
     await navigate(page, testId === 'record-list' ? '工作记录' : '待办任务')
     const panel = page.getByTestId(testId)
     const pagination = panel.getByRole('navigation', { name: '分页', exact: true })
-    await pagination.getByLabel('每页').selectOption('10')
-    await expect(pagination).toContainText('第 1 / 3 页')
-    await pagination.getByRole('button', { name: '下一页' }).click()
-    await expect(pagination).toContainText('第 2 / 3 页')
-    await pagination.getByRole('button', { name: '下一页' }).click()
-    await expect(pagination).toContainText('第 3 / 3 页')
+    await expect(pagination).toContainText('第 1 / 5 页')
+    await expect(pagination.getByLabel('每页')).toHaveCount(0)
+    for (let next = 2; next <= 5; next++) {
+      await pagination.getByRole('button', { name: '下一页' }).click()
+      await expect(pagination).toContainText(`第 ${next} / 5 页`)
+    }
     const items = panel.getByTestId(testId === 'record-list' ? 'record-item' : 'task-item')
     await expect(items).toHaveCount(1)
     await expect(pagination.getByRole('button', { name: '下一页' })).toHaveCSS('cursor', 'not-allowed')
     await items.getByRole('button', { name: '删除', exact: true }).click()
     await page.getByRole('dialog').getByRole('button', { name: '确认删除' }).click()
-    await expect(pagination).toContainText('第 2 / 2 页')
-    await expect(items).toHaveCount(10)
+    await expect(pagination).toContainText('第 4 / 4 页')
+    await expect(items).toHaveCount(5)
   }
   await page.getByLabel('优先级筛选').selectOption('HIGH')
   await expect(page.getByTestId('task-panel').getByRole('navigation', { name: '分页', exact: true })).toContainText('第 1 / 1 页')
@@ -778,23 +1264,24 @@ test('日报周报历史翻页保护草稿，新版本刷新页数，日期切�
     const panel = page.getByTestId(`${kind}-report`)
     const pagination = panel.getByRole('navigation', { name: '分页', exact: true }).first()
     const body = panel.getByTestId(kind === 'daily' ? 'daily-content' : 'weekly-content')
-    await pagination.getByLabel('每页').selectOption('10')
-    await expect(pagination).toContainText('第 1 / 2 页')
+    await expect(pagination).toContainText('第 1 / 4 页')
+    await expect(pagination.getByLabel('每页')).toHaveCount(0)
     await body.fill('未保存草稿，取消翻页应保留')
     await pagination.getByRole('button', { name: '下一页' }).click()
     await page.getByRole('dialog').getByRole('button', { name: '取消' }).click()
-    await expect(pagination).toContainText('第 1 / 2 页')
+    await expect(pagination).toContainText('第 1 / 4 页')
     await expect(body).toHaveValue('未保存草稿，取消翻页应保留')
     await pagination.getByRole('button', { name: '下一页' }).click()
     await page.getByRole('dialog').getByRole('button', { name: '放弃修改' }).click()
-    await expect(pagination).toContainText('第 2 / 2 页')
+    await expect(pagination).toContainText('第 2 / 4 页')
     await expect(body).not.toHaveValue('未保存草稿，取消翻页应保留')
     await panel.getByRole('button', { name: kind === 'daily' ? '生成新日报' : '生成新周报', exact: true }).click()
-    await expect(pagination).toContainText('第 1 / 3 页')
+    await expect(pagination).toContainText('第 1 / 5 页')
     await expect(pagination.getByRole('button', { name: '下一页' })).toBeEnabled()
-    await pagination.getByRole('button', { name: '下一页' }).click()
-    await pagination.getByRole('button', { name: '下一页' }).click()
-    await expect(pagination).toContainText('第 3 / 3 页')
+    for (let next = 2; next <= 5; next++) {
+      await pagination.getByRole('button', { name: '下一页' }).click()
+      await expect(pagination).toContainText(`第 ${next} / 5 页`)
+    }
     await panel.getByLabel(kind === 'daily' ? '日报日期' : '周报所在日期').fill('2080-01-02')
     await expect(pagination).toHaveCount(0)
     await expect(body).toHaveCount(0)

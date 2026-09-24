@@ -1,0 +1,8 @@
+{"file":".trellis/spec/frontend/index.md","reason":"Frontend spec index and layer boundaries"}
+{"file":".trellis/spec/frontend/directory-structure.md","reason":"AppShell, RetainedView, and page state ownership conventions"}
+{"file":".trellis/spec/frontend/viewport-layout.md","reason":"Single-screen viewport and scroll ownership contract"}
+{"file":".trellis/spec/frontend/dialogs.md","reason":"Preserve viewport dialog and drawer behavior"}
+{"file":".trellis/spec/backend/index.md","reason":"Backend package guideline index for pagination API change"}
+{"file":".trellis/spec/backend/pagination.md","reason":"PageHelper validation, page response, and source paging contract"}
+{"file":".trellis/tasks/09-24-single-screen-workspaces/research/layout-audit.md","reason":"Current page structure and height-chain risks"}
+{"file":".trellis/tasks/09-24-single-screen-workspaces/research/five-row-pagination-and-scroll.md","reason":"Backend size restriction and independent report scroll evidence"}

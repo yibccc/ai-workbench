@@ -29,6 +29,13 @@ src/
 - App composes feature components and coordinates editing/navigation; new feature-specific list logic belongs in its feature directory.
 - Keep WebSocket lifecycle shared so collapsing a panel does not open duplicate connections or discard pending requests.
 - AppShell provides records/tasks/reports/projects navigation. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions across navigation.
+- `ToastProvider` owns transient operation feedback across features. Its body portal avoids clipping by the viewport-height shell; callers from retained views only notify while their view is visible. Each new event restarts the five-second timer, and the close action dismisses immediately. Keep validation, unsaved, and stored failure messages in their local context.
+
+  ```tsx
+  const { notify, toastRef } = useToast<HTMLDivElement>()
+  // Attach toastRef to the feature root; hidden retained views cannot notify.
+  return <div ref={toastRef}><button onClick={() => notify('待办已重开', 'success')}>重开</button></div>
+  ```
 - RecordsPage owns its date and AI/manual input mode; TasksPanel keeps filters while refreshing via a revision prop. Do not use a changing React key to refresh business lists.
 - RecordForm and TaskEditorDialog provide right-side editor drawers, full-screen on narrow viewports, with unsaved-change confirmation and focus restoration.
 - ReportsPage retains both daily and weekly editors after first visit; switching report type preserves drafts. Date/version changes retain their explicit discard guard.
@@ -39,8 +46,9 @@ src/
 
 - A disabled page boundary uses `cursor: not-allowed`, never a permanent wait cursor.
 - Actual fetches expose loading state and clear it on success, failure or cancellation.
-- Every visible size selector must update both request size and source numbering; do not pass no-op callbacks.
-- Report history page/size changes honor the unsaved-content guard before changing selection.
+- Visible paged workbench lists use `WORKSPACE_PAGE_SIZE = 5` from `api/pagination.ts`; the UI has no page-size selector. Backend API callers may still request 10/20/50.
+- A paged card owns its pagination footer below a separate scrolling rows region. Do not place the pager inside the rows scrollbar or absolutely overlay it on the last row. This applies to records, tasks, projects, report history, and report evidence.
+- Report history page changes honor the unsaved-content guard before changing selection.
 - Source-page changes do not discard the report draft. Changing the selected report resets its source page.
 - Refresh totals after generation; otherwise a new version can exist while Next remains incorrectly disabled.
 - Use one request-ownership path for initial loads, page/filter changes and CRUD-triggered refreshes. A late refresh must not overwrite a newer page or date, and loading must settle after abort/error.
@@ -48,4 +56,4 @@ src/
 
 ## Verification
 
-Use browser tests with more than two pages. Assert item IDs/text and page request parameters, not just page labels. Cover late responses, 10/20/50 source sizing, empty pages after deletion, report draft cancellation/confirmation, and generation that crosses a total-page boundary.
+Use browser tests with more than two pages. Assert item IDs/text and `size=5` page request parameters, not just page labels. Cover late responses, five-item source numbering, empty pages after deletion, report draft cancellation/confirmation, and generation that crosses a total-page boundary.

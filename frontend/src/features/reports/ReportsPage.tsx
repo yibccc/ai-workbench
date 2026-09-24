@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { RetainedView } from '../../components/RetainedView'
 import { SegmentedControl } from '../../components/SegmentedControl'
-import { Icon } from '../../components/Icon'
 import { useDialog } from '../../components/dialogContext'
 import { localDate } from '../../utils/date'
 import { DailyReportPanel } from './DailyReportPanel'
@@ -24,8 +23,7 @@ export function ReportsPage({ onDirtyChange }: { onDirtyChange: (dirty: boolean)
     }
   }
   return <div className="page reports-page">
-    <header className="page-header"><div><p className="page-eyebrow">从零散进展，到清晰汇报</p><h1>工作汇报</h1><p className="page-description">按日或按周整理工作，保留历史版本与生成时的来源。</p></div><span className="report-trust"><Icon name="report" size={15} />生成内容可核对</span></header>
-    <div className="reports-switch"><SegmentedControl label="报告类型" value={type} onChange={setType} options={[{ value: 'daily', label: <>日报{dailyDirty && <span className="dirty-dot" aria-label="有未保存修改" />}</> }, { value: 'weekly', label: <>周报{weeklyDirty && <span className="dirty-dot" aria-label="有未保存修改" />}</> }]} /><span className="field-hint">选日期 → 生成版本 → 编辑并保存</span></div>
+    <header className="page-header"><div><p className="page-eyebrow">从零散进展，到清晰汇报</p><h1>工作汇报</h1><p className="page-description">按日或按周整理工作，保留历史版本与生成时的来源。</p></div><div className="report-type-switch"><SegmentedControl label="报告类型" value={type} onChange={setType} options={[{ value: 'daily', label: <>日报{dailyDirty && <span className="dirty-dot" aria-label="有未保存修改" />}</> }, { value: 'weekly', label: <>周报{weeklyDirty && <span className="dirty-dot" aria-label="有未保存修改" />}</> }]} /></div></header>
     {(dailyDirty || weeklyDirty) && <p className="draft-notice" role="status">有未保存修改。切换工作区会保留草稿，刷新或关闭页面前请先保存。</p>}
     <RetainedView active={type === 'daily'}><DailyReportPanel date={dailyDate} onDateChange={value => void changeDate(value, 'daily')} onDirtyChange={setDailyDirty} /></RetainedView>
     <RetainedView active={type === 'weekly'}><WeeklyReportPanel date={weeklyDate} onDateChange={value => void changeDate(value, 'weekly')} onDirtyChange={setWeeklyDirty} /></RetainedView>

@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchDailyReport } from '../../api/reports'
 import { fetchReportPage, type DailyReport } from '../../api/reports'
+import { WORKSPACE_PAGE_SIZE } from '../../api/pagination'
 
 /** One request owns the history page and detail together; cleanup prevents late responses winning. */
 export function useReportHistory(type: 'DAILY' | 'WEEKLY', date: string,
   onSelect: (report: DailyReport | null) => void, onError: (message: string | null) => void) {
   const dateRef = useRef(date)
-  const [query, setQuery] = useState({ date, page: 0, size: 20, revision: 0, preferredId: '' })
+  const [query, setQuery] = useState({ date, page: 0, revision: 0, preferredId: '' })
   const page = query.date === date ? query.page : 0
   const [reports, setReports] = useState<DailyReport[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(false)
   const setPage = useCallback((page: number) => setQuery(q => ({ ...q, date, page, preferredId: '' })), [date])
-  const setSize = useCallback((size: number) => setQuery(q => ({ ...q, date, size, page: 0, preferredId: '' })), [date])
   const refresh = useCallback((preferredId = '') => setQuery(q => ({ ...q, date, page: 0,
     preferredId, revision: q.revision + 1 })), [date])
   const selectReport = useCallback((preferredId: string) => setQuery(q => ({ ...q, date,
@@ -25,7 +25,7 @@ export function useReportHistory(type: 'DAILY' | 'WEEKLY', date: string,
       setLoading(true); onError(null)
       if (dateRef.current !== date) { dateRef.current = date; setReports([]); setTotal(0); setTotalPages(0); onSelect(null) }
       try {
-        const result = await fetchReportPage(type, date, page, query.size, controller.signal)
+        const result = await fetchReportPage(type, date, page, WORKSPACE_PAGE_SIZE, controller.signal)
         const preferred = result.items.find(item => query.date === date && item.id === query.preferredId) ?? result.items[0]
         const detail = preferred ? await fetchDailyReport(preferred.id, controller.signal) : null
         if (controller.signal.aborted) return
@@ -39,6 +39,6 @@ export function useReportHistory(type: 'DAILY' | 'WEEKLY', date: string,
     return () => controller.abort()
   }, [type, date, page, query, onSelect, onError])
 
-  return { reports, setReports, page, size: query.size, total, totalPages, loading,
-    setPage, setSize, refresh, selectReport }
+  return { reports, setReports, page, total, totalPages, loading,
+    setPage, refresh, selectReport }
 }

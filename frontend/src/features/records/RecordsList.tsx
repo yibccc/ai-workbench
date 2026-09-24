@@ -4,16 +4,17 @@ import { Icon } from '../../components/Icon'
 import { WORKBENCH_TIME_ZONE, localDate } from '../../utils/date'
 import { useDialog } from '../../components/dialogContext'
 
-export function RecordsList({ selectedDate, records, recordTotal, recordPage, recordSize, recordTotalPages,
-  setRecordPage, setRecordSize, beginEdit, onDelete, loading, error, onRetry, onCreate }: {
-  selectedDate: string; records: WorkRecord[]; recordTotal: number; recordPage: number; recordSize: number; recordTotalPages: number
-  setRecordPage: (page: number) => void; setRecordSize: (size: number) => void
+export function RecordsList({ selectedDate, records, recordTotal, recordPage, recordTotalPages,
+  setRecordPage, beginEdit, onDelete, loading, error, onRetry, onCreate }: {
+  selectedDate: string; records: WorkRecord[]; recordTotal: number; recordPage: number; recordTotalPages: number
+  setRecordPage: (page: number) => void
   beginEdit: (record: WorkRecord) => void; onDelete: (id: string) => Promise<void>; loading: boolean
   error?: string | null; onRetry?: () => void; onCreate?: () => void
 }) {
   const showDialog = useDialog()
   return <section className="records" aria-labelledby="records-title" data-testid="record-list" aria-busy={loading}>
     <div className="section-heading"><div className="heading-inline"><h2 id="records-title">{selectedDate === localDate() ? '今天的记录' : `${selectedDate} 的记录`}</h2><span className="count-badge">{loading ? '…' : recordTotal}</span></div><span className="field-hint">最新创建在前</span></div>
+    <div className="record-rows" role="region" aria-label="记录数据" tabIndex={0}>
     {error ? <div className="empty error-state" role="alert"><Icon name="alert" size={24} /><strong>暂时无法读取记录</strong><span>{error}</span><button className="secondary" type="button" onClick={onRetry}>重新加载</button></div>
       : loading && records.length === 0 ? <div className="loading-state" role="status"><span className="loading-dot" />正在读取工作记录…</div>
       : records.length === 0 ? <div className="empty"><span className="empty-icon"><Icon name="notebook" size={28} /></span><strong>给这一天留下第一条记录</strong><span>一项进展、一个解决的问题，都值得记下来。</span><button className="secondary" type="button" onClick={onCreate}><Icon name="plus" size={15} />开始记录</button></div>
@@ -22,6 +23,7 @@ export function RecordsList({ selectedDate, records, recordTotal, recordPage, re
         <div className="record-body"><div className="record-meta"><span className={`project-tag ${record.project?.status === 'ARCHIVED' ? 'archived' : ''}`}><Icon name="folder" size={12} />{record.project ? `${record.project.name}${record.project.status === 'ARCHIVED' ? '（已归档）' : ''}` : '未归属项目'}</span><span className="source-label">{record.source === 'TASK_COMPLETION' ? <><Icon name="check" size={12} />任务完成</> : '工作记录'}</span></div><p>{record.content}</p>{record.completionResult && <p className="completion-result">完成结果：{record.completionResult}</p>}<time className="record-created" dateTime={record.createdAt}>录入于 {new Date(record.createdAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE })}</time></div>
         {record.source === 'MANUAL' && <div className="record-actions"><button className="text-button" type="button" onClick={() => beginEdit(record)}>编辑</button><button className="text-button danger" type="button" onClick={() => void showDialog({ title: '删除工作记录？', description: record.content, confirmLabel: '确认删除', danger: true, onConfirm: () => onDelete(record.id) })}>删除</button></div>}
       </article>)}</div>}
-    {!error && <Pagination page={recordPage} totalPages={recordTotalPages} size={recordSize} loading={loading} onPage={setRecordPage} onSize={value => { setRecordSize(value); setRecordPage(0) }} />}
+    </div>
+    {!error && <Pagination page={recordPage} totalPages={recordTotalPages} loading={loading} onPage={setRecordPage} />}
   </section>
 }

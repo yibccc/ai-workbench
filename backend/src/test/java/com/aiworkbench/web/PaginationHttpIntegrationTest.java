@@ -107,6 +107,26 @@ class PaginationHttpIntegrationTest {
 
     @Test
     void pagedRoutesKeepCountsFiltersOrderingAndStaticMappings() throws Exception {
+        mvc.perform(get("/api/projects/page").param("q", prefix).param("page", "1").param("size", "5"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(5))
+                .andExpect(jsonPath("$.totalElements").value(21))
+                .andExpect(jsonPath("$.totalPages").value(5))
+                .andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.items[0].name").value(prefix + "-project-15"));
+        mvc.perform(get("/api/records/page").param("date", DATE.toString()).param("page", "1").param("size", "5"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.items[0].content").value(prefix + "-record-15"));
+        mvc.perform(get("/api/tasks/page").param("status", "PENDING")
+                        .param("projectId", projectIds.get(0).toString()).param("page", "1").param("size", "5"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.items[0].title").value(prefix + "-task-15"));
+        mvc.perform(get("/api/reports/page").param("reportType", "DAILY")
+                        .param("date", DATE.toString()).param("page", "1").param("size", "5"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.totalPages").value(5));
+        mvc.perform(get("/api/reports/{id}/sources/page", reportIds.get(0)).param("page", "1").param("size", "5"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(5)))
+                .andExpect(jsonPath("$.items[0].content").value(prefix + "-source-5"));
         mvc.perform(get("/api/projects/page").param("q", prefix).param("page", "0").param("size", "10"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(21))
                 .andExpect(jsonPath("$.totalPages").value(3)).andExpect(jsonPath("$.items", hasSize(10)))
@@ -128,6 +148,11 @@ class PaginationHttpIntegrationTest {
         mvc.perform(get("/api/projects/page").param("q", prefix).param("page", "99").param("size", "20"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.page").value(99))
                 .andExpect(jsonPath("$.items", hasSize(0)));
+        mvc.perform(get("/api/projects/page").param("q", prefix))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.items", hasSize(20)));
+        mvc.perform(get("/api/projects/page").param("q", prefix).param("size", "50"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(21)));
         mvc.perform(get("/api/projects/page").param("size", "11")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/tasks/page").param("page", "-1")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/tasks/page").param("page", "2147483647").param("size", "50"))
