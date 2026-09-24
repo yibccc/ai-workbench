@@ -6,19 +6,19 @@ Use this contract for every paged list. PageHelper performs database count and p
 
 ## 2. Signatures
 
-- `GET /api/{projects|records|tasks|reports}/page?page=0&size=20` with existing resource filters.
+- `GET /api/{projects|records|tasks|reports}/page?page=0&size=5` for workbench UI lists, with existing resource filters. API calls that omit `size` retain the controller default of 20.
 - Report source paging retains its existing report-specific route.
 - `PageResponse<T>(items, page, size, totalElements, totalPages)`.
 - `PageQueries.select(page, size, mapperQuery, dtoMapper)` owns the PageHelper scope.
 
 ## 3. Contracts
 
-- Validate page >= 0 and size in 10/20/50 before starting PageHelper; reject excessive offsets instead of overflowing.
+- Validate page >= 0 and size in 5/10/20/50 before starting PageHelper; reject excessive offsets instead of overflowing. Size 5 serves the workbench UI; 10/20/50 remain accepted for existing API callers.
 - Translate external page to `page + 1` internally; `reasonable=false` preserves out-of-range empty-page semantics.
 - Execute exactly the intended mapper select inside the paging scope. Always `PageHelper.clearPage()` in finally, including exceptions before MyBatis interception.
 - Capture `PageInfo` before converting rows to DTOs. Map DTOs after the pagination scope is cleared so any related query is not accidentally paginated.
 - Mapper list SQL owns filters and deterministic `created_at DESC, id DESC` ordering; remove manual pagination LIMIT/OFFSET and duplicate count queries replaced by the interceptor.
-- Report source queries preserve frozen ordering and stable global numbering; source selection for generation is always unpaged.
+- Report source queries preserve frozen ordering and stable global numbering; the visible source list requests size 5, while source selection for generation is always unpaged.
 - Original array endpoints retain compatibility and must not inherit thread-local pagination from a preceding request.
 
 ## 4. Validation & Error Matrix
@@ -30,11 +30,12 @@ Use this contract for every paged list. PageHelper performs database count and p
 | Mapper failure | Pagination state cleared; original error handling retained |
 | Last page | Next disabled with unavailable cursor, not wait cursor |
 | Actual request in flight | Explicit loading state; always ends on failure/abort/success |
-| Filter or page-size change | Reset to first page and reload |
+| UI filter change | Reset to first page and reload |
+| Existing API caller changes size | New request uses the supplied supported size; the server remains zero-based |
 
 ## 5. Good / Base / Bad Cases
 
-- Good: read page 2, then all report sources on the same thread; the second query returns all sources.
+- Good: read page 2 with size 5, then all report sources on the same thread; the second query returns all sources. A size 20 request still succeeds for an older client.
 - Base: no matches returns totalElements=0 and totalPages=0.
 - Bad: call startPage and return without selecting/clearing, or map to an ordinary List before capturing total metadata.
 
@@ -43,8 +44,9 @@ Use this contract for every paged list. PageHelper performs database count and p
 - Real PostgreSQL count/filter/ordering/first-last-out-of-range page checks.
 - Failure before mapper interception still clears thread-local state.
 - DTO conversion and subsequent full report-source selection run with no paging state.
-- Browser next/previous/page-size tests assert actual item changes and HTTP page parameters, not merely label changes.
-- Report history navigation honors dirty confirmation; source page-size changes affect real query size and global source labels.
+- HTTP tests cover size 5 on all paged routes, including report sources, plus default 20 and retained 10/20/50 compatibility.
+- Browser next/previous tests assert actual five-item changes and HTTP `size=5` parameters, not merely label changes. The workbench exposes no page-size selector.
+- Report history navigation honors dirty confirmation; source page changes preserve global labels in five-item increments.
 
 ## 7. Wrong vs Correct
 

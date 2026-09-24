@@ -1,4 +1,4 @@
-
+export const WORKSPACE_PAGE_SIZE = 5
 
 export interface PageResponse<T> {
   items: T[]

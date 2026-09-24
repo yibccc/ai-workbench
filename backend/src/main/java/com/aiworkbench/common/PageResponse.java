@@ -12,8 +12,8 @@ public record PageResponse<T>(List<T> items, int page, int size, long totalEleme
 
     public static int offset(int page, int size) {
         if (page < 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "页码不能小于 0");
-        if (size != 10 && size != 20 && size != 50) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "每页数量只支持 10、20 或 50");
+        if (size != 5 && size != 10 && size != 20 && size != 50) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "每页数量只支持 5、10、20 或 50");
         }
         long offset = (long) page * size;
         if (offset > Integer.MAX_VALUE) {

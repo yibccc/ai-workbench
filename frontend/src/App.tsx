@@ -7,6 +7,7 @@ import { RecordsPage } from './features/records/RecordsPage'
 import { TasksPanel, type TaskEditRequest } from './features/tasks/TasksPanel'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { ProjectsPanel } from './features/projects/ProjectsPanel'
+import { ToastProvider } from './components/ToastProvider'
 
 const readPage = (): PageId => {
   const value = window.location.hash.slice(1)
@@ -40,7 +41,9 @@ function App() {
     document.title = `${navigation.find(item => item.id === page)!.label} · 工作台`
     if (firstNavigation.current) { firstNavigation.current = false; return }
     document.getElementById('main-content')?.focus({ preventScroll: true })
-    window.scrollTo({ top: 0 })
+    document.querySelector('#main-content > .retained-view:not([hidden]) .workspace-scroll')?.scrollTo({ top: 0 })
+    document.querySelectorAll('#main-content > .retained-view:not([hidden]) .reports-page > .retained-view:not([hidden]) :is(.report-scroll, .report-document, .source-rows)')
+      .forEach(region => region.scrollTo({ top: 0 }))
   }, [page])
   const refreshContent = useCallback(async () => setRevision(value => value + 1), [])
   const editTask = useCallback((id: string) => {
@@ -48,12 +51,12 @@ function App() {
     window.location.hash = 'tasks'
     setPage('tasks')
   }, [])
-  return <AppShell page={page} hasDirtyReports={dirtyReports}>
+  return <ToastProvider page={page}><AppShell page={page} hasDirtyReports={dirtyReports}>
     {projectError && <div className="notice error" role="alert"><span>项目列表读取失败：{projectError}</span><button className="text-button" type="button" onClick={() => void refreshProjects().catch((caught: unknown) => setProjectError(caught instanceof Error ? caught.message : '加载失败'))}>重新加载</button></div>}
     <RetainedView active={page === 'records'}><RecordsPage projects={projects} revision={revision} onDataChanged={refreshContent} onEditTask={editTask} /></RetainedView>
     <RetainedView active={page === 'tasks'}><TasksPanel projects={projects} refreshKey={revision} editRequest={taskEdit} onRecordsChanged={refreshContent} /></RetainedView>
     <RetainedView active={page === 'reports'}><ReportsPage onDirtyChange={setDirtyReports} /></RetainedView>
     <RetainedView active={page === 'projects'}><ProjectsPanel onProjectsChanged={async () => { await refreshProjects(); await refreshContent() }} /></RetainedView>
-  </AppShell>
+  </AppShell></ToastProvider>
 }
 export default App
