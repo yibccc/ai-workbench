@@ -1,0 +1,12 @@
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "核对 09-25-auth-ui-deployment 的规范与交接验收边界"}
+{"file": ".trellis/spec/frontend/viewport-layout.md", "reason": "核对 09-25-auth-ui-deployment 的规范与交接验收边界"}
+{"file": ".trellis/spec/frontend/dialogs.md", "reason": "核对 09-25-auth-ui-deployment 的规范与交接验收边界"}
+{"file": ".trellis/spec/backend/linux-deployment.md", "reason": "核对 09-25-auth-ui-deployment 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-auth-isolation/prd.md", "reason": "核对 09-25-auth-ui-deployment 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-auth-isolation/research/handoff-check.md", "reason": "核对 09-25-auth-ui-deployment 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-auth-isolation/research/handoff/r1/acceptance.md", "reason": "核对 09-25-auth-ui-deployment 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-auth-isolation/research/acceptance-local.md", "reason": "P-001 已确认的 TC-017～019 本地验收补充，覆盖源包 draft 场景"}
+{"file": ".trellis/tasks/09-25-auth-ui-deployment/research/identity-state-map.md", "reason": "前端身份切换状态与异步清理清单"}
+{"file": ".trellis/tasks/09-25-auth-accounts-session/research/auth-api-contract.md", "reason": "认证与会话已实施的HTTP、CSRF、Principal和活动合同"}
+{"file": ".trellis/spec/frontend/identity-session.md", "reason": "最终前端身份与活动规范"}
+{"file": ".trellis/tasks/09-25-private-realtime/research/stomp-contract.md", "reason": "客户端与服务端STOMP线协议"}

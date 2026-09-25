@@ -7,6 +7,7 @@ import com.aiworkbench.dto.project.ProjectResponse;
 import com.aiworkbench.dto.project.UpdateProjectRequest;
 import com.aiworkbench.entity.project.ProjectRow;
 import com.aiworkbench.mapper.ProjectMapper;
+import com.aiworkbench.security.CurrentUser;
 import com.aiworkbench.service.ProjectService;
 import java.util.List;
 import java.util.UUID;
@@ -28,7 +29,7 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectResponse create(CreateProjectRequest request) {
         UUID id = UUID.randomUUID();
         try {
-            mapper.insert(id, request.name().trim());
+            mapper.insert(CurrentUser.requireId(), id, request.name().trim());
         } catch (DataIntegrityViolationException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "同名的活动项目已存在", exception);
         }
@@ -37,13 +38,19 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Transactional(readOnly = true)
     public List<ProjectResponse> list(boolean includeArchived) {
-        return mapper.findAll(includeArchived).stream().map(ProjectRow::toResponse).toList();
+        return listForUser(CurrentUser.requireId(), includeArchived);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectResponse> listForUser(UUID userId, boolean includeArchived) {
+        return mapper.findAll(userId, includeArchived).stream().map(ProjectRow::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
     public PageResponse<ProjectResponse> page(boolean includeArchived, String q, int page, int size) {
         String query = q == null ? null : q.trim();
-        return PageQueries.select(page, size, () -> mapper.findPage(includeArchived, query), ProjectRow::toResponse);
+        UUID userId = CurrentUser.requireId();
+        return PageQueries.select(page, size, () -> mapper.findPage(userId, includeArchived, query), ProjectRow::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +62,7 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectResponse rename(UUID id, UpdateProjectRequest request) {
         require(id);
         try {
-            mapper.rename(id, request.name().trim());
+            mapper.rename(CurrentUser.requireId(), id, request.name().trim());
         } catch (DataIntegrityViolationException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "同名的活动项目已存在", exception);
         }
@@ -65,7 +72,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public ProjectResponse archive(UUID id) {
         require(id);
-        mapper.archive(id);
+        mapper.archive(CurrentUser.requireId(), id);
         return get(id);
     }
 
@@ -77,7 +84,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private ProjectRow require(UUID id) {
-        return mapper.findById(id)
+        return mapper.findById(CurrentUser.requireId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "项目不存在"));
     }
 }

@@ -27,34 +27,34 @@
         t.version, t.created_at, t.updated_at
     </sql>
     <insert id="insert">
-        INSERT INTO todo_items (id, project_id, title, notes, due_at, priority)
-        VALUES (#{id}, #{projectId}, #{title}, #{notes}, #{dueAt}, #{priority})
+        INSERT INTO todo_items (user_id, id, project_id, title, notes, due_at, priority)
+        VALUES (#{userId}, #{id}, #{projectId}, #{title}, #{notes}, #{dueAt}, #{priority})
     </insert>
     <select id="findById" resultMap="taskRow">
         SELECT <include refid="columns"/>
         FROM todo_items t
-        LEFT JOIN projects p ON p.id = t.project_id
-        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
-        WHERE t.id = #{id} AND t.deleted_at IS NULL
+        LEFT JOIN projects p ON p.id = t.project_id AND p.user_id = t.user_id
+        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.user_id = t.user_id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
+        WHERE t.id = #{id} AND t.user_id = #{userId} AND t.deleted_at IS NULL
     </select>
     <select id="findAnyById" resultMap="taskRow">
         SELECT <include refid="columns"/>
         FROM todo_items t
-        LEFT JOIN projects p ON p.id = t.project_id
-        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
-        WHERE t.id = #{id}
+        LEFT JOIN projects p ON p.id = t.project_id AND p.user_id = t.user_id
+        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.user_id = t.user_id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
+        WHERE t.id = #{id} AND t.user_id = #{userId}
     </select>
     <select id="findAll" resultMap="taskRow">
         SELECT <include refid="columns"/>
         FROM todo_items t
-        LEFT JOIN projects p ON p.id = t.project_id
-        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
+        LEFT JOIN projects p ON p.id = t.project_id AND p.user_id = t.user_id
+        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.user_id = t.user_id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
         <include refid="filters"/>
         ORDER BY t.created_at DESC, t.id DESC
     </select>
     <sql id="filters">
         <where>
-            t.deleted_at IS NULL
+            t.user_id = #{userId} AND t.deleted_at IS NULL
             <if test="status != null">AND t.status = #{status}</if>
             <if test="unassigned">AND t.project_id IS NULL</if>
             <if test="!unassigned and projectId != null">AND t.project_id = #{projectId}</if>
@@ -68,8 +68,8 @@
     <select id="findPage" resultMap="taskRow">
         SELECT <include refid="columns"/>
         FROM todo_items t
-        LEFT JOIN projects p ON p.id = t.project_id
-        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
+        LEFT JOIN projects p ON p.id = t.project_id AND p.user_id = t.user_id
+        LEFT JOIN work_records wr ON wr.todo_id = t.id AND wr.user_id = t.user_id AND wr.source = 'TASK_COMPLETION' AND wr.is_active
         <include refid="filters"/>
         ORDER BY t.created_at DESC, t.id DESC
     </select>
@@ -77,33 +77,33 @@
         UPDATE todo_items
         SET project_id = #{projectId}, title = #{title}, notes = #{notes}, due_at = #{dueAt},
             priority = #{priority}, version = version + 1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = #{id} AND version = #{version} AND deleted_at IS NULL
+        WHERE id = #{id} AND user_id = #{userId} AND version = #{version} AND deleted_at IS NULL
     </update>
     <update id="complete">
         UPDATE todo_items
         SET status = 'COMPLETED', completed_at = #{completedAt}, version = version + 1, updated_at = #{completedAt}
-        WHERE id = #{id} AND version = #{version} AND status = 'PENDING' AND deleted_at IS NULL
+        WHERE id = #{id} AND user_id = #{userId} AND version = #{version} AND status = 'PENDING' AND deleted_at IS NULL
     </update>
     <update id="reopen">
         UPDATE todo_items
         SET status = 'PENDING', completed_at = NULL, version = version + 1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = #{id} AND version = #{version} AND status = 'COMPLETED' AND deleted_at IS NULL
+        WHERE id = #{id} AND user_id = #{userId} AND version = #{version} AND status = 'COMPLETED' AND deleted_at IS NULL
     </update>
     <update id="touchCompletionResult">
         UPDATE todo_items SET version = version + 1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = #{id} AND version = #{version} AND status = 'COMPLETED' AND deleted_at IS NULL
+        WHERE id = #{id} AND user_id = #{userId} AND version = #{version} AND status = 'COMPLETED' AND deleted_at IS NULL
     </update>
     <update id="softDelete">
         UPDATE todo_items SET deleted_at = #{deletedAt}, version = version + 1, updated_at = #{deletedAt}
-        WHERE id = #{id} AND version = #{version} AND deleted_at IS NULL
+        WHERE id = #{id} AND user_id = #{userId} AND version = #{version} AND deleted_at IS NULL
     </update>
     <insert id="insertEvent">
         INSERT INTO task_events (id, todo_id, event_type, payload, occurred_at)
-        VALUES (#{id}, #{todoId}, #{eventType}, jsonb_build_object(
+        SELECT #{id}, t.id, #{eventType}, jsonb_build_object(
             'title', #{title}, 'projectId', CAST(#{projectId} AS text),
             'fromStatus', CAST(#{fromStatus} AS text), 'toStatus', CAST(#{toStatus} AS text),
             'version', #{version}, 'result', #{result}
-        ), #{occurredAt})
+        ), #{occurredAt} FROM todo_items t WHERE t.id = #{todoId} AND t.user_id = #{userId}
     </insert>
     <resultMap id="taskEventRow" type="com.aiworkbench.entity.task.TaskEventRow">
         <constructor>
@@ -121,7 +121,8 @@
                NULLIF(payload ->> 'toStatus', '') AS to_status,
                (payload ->> 'version')::bigint AS version,
                COALESCE(payload ->> 'result', '') AS result, occurred_at
-        FROM task_events WHERE todo_id = #{todoId}
+        FROM task_events WHERE todo_id = #{todoId} AND EXISTS (
+            SELECT 1 FROM todo_items t WHERE t.id = task_events.todo_id AND t.user_id = #{userId})
         ORDER BY occurred_at, created_at, id
     </select>
 </mapper>

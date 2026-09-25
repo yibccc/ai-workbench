@@ -4,6 +4,6 @@ spring:
     username: ${POSTGRES_USER:ai_workbench}
     password: ${POSTGRES_PASSWORD:local_dev_only}
   flyway:
-    schemas: d9_backend_tests
-    default-schema: d9_backend_tests
+    schemas: ${WORKBENCH_TEST_SCHEMA:d9_backend_tests}
+    default-schema: ${WORKBENCH_TEST_SCHEMA:d9_backend_tests}
     create-schemas: true

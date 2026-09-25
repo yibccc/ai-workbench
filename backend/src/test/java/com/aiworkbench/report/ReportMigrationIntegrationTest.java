@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 class ReportMigrationIntegrationTest {
@@ -28,7 +29,7 @@ class ReportMigrationIntegrationTest {
                     VALUES (?, 'DAILY', DATE '2042-03-04', DATE '2042-03-04', '旧日报正文')
                     """, legacyId));
 
-            migrate(schema, null);
+            migrate(schema, "13");
 
             inSchema(schema, jdbc -> {
                 Map<String, Object> legacy = jdbc.queryForMap("""
@@ -49,6 +50,7 @@ class ReportMigrationIntegrationTest {
                         WHERE report_type='DAILY' AND period_start=DATE '2042-03-04'
                         """, Integer.class)).isEqualTo(2);
             });
+            assertThatThrownBy(() -> migrate(schema, null)).hasMessageContaining("V14 requires an empty business database");
         } finally {
             dropSchema(schema);
         }
@@ -97,7 +99,7 @@ class ReportMigrationIntegrationTest {
                         """, sourceId, reportId, UUID.randomUUID());
             });
 
-            migrate(schema, null);
+            migrate(schema, "13");
 
             inSchema(schema, jdbc -> {
                 assertThat(jdbc.queryForObject("SELECT source_role FROM report_sources WHERE id=?", String.class, sourceId))
@@ -114,6 +116,7 @@ class ReportMigrationIntegrationTest {
                         .containsEntry("error_stage", null)
                         .containsEntry("source_count", 1);
             });
+            assertThatThrownBy(() -> migrate(schema, null)).hasMessageContaining("V14 requires an empty business database");
         } finally {
             dropSchema(schema);
         }

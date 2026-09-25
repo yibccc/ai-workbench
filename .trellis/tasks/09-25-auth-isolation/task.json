@@ -1,0 +1,31 @@
+{
+  "id": "auth-isolation",
+  "name": "auth-isolation",
+  "title": "应用登录、私有数据与实时通知接入",
+  "description": "核对 WB-20260925-auth-isolation-8cbe4aee/r1 并规划登录、账号管理、用户私有数据、实时通知、前端与部署集成。",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kira",
+  "assignee": "kira",
+  "createdAt": "2026-09-25",
+  "completedAt": null,
+  "branch": "feat/auth-isolation",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-25-auth-accounts-session",
+    "09-25-owner-isolation",
+    "09-25-private-realtime",
+    "09-25-auth-ui-deployment"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

@@ -1,0 +1,9 @@
+{"file": ".trellis/spec/backend/pagination.md", "reason": "核对 09-25-owner-isolation 的规范与交接验收边界"}
+{"file": ".trellis/spec/backend/report-deletion.md", "reason": "核对 09-25-owner-isolation 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-auth-isolation/prd.md", "reason": "核对 09-25-owner-isolation 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-auth-isolation/research/handoff-check.md", "reason": "核对 09-25-owner-isolation 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-auth-isolation/research/handoff/r1/acceptance.md", "reason": "核对 09-25-owner-isolation 的规范与交接验收边界"}
+{"file": ".trellis/tasks/09-25-owner-isolation/research/owner-spec-map.md", "reason": "归属改造规范索引，按需打开完整数据库规范原文"}
+{"file": ".trellis/tasks/09-25-owner-isolation/research/current-callchain.md", "reason": "当前服务与Mapper归属调用链证据"}
+{"file": ".trellis/tasks/09-25-auth-accounts-session/research/auth-api-contract.md", "reason": "认证与会话已实施的HTTP、CSRF、Principal和活动合同"}
+{"file": ".trellis/spec/backend/identity-isolation.md", "reason": "最终账号与业务归属规范"}

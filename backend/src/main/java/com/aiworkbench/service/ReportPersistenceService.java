@@ -16,4 +16,5 @@ public interface ReportPersistenceService {
     ReportRow update(UUID id, String content, long version, Instant now);
     ReportRow updateManualAdditions(UUID id, String manualAdditions, long version, Instant now);
     ReportRow require(UUID id);
+    ReportRow requireOwned(UUID userId, UUID id);
 }

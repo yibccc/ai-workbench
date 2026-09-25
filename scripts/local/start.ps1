@@ -1,6 +1,8 @@
+param([string]$EnvFile)
+
 . "$PSScriptRoot/common.ps1"
 New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
-$envValues = Get-EnvValues
+$envValues = if ($PSBoundParameters.ContainsKey('EnvFile')) { Get-EnvValues -EnvFile $EnvFile } else { Get-EnvValues }
 $java = if ($env:JAVA_HOME -and (Test-Path "$env:JAVA_HOME/bin/java.exe")) { "$env:JAVA_HOME/bin/java.exe" } else { (Get-Command java).Source }
 # Resolve Oracle's javapath launcher to the real JVM to keep the tracked PID stable.
 $ErrorActionPreference = 'Continue'

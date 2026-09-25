@@ -18,6 +18,7 @@ import com.aiworkbench.enums.ReportSourceType;
 import com.aiworkbench.exception.DeepSeekNotConfiguredException;
 import com.aiworkbench.exception.ReportGenerationException;
 import com.aiworkbench.mapper.ReportMapper;
+import com.aiworkbench.security.CurrentUser;
 import com.aiworkbench.service.ReportPersistenceService;
 import com.aiworkbench.service.ReportService;
 import java.time.Instant;
@@ -60,7 +61,7 @@ public class ReportServiceImpl implements ReportService {
                 ? date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)) : date;
         LocalDate periodEnd = reportType.equals("WEEKLY") ? periodStart.plusWeeks(1) : periodStart;
         ReportClaim claim = persistence.prepare(request.requestId(), reportType, periodStart, periodEnd, zoneId);
-        if (claim.owner()) schedule(claim.row().id(), claim.token(), reportType, periodStart, periodEnd);
+        if (claim.owner()) schedule(claim.row().userId(), claim.row().id(), claim.token(), reportType, periodStart, periodEnd);
         return get(claim.row().id());
     }
 
@@ -77,20 +78,21 @@ public class ReportServiceImpl implements ReportService {
         LocalDate periodStart = date;
         if (date != null && normalizedType.equals("WEEKLY"))
             periodStart = date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-        return mapper.findReports(normalizedType, periodStart).stream().map(this::toResponse).toList();
+        return mapper.findReports(CurrentUser.requireId(), normalizedType, periodStart).stream().map(this::toResponse).toList();
     }
 
     public PageResponse<ReportResponse> page(String reportType, LocalDate date, int page, int size) {
         String normalizedType = normalizeType(reportType);
         LocalDate periodStart = normalizedType.equals("WEEKLY") && date != null
                 ? date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)) : date;
-        return PageQueries.select(page, size, () -> mapper.findReportPage(normalizedType, periodStart),
+        UUID userId = CurrentUser.requireId();
+        return PageQueries.select(page, size, () -> mapper.findReportPage(userId, normalizedType, periodStart),
                 this::toSummaryResponse);
     }
 
     public PageResponse<ReportResponse.Source> sourcePage(UUID reportId, int page, int size) {
-        persistence.require(reportId);
-        return PageQueries.select(page, size, () -> mapper.findSourcePage(reportId), this::toSource);
+        ReportRow report = persistence.require(reportId);
+        return PageQueries.select(page, size, () -> mapper.findSourcePage(report.userId(), reportId), this::toSource);
     }
 
     private String normalizeType(String reportType) {
@@ -115,16 +117,17 @@ public class ReportServiceImpl implements ReportService {
                 request.version(), Instant.now()));
     }
 
-    private void schedule(UUID id, UUID token, String reportType, LocalDate periodStart, LocalDate periodEnd) {
-        try { taskExecutor.execute(() -> process(id, token, reportType, periodStart, periodEnd)); }
+    private void schedule(UUID userId, UUID id, UUID token, String reportType, LocalDate periodStart, LocalDate periodEnd) {
+        try { taskExecutor.execute(() -> process(userId, id, token, reportType, periodStart, periodEnd)); }
         catch (RuntimeException exception) {
             persistence.fail(id, token, "报告生成暂时不可用，请稍后重试", "MODEL_UNAVAILABLE",
-                    "SCHEDULE", Math.toIntExact(mapper.countSources(id)), Instant.now());
+                    "SCHEDULE", Math.toIntExact(mapper.countSources(userId, id)), Instant.now());
         }
     }
 
-    private void process(UUID id, UUID token, String reportType, LocalDate periodStart, LocalDate periodEnd) {
-        List<ReportSourceRow> sources = mapper.findSources(id);
+    private void process(UUID userId, UUID id, UUID token, String reportType, LocalDate periodStart, LocalDate periodEnd) {
+        persistence.requireOwned(userId, id);
+        List<ReportSourceRow> sources = mapper.findSources(userId, id);
         try {
             String content;
             if (sources.isEmpty()) content = render(Map.of(), sources, reportType);
@@ -269,7 +272,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private ReportResponse toResponse(ReportRow row) {
-        List<ReportResponse.Source> sources = mapper.findSources(row.id()).stream().map(this::toSource).toList();
+        List<ReportResponse.Source> sources = mapper.findSources(row.userId(), row.id()).stream().map(this::toSource).toList();
         return response(row, sources);
     }
 

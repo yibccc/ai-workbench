@@ -13,21 +13,23 @@
     </resultMap>
     <sql id="columns">id, name, status, archived_at, created_at, updated_at</sql>
     <insert id="insert">
-        INSERT INTO projects (id, name) VALUES (#{id}, #{name})
+        INSERT INTO projects (user_id, id, name) VALUES (#{userId}, #{id}, #{name})
     </insert>
     <select id="findById" resultMap="projectRow">
-        SELECT <include refid="columns"/> FROM projects WHERE id = #{id}
+        SELECT <include refid="columns"/> FROM projects WHERE id = #{id} AND user_id = #{userId}
     </select>
     <select id="findAll" resultMap="projectRow">
         SELECT <include refid="columns"/> FROM projects
-        <if test="!includeArchived">WHERE status = 'ACTIVE'</if>
+        WHERE user_id = #{userId}
+        <if test="!includeArchived">AND status = 'ACTIVE'</if>
         ORDER BY created_at DESC, id DESC
     </select>
     <sql id="pageWhere">
         <where>
-            <if test="!includeArchived">status = 'ACTIVE'</if>
+            user_id = #{userId}
+            <if test="!includeArchived">AND status = 'ACTIVE'</if>
             <if test="q != null and q != ''">
-                <if test="!includeArchived">AND</if> lower(name) LIKE '%' || lower(#{q}) || '%'
+                AND lower(name) LIKE '%' || lower(#{q}) || '%'
             </if>
         </where>
     </sql>
@@ -36,10 +38,10 @@
         ORDER BY created_at DESC, id DESC
     </select>
     <update id="rename">
-        UPDATE projects SET name = #{name}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id}
+        UPDATE projects SET name = #{name}, updated_at = CURRENT_TIMESTAMP WHERE id = #{id} AND user_id = #{userId}
     </update>
     <update id="archive">
         UPDATE projects SET status = 'ARCHIVED', archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = #{id} AND status = 'ACTIVE'
+        WHERE id = #{id} AND user_id = #{userId} AND status = 'ACTIVE'
     </update>
 </mapper>

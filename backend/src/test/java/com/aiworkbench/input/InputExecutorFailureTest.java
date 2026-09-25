@@ -35,15 +35,16 @@ class InputExecutorFailureTest {
         InputService service = new InputServiceImpl(
                 mapper, persistence, gateway, projectService, executor, "Asia/Shanghai");
         UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         UUID token = UUID.randomUUID();
         Instant now = Instant.now();
-        InputRow row = new InputRow(id, "request", "原文", now, "Asia/Shanghai", InputStatus.PROCESSING,
+        InputRow row = new InputRow(id, userId, "request", "原文", now, "Asia/Shanghai", InputStatus.PROCESSING,
                 null, 1, null, now, now, true);
         when(persistence.createOrGet(eq("request"), eq("原文"), any(Instant.class), any()))
                 .thenReturn(new ProcessingClaim(row, token, true));
         when(persistence.require(id)).thenReturn(row);
-        when(mapper.findRecords(id)).thenReturn(List.of());
-        when(mapper.findTasks(id)).thenReturn(List.of());
+        when(mapper.findRecords(userId, id)).thenReturn(List.of());
+        when(mapper.findTasks(userId, id)).thenReturn(List.of());
 
         InputResponse response = service.create(new CreateInputRequest("request", "原文"));
 

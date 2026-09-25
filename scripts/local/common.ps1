@@ -14,9 +14,14 @@ function Invoke-Docker {
 }
 
 function Get-EnvValues {
+    param([string]$EnvFile)
     $values = @{}
-    $path = Join-Path $RepoRoot '.env'
-    if (-not (Test-Path -LiteralPath $path)) { throw 'Copy .env.example to .env and configure it first.' }
+    if ($PSBoundParameters.ContainsKey('EnvFile') -and [string]::IsNullOrWhiteSpace($EnvFile)) { throw 'EnvFile must name a file.' }
+    $path = if ($PSBoundParameters.ContainsKey('EnvFile')) { $EnvFile } else { Join-Path $RepoRoot '.env' }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        if ($PSBoundParameters.ContainsKey('EnvFile')) { throw "Environment file not found: $path" }
+        throw 'Copy .env.example to .env and configure it first.'
+    }
     foreach ($line in Get-Content -LiteralPath $path -Encoding UTF8) {
         if ($line -match '^\s*(?:#|$)') { continue }
         if ($line -notmatch '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') { throw 'Invalid .env line; use KEY=value.' }

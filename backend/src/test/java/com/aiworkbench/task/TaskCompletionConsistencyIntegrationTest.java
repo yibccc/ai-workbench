@@ -14,6 +14,8 @@ import com.aiworkbench.enums.TaskPriority;
 import com.aiworkbench.enums.TaskStatus;
 import com.aiworkbench.service.TaskService;
 import com.aiworkbench.service.WorkRecordService;
+import com.aiworkbench.support.OwnerTestContext;
+import jakarta.servlet.http.Cookie;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
@@ -32,6 +34,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,12 +48,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
 class TaskCompletionConsistencyIntegrationTest {
     @Autowired TaskService taskService;
     @Autowired WorkRecordService workRecordService;
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
+    private Cookie ownerSession;
+
+    @BeforeEach
+    void owner() throws Exception {
+        OwnerTestContext.ensureAccounts(jdbcTemplate);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+        ownerSession = OwnerTestContext.login(mockMvc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+    }
+
+    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
+        try { return mockMvc.perform(OwnerTestContext.authenticated(request, ownerSession)); }
+        finally { OwnerTestContext.use(OwnerTestContext.USER_ID); }
+    }
+
+    @AfterEach
+    void removeOwnerFixtures() {
+        OwnerTestContext.removeBusinessData(jdbcTemplate);
+    }
 
     @BeforeEach
     @AfterEach
@@ -98,8 +122,10 @@ class TaskCompletionConsistencyIntegrationTest {
         CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
-            Future<TaskResponse> first = executor.submit(() -> completeTogether(task, ready, start, "结果 A"));
-            Future<TaskResponse> second = executor.submit(() -> completeTogether(task, ready, start, "结果 B"));
+            Future<TaskResponse> first = executor.submit(OwnerTestContext.as(OwnerTestContext.USER_ID,
+                    () -> completeTogether(task, ready, start, "结果 A")));
+            Future<TaskResponse> second = executor.submit(OwnerTestContext.as(OwnerTestContext.USER_ID,
+                    () -> completeTogether(task, ready, start, "结果 B")));
             ready.await();
             start.countDown();
             assertThat(first.get().status()).isEqualTo(TaskStatus.COMPLETED);
@@ -120,9 +146,9 @@ class TaskCompletionConsistencyIntegrationTest {
         taskService.complete(task.id(), new CompleteTaskRequest(task.version(), ""));
 
         assertThatThrownBy(() -> jdbcTemplate.update(
-                "INSERT INTO work_records (id, todo_id, content, source, is_active, occurred_at) "
-                        + "VALUES (?, ?, ?, 'TASK_COMPLETION', TRUE, CURRENT_TIMESTAMP)",
-                UUID.randomUUID(), task.id(), "不允许的重复完成记录"))
+                "INSERT INTO work_records (id, user_id, todo_id, content, source, is_active, occurred_at) "
+                        + "VALUES (?, ?, ?, ?, 'TASK_COMPLETION', TRUE, CURRENT_TIMESTAMP)",
+                UUID.randomUUID(), OwnerTestContext.USER_ID, task.id(), "不允许的重复完成记录"))
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThat(activeCompletionCount(task.id())).isEqualTo(1);
     }
@@ -160,7 +186,7 @@ class TaskCompletionConsistencyIntegrationTest {
                 .extracting(TaskResponse::id).doesNotContain(task.id());
         assertThatThrownBy(() -> taskService.get(task.id())).isInstanceOf(ResponseStatusException.class);
 
-        mockMvc.perform(get("/api/tasks/{id}/events", task.id()))
+        perform(get("/api/tasks/{id}/events", task.id()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[1].eventType").value("DELETED"))
                 .andExpect(jsonPath("$[1].result").value(""));
@@ -170,20 +196,23 @@ class TaskCompletionConsistencyIntegrationTest {
     void exposesDedicatedHttpCommandsAndKeepsGenericUpdateStatusFree() throws Exception {
         TaskResponse task = createTask("HTTP 完成");
         CompleteTaskRequest request = new CompleteTaskRequest(task.version(), "接口结果");
-        mockMvc.perform(post("/api/tasks/{id}/complete", task.id())
+        perform(post("/api/tasks/{id}/complete", task.id())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
                 .andExpect(jsonPath("$.completionResult").value("接口结果"));
 
-        mockMvc.perform(post("/api/tasks/{id}/complete", task.id())
+        perform(post("/api/tasks/{id}/complete", task.id())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").value(1));
 
-        mockMvc.perform(post("/api/tasks/{id}/reopen", task.id())
+        perform(post("/api/tasks/{id}/reopen", task.id())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
@@ -196,12 +225,14 @@ class TaskCompletionConsistencyIntegrationTest {
         TaskResponse completed = taskService.complete(task.id(), new CompleteTaskRequest(task.version(), "受保护"));
         UUID recordId = completed.completionRecordId();
 
-        mockMvc.perform(put("/api/records/{id}", recordId)
+        perform(put("/api/records/{id}", recordId)
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"projectId\":null,\"content\":\"绕过待办修改\",\"occurredAt\":\"2026-09-19T00:00:00Z\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("自动完成记录请通过待办操作维护"));
-        mockMvc.perform(delete("/api/records/{id}", recordId))
+        perform(delete("/api/records/{id}", recordId)
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("自动完成记录请通过待办操作维护"));
 

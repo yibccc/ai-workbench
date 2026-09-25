@@ -54,14 +54,14 @@ Database tables are `projects`, `capture_inputs`, `todo_items`, `work_records`, 
 - Changing an existing record to a different project also requires the target project to be active.
 - An existing record may retain its archived project while other fields are edited.
 - Project rename preserves the UUID. Archive preserves every historical foreign-key association.
-- Active project names are case-insensitively unique through the partial index `uq_projects_active_name`.
+- Active project names are case-insensitively unique **per `user_id`** through the partial index `uq_projects_active_name`. Different users may use the same name. See [Identity and Isolation](identity-isolation.md) for the owner contract.
 
 ### 4. Validation & Error Matrix
 
 | Condition | Result |
 |---|---|
 | Blank/oversized project name | HTTP 400 problem detail |
-| Duplicate active project name, case-insensitive | HTTP 409, `同名的活动项目已存在` |
+| Duplicate active project name for the same user, case-insensitive | HTTP 409, `同名的活动项目已存在`; another user's same name is allowed |
 | Missing project or record UUID | HTTP 404 problem detail |
 | New record targets archived project | HTTP 409, `归档项目不能用于新记录` |
 | Existing record retains the same archived project | Update is allowed |
@@ -81,7 +81,7 @@ Database tables are `projects`, `capture_inputs`, `todo_items`, `work_records`, 
 - Run persistence integration tests against real PostgreSQL, including a fresh empty database that executes all Flyway migrations.
 - Assert `occurred_at` and `created_at` independently through direct SQL, not only through the same service that wrote them.
 - Test the Asia/Shanghai day boundary with records immediately before and after midnight.
-- Test active-name uniqueness, archived-project rejection, archived historical association retention, and FK `RESTRICT` behavior.
+- Test active-name uniqueness within one user and the same name across two users, archived-project rejection, archived historical association retention, same-owner foreign keys, and FK `RESTRICT` behavior.
 - Test create, update, re-query after transaction completion, and delete.
 - Test HTTP 400/404/409 response bodies as well as status codes.
 - Required backend gate: `mvn clean verify` with the configured local PostgreSQL available.
@@ -297,8 +297,8 @@ Use this contract for natural-language input, request idempotency, AI-processing
 
 ### 3. Contracts
 
-- The first short transaction persists raw content, unique `client_request_id`, `reference_at`, `zone_id`, `PROCESSING`, and attempt 1 before any model call.
-- `client_request_id`, not content equality, defines request idempotency. Reusing an ID returns the original input; a different ID with identical text is a new input.
+- The first short transaction persists raw content, `user_id`, owner-scoped unique `client_request_id`, `reference_at`, `zone_id`, `PROCESSING`, and attempt 1 before any model call.
+- `(user_id, client_request_id)`, not content equality, defines request idempotency. Reusing an ID within one user returns that user's original input; another user may use the same ID independently.
 - The AI gateway call occurs after the first transaction commits and outside every database transaction.
 - Success uses one short transaction to insert every generated record and task, attach each row to the input, and mark the input `SUCCEEDED`.
 - Any generated-row or final-state failure rolls back the whole success transaction. No half-batch may remain.
@@ -421,7 +421,7 @@ Use this contract for cross-process capture ownership, retries, abandoned-proces
 - Test successful/repeated revert plus conflicts after record edit/delete and task edit/complete/reopen/delete.
 - Inject a revert sub-write failure and assert the input and every generated entity remain unchanged.
 - Assert normal record/task queries exclude reverted entities while history/ledger remains.
-- Run migrations from V1, V5 legacy data, and an empty schema to latest; verify legacy ledger backfill and `revertible=false`.
+- Run V1/V5 legacy rows through their historical recovery migrations and verify ledger backfill plus `revertible=false`; an empty schema must reach latest. V14 intentionally rejects nonempty legacy business rows with no trustworthy `user_id`, so test that rejection separately instead of inventing an owner for the historical fixture.
 
 ### 7. Wrong vs Correct
 
@@ -468,8 +468,8 @@ Use this contract for daily-report source selection, generation requests, report
 
 ### 3. Contracts
 
-- Each generation request creates a new report row. Multiple DAILY versions for the same date are allowed; `request_id` alone is unique.
-- Reusing a request ID for the same date/type returns the existing report and does not call the gateway again. Reusing it for another date/type returns 409.
+- Each generation request creates a new report row. Multiple DAILY versions for the same date are allowed; `(user_id, request_id)` is unique.
+- Reusing a request ID for the same date/type **and user** returns that user's existing report and does not call the gateway again. The same user's reuse for another date/type returns 409; another user may use the same ID independently.
 - The owner transaction creates `PROCESSING` and freezes all source snapshots before the model call. The model runs outside the transaction.
 - Daily record sources are active work records in the Asia/Shanghai interval `[dayStart, nextDayStart)`. Inactive records, including reopened/deleted completion facts and reverted capture rows, are excluded.
 - Plan sources are non-deleted `PENDING` tasks whose `due_at` is inside that same interval. Completed tasks are represented only by their active completion work record, preventing duplicate facts.
@@ -554,7 +554,7 @@ Use this contract for WEEKLY source selection, natural-week boundaries, regenera
 - ACHIEVEMENTS uses only WEEK_RECORD. PROGRESS uses WEEK_RECORD or CURRENT_TASK. PLANS uses only NEXT_WEEK_TASK.
 - Multiple factual sources may support one merged bullet; all supporting snapshot IDs must remain attached.
 - Every regeneration creates a new row and immutable snapshots. Source edits, project rename/archive, deletion, or invalidation never rewrite old versions.
-- Weekly version creation takes a transaction-scoped PostgreSQL advisory lock keyed by week. Inside the lock, choose the report with no successor as the chain tail; do not infer chain order from `created_at`.
+- Weekly version creation takes a transaction-scoped PostgreSQL advisory lock keyed by **`user_id` and week**. Inside the lock, choose that user's report with no successor as the chain tail; do not infer chain order from `created_at`.
 - Only WEEKLY reports participate in `previous_report_id` chaining. DAILY creation must not modify or join that chain.
 - AI content and `manual_additions` are separate fields with separate edited timestamps. Copy may combine them only with an explicit user-authored label.
 - The manual baseline and workbench editing time are acceptance observations, not synthetic product metrics. Missing manual timing remains “pending user measurement.”
@@ -567,7 +567,7 @@ Use this contract for WEEKLY source selection, natural-week boundaries, regenera
 | No sources for a weekly section | Deterministic section-specific placeholder |
 | Undated task | May be CURRENT_TASK if active this week; never NEXT_WEEK_TASK |
 | Wrong source role in section | Reject model result; new version FAILED |
-| Concurrent different request IDs for one week | Advisory lock creates one linear previous-report chain |
+| Concurrent different request IDs for one user/week | Advisory lock creates one linear previous-report chain for that user; another user's chain is separate |
 | Manual additions stale version | HTTP 409; AI content and prior additions unchanged |
 | Source/project changes after generation | Old content and role snapshots unchanged |
 
@@ -583,7 +583,7 @@ Use this contract for WEEKLY source selection, natural-week boundaries, regenera
 - Test WEEK_RECORD, CURRENT_TASK, NEXT_WEEK_TASK, undated exclusion, completed/deleted task exclusion, and the same task in two roles.
 - Test duplicate achievement consolidation with multiple retained source IDs.
 - Generate A, mutate/backfill/rename sources, generate B, and assert version link plus immutable A snapshots.
-- Run at least six concurrent creates for the same week with distinct request IDs; assert a single linear chain with one root and one tail.
+- Run at least six concurrent creates for the same user/week with distinct request IDs; assert a single linear chain with one root and one tail. Create another user's report for that week and assert an independent chain.
 - Test manual additions independently from AI-body edits, both with optimistic versions and copy labeling.
 - Test legacy V8 and an empty schema through V9.
 
@@ -602,17 +602,19 @@ Transaction timestamps are not lock-acquisition order and can create a fork unde
 #### Correct
 
 ```sql
-SELECT pg_advisory_xact_lock(hashtextextended('weekly-report:' || :week, 0));
+SELECT pg_advisory_xact_lock(hashtextextended('weekly-report:' || :userId || ':' || :week, 0));
 
 SELECT current_report.id
 FROM reports current_report
 WHERE current_report.report_type='WEEKLY'
+  AND current_report.user_id=:userId
   AND current_report.period_start=:week
   AND NOT EXISTS (
       SELECT 1 FROM reports next_report
       WHERE next_report.previous_report_id=current_report.id
+        AND next_report.user_id=current_report.user_id
   )
 LIMIT 1;
 ```
 
-Serialize creation per week and connect the new version to the actual unreferenced chain tail.
+Serialize creation per owner/week and connect the new version to that owner's actual unreferenced chain tail.

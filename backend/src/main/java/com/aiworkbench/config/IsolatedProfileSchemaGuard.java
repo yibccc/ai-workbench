@@ -27,7 +27,12 @@ public class IsolatedProfileSchemaGuard {
         if (activeIsolationProfiles != 1) {
             throw new IllegalStateException("测试与验收 Profile 必须且只能启用一个");
         }
-        String expected = test ? "d9_backend_tests" : e2e ? "d9_e2e" : "d9_live_acceptance";
+        String expected = test ? environment.getProperty("workbench.test.schema", "d9_backend_tests")
+                : e2e ? "d9_e2e" : "d9_live_acceptance";
+        if (test && !"d9_backend_tests".equals(expected)
+                && !expected.matches("d9_[a-z0-9_]+_tests_[0-9]{8}")) {
+            throw new IllegalStateException("测试 Profile 拒绝非专用 schema 名称");
+        }
         String actual = jdbcTemplate.queryForObject("SELECT current_schema()", String.class);
         if (!expected.equals(actual)) {
             throw new IllegalStateException("隔离 Profile 拒绝使用非专用 schema: " + actual);

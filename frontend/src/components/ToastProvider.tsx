@@ -7,8 +7,8 @@ type Toast = { id: number; message: string; kind: ToastKind; page: string }
 export function ToastProvider({ page, children }: { page: string; children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null)
   const nextId = useRef(0)
-  const show = useCallback<ShowToast>((message, kind = 'info') => {
-    setToast({ id: ++nextId.current, message, kind, page: window.location.hash.slice(1) || 'records' })
+  const show = useCallback<ShowToast>((message, kind = 'info', targetPage) => {
+    setToast({ id: ++nextId.current, message, kind, page: targetPage ?? (window.location.hash.slice(1) || 'records') })
   }, [])
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setToast(current => current?.page === page ? current : null))

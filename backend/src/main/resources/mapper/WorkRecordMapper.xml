@@ -23,46 +23,46 @@
         wr.occurred_at, wr.created_at, wr.updated_at
     </sql>
     <insert id="insert">
-        INSERT INTO work_records (id, project_id, content, occurred_at)
-        VALUES (#{id}, #{projectId}, #{content}, #{occurredAt})
+        INSERT INTO work_records (user_id, id, project_id, content, occurred_at)
+        VALUES (#{userId}, #{id}, #{projectId}, #{content}, #{occurredAt})
     </insert>
     <insert id="insertTaskCompletion">
         INSERT INTO work_records
-            (id, project_id, todo_id, content, source, is_active, completion_result, occurred_at)
+            (user_id, id, project_id, todo_id, content, source, is_active, completion_result, occurred_at)
         VALUES
-            (#{id}, #{projectId}, #{todoId}, #{content}, 'TASK_COMPLETION', TRUE, #{completionResult}, #{occurredAt})
+            (#{userId}, #{id}, #{projectId}, #{todoId}, #{content}, 'TASK_COMPLETION', TRUE, #{completionResult}, #{occurredAt})
     </insert>
     <select id="findById" resultMap="workRecordRow">
         SELECT <include refid="joinedColumns"/>
-        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id
-        WHERE wr.id = #{id} AND wr.is_active
+        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id AND p.user_id = wr.user_id
+        WHERE wr.id = #{id} AND wr.user_id = #{userId} AND wr.is_active
     </select>
     <select id="findBetween" resultMap="workRecordRow">
         SELECT <include refid="joinedColumns"/>
-        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id
-        WHERE wr.occurred_at &gt;= #{start} AND wr.occurred_at &lt; #{end}
+        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id AND p.user_id = wr.user_id
+        WHERE wr.user_id = #{userId} AND wr.occurred_at &gt;= #{start} AND wr.occurred_at &lt; #{end}
           AND wr.is_active
         ORDER BY wr.created_at DESC, wr.id DESC
     </select>
     <select id="findPageBetween" resultMap="workRecordRow">
         SELECT <include refid="joinedColumns"/>
-        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id
-        WHERE wr.occurred_at &gt;= #{start} AND wr.occurred_at &lt; #{end} AND wr.is_active
+        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id AND p.user_id = wr.user_id
+        WHERE wr.user_id = #{userId} AND wr.occurred_at &gt;= #{start} AND wr.occurred_at &lt; #{end} AND wr.is_active
         ORDER BY wr.created_at DESC, wr.id DESC
     </select>
     <update id="update">
         UPDATE work_records
         SET project_id = #{projectId}, content = #{content}, occurred_at = #{occurredAt},
             version = version + 1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = #{id} AND is_active
+        WHERE id = #{id} AND user_id = #{userId} AND is_active
     </update>
-    <delete id="delete">DELETE FROM work_records WHERE id = #{id} AND is_active</delete>
+    <delete id="delete">DELETE FROM work_records WHERE id = #{id} AND user_id = #{userId} AND is_active</delete>
     <update id="invalidateTaskCompletion">
         UPDATE work_records SET is_active = FALSE, updated_at = #{updatedAt}
-        WHERE todo_id = #{todoId} AND source = 'TASK_COMPLETION' AND is_active
+        WHERE todo_id = #{todoId} AND user_id = #{userId} AND source = 'TASK_COMPLETION' AND is_active
     </update>
     <update id="updateCompletionResult">
         UPDATE work_records SET completion_result = #{completionResult}, updated_at = #{updatedAt}
-        WHERE todo_id = #{todoId} AND source = 'TASK_COMPLETION' AND is_active
+        WHERE todo_id = #{todoId} AND user_id = #{userId} AND source = 'TASK_COMPLETION' AND is_active
     </update>
 </mapper>

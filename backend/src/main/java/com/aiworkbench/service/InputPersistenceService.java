@@ -15,4 +15,5 @@ public interface InputPersistenceService {
     int recoverExpiredProcessing(Instant now);
     InputRow revert(UUID id, Instant now);
     InputRow require(UUID id);
+    InputRow requireOwned(UUID userId, UUID id);
 }

@@ -7,6 +7,7 @@ import com.aiworkbench.entity.input.InputRow;
 import com.aiworkbench.enums.InputStatus;
 import com.aiworkbench.events.WorkbenchEventHub;
 import com.aiworkbench.mapper.InputMapper;
+import com.aiworkbench.security.CurrentUser;
 import com.aiworkbench.service.InputPersistenceService;
 import java.time.Duration;
 import java.time.Instant;
@@ -39,12 +40,13 @@ public class InputPersistenceServiceImpl implements InputPersistenceService {
 
     @Transactional
     public ProcessingClaim createOrGet(String requestId, String content, Instant referenceAt, ZoneId zoneId) {
+        UUID userId = CurrentUser.requireId();
         UUID id = UUID.randomUUID();
         UUID token = UUID.randomUUID();
-        boolean owner = mapper.insert(id, requestId, content, referenceAt, zoneId.getId(), token,
+        boolean owner = mapper.insert(userId, id, requestId, content, referenceAt, zoneId.getId(), token,
                 referenceAt.plus(leaseDuration)) == 1;
-        InputRow row = mapper.findByRequestId(requestId).orElseThrow();
-        if (owner) events.publishAfterCommit("INPUT", row.id(), "PROCESSING");
+        InputRow row = mapper.findByRequestId(userId, requestId).orElseThrow();
+        if (owner) events.publishAfterCommit(row.userId(), "INPUT", row.id(), "PROCESSING");
         return new ProcessingClaim(row, owner ? token : null, owner);
     }
 
@@ -55,9 +57,9 @@ public class InputPersistenceServiceImpl implements InputPersistenceService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "当前输入不能重试");
         }
         UUID token = UUID.randomUUID();
-        boolean owner = mapper.beginRetry(id, token, now.plus(leaseDuration)) == 1;
+        boolean owner = mapper.beginRetry(current.userId(), id, token, now.plus(leaseDuration)) == 1;
         InputRow latest = require(id);
-        if (owner) events.publishAfterCommit("INPUT", id, "PROCESSING");
+        if (owner) events.publishAfterCommit(latest.userId(), "INPUT", id, "PROCESSING");
         if (!owner && latest.status() != InputStatus.PROCESSING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "输入状态已变化，请刷新后重试");
         }
@@ -66,6 +68,7 @@ public class InputPersistenceServiceImpl implements InputPersistenceService {
 
     @Transactional
     public void succeed(UUID inputId, UUID token, PreparedCapture capture, Instant completedAt) {
+        InputRow input = requirePersisted(inputId);
         for (PreparedCapture.RecordItem item : capture.records()) {
             UUID id = UUID.randomUUID();
             mapper.insertRecord(id, inputId, item.projectId(), item.content(), item.occurredAt());
@@ -76,14 +79,15 @@ public class InputPersistenceServiceImpl implements InputPersistenceService {
             mapper.insertTask(id, inputId, item.projectId(), item.title(), item.notes(), item.dueAt(), item.priority());
             mapper.insertGeneratedItem(inputId, "TASK", id, 0);
         }
-        if (mapper.markSucceeded(inputId, token, completedAt) != 1) throw new IllegalStateException("输入处理权已失效");
-        events.publishAfterCommit("INPUT", inputId, "SUCCEEDED");
+        if (mapper.markSucceeded(input.userId(), inputId, token, completedAt) != 1) throw new IllegalStateException("输入处理权已失效");
+        events.publishAfterCommit(input.userId(), "INPUT", inputId, "SUCCEEDED");
     }
 
     @Transactional
     public void fail(UUID inputId, UUID token, String message, Instant completedAt) {
-        if (mapper.markFailed(inputId, token, message, completedAt) == 1) {
-            events.publishAfterCommit("INPUT", inputId, "FAILED");
+        InputRow input = requirePersisted(inputId);
+        if (mapper.markFailed(input.userId(), inputId, token, message, completedAt) == 1) {
+            events.publishAfterCommit(input.userId(), "INPUT", inputId, "FAILED");
         }
     }
 
@@ -94,7 +98,8 @@ public class InputPersistenceServiceImpl implements InputPersistenceService {
 
     @Transactional
     public InputRow revert(UUID id, Instant now) {
-        InputRow current = mapper.findByIdForUpdate(id)
+        UUID userId = CurrentUser.requireId();
+        InputRow current = mapper.findByIdForUpdate(userId, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "输入不存在"));
         if (current.status() == InputStatus.REVERTED) return current;
         if (current.status() != InputStatus.SUCCEEDED) {
@@ -103,22 +108,32 @@ public class InputPersistenceServiceImpl implements InputPersistenceService {
         if (!current.revertible()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "该输入创建于撤销保护启用前，无法安全撤销");
         }
-        int recordCount = mapper.countGeneratedItems(id, "RECORD");
-        int taskCount = mapper.countGeneratedItems(id, "TASK");
-        if (recordCount != mapper.countUnchangedRecords(id) || taskCount != mapper.countUnchangedTasks(id)) {
+        int recordCount = mapper.countGeneratedItems(userId, id, "RECORD");
+        int taskCount = mapper.countGeneratedItems(userId, id, "TASK");
+        if (recordCount != mapper.countUnchangedRecords(userId, id) || taskCount != mapper.countUnchangedTasks(userId, id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "生成条目已被编辑、完成、重开或删除，不能撤销");
         }
-        if (mapper.deactivateGeneratedRecords(id, now) != recordCount
-                || mapper.softDeleteGeneratedTasks(id, now) != taskCount
-                || mapper.markReverted(id, now) != 1) {
+        if (mapper.deactivateGeneratedRecords(userId, id, now) != recordCount
+                || mapper.softDeleteGeneratedTasks(userId, id, now) != taskCount
+                || mapper.markReverted(userId, id, now) != 1) {
             throw new IllegalStateException("撤销批次时状态发生变化");
         }
-        events.publishAfterCommit("INPUT", id, "REVERTED");
+        events.publishAfterCommit(userId, "INPUT", id, "REVERTED");
         return require(id);
     }
 
     @Transactional(readOnly = true)
     public InputRow require(UUID id) {
-        return mapper.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "输入不存在"));
+        return requireOwned(CurrentUser.requireId(), id);
+    }
+
+    @Transactional(readOnly = true)
+    public InputRow requireOwned(UUID userId, UUID id) {
+        return mapper.findOwnedById(userId, id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "输入不存在"));
+    }
+
+    private InputRow requirePersisted(UUID id) {
+        return mapper.findById(id).orElseThrow(() -> new IllegalStateException("持久输入不存在"));
     }
 }

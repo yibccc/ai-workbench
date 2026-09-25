@@ -8,6 +8,7 @@ import com.aiworkbench.dto.record.WorkRecordResponse;
 import com.aiworkbench.entity.record.WorkRecordRow;
 import com.aiworkbench.enums.WorkRecordSource;
 import com.aiworkbench.mapper.WorkRecordMapper;
+import com.aiworkbench.security.CurrentUser;
 import com.aiworkbench.service.ProjectService;
 import com.aiworkbench.service.WorkRecordService;
 import java.time.Instant;
@@ -40,7 +41,7 @@ public class WorkRecordServiceImpl implements WorkRecordService {
     public WorkRecordResponse create(CreateWorkRecordRequest request) {
         validateProject(request.projectId());
         UUID id = UUID.randomUUID();
-        mapper.insert(id, request.projectId(), request.content().trim(), request.occurredAt());
+        mapper.insert(CurrentUser.requireId(), id, request.projectId(), request.content().trim(), request.occurredAt());
         return get(id);
     }
 
@@ -49,7 +50,7 @@ public class WorkRecordServiceImpl implements WorkRecordService {
         LocalDate effectiveDate = date == null ? LocalDate.now(zoneId) : date;
         Instant start = effectiveDate.atStartOfDay(zoneId).toInstant();
         Instant end = effectiveDate.plusDays(1).atStartOfDay(zoneId).toInstant();
-        return mapper.findBetween(start, end).stream().map(WorkRecordRow::toResponse).toList();
+        return mapper.findBetween(CurrentUser.requireId(), start, end).stream().map(WorkRecordRow::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -57,7 +58,8 @@ public class WorkRecordServiceImpl implements WorkRecordService {
         LocalDate effectiveDate = date == null ? LocalDate.now(zoneId) : date;
         Instant start = effectiveDate.atStartOfDay(zoneId).toInstant();
         Instant end = effectiveDate.plusDays(1).atStartOfDay(zoneId).toInstant();
-        return PageQueries.select(page, size, () -> mapper.findPageBetween(start, end), WorkRecordRow::toResponse);
+        UUID userId = CurrentUser.requireId();
+        return PageQueries.select(page, size, () -> mapper.findPageBetween(userId, start, end), WorkRecordRow::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +74,9 @@ public class WorkRecordServiceImpl implements WorkRecordService {
         if (request.projectId() != null && !request.projectId().equals(current.projectId())) {
             projectService.requireActive(request.projectId());
         }
-        mapper.update(id, request.projectId(), request.content().trim(), request.occurredAt());
+        if (mapper.update(CurrentUser.requireId(), id, request.projectId(), request.content().trim(), request.occurredAt()) != 1) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "工作记录状态已变化，请刷新后重试");
+        }
         return get(id);
     }
 
@@ -80,7 +84,7 @@ public class WorkRecordServiceImpl implements WorkRecordService {
     public void delete(UUID id) {
         WorkRecordRow current = require(id);
         requireManual(current);
-        if (mapper.delete(id) == 0) {
+        if (mapper.delete(CurrentUser.requireId(), id) == 0) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "工作记录状态已变化，请刷新后重试");
         }
     }
@@ -92,7 +96,7 @@ public class WorkRecordServiceImpl implements WorkRecordService {
     }
 
     private WorkRecordRow require(UUID id) {
-        return mapper.findById(id)
+        return mapper.findById(CurrentUser.requireId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "工作记录不存在"));
     }
 
