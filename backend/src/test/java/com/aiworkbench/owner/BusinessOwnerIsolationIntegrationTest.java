@@ -26,6 +26,8 @@ import com.aiworkbench.service.TaskService;
 import com.aiworkbench.service.WorkRecordService;
 import com.aiworkbench.service.AccountService;
 import com.aiworkbench.support.OwnerTestContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -49,6 +51,8 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -63,6 +67,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -81,6 +86,7 @@ class BusinessOwnerIsolationIntegrationTest {
     @Autowired ReportService reports;
     @Autowired AccountService accounts;
     @Autowired MockMvc mvc;
+    @Autowired ObjectMapper json;
     @Autowired ReportMapper reportMapper;
     @Autowired PlatformTransactionManager transactionManager;
     @MockitoBean WorkbenchAiGateway captureAi;
@@ -145,6 +151,159 @@ class BusinessOwnerIsolationIntegrationTest {
         assertThat(records.get(recordA.id()).content()).isEqualTo("A 记录");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM todo_items WHERE user_id=?", Integer.class,
                 OwnerTestContext.OTHER_ID)).isZero();
+    }
+
+    @Test
+    void realHttpPagesAndIdsNeverExposeAnotherUsersHistoryOrCounts() throws Exception {
+        String markerA = "owner-a-" + UUID.randomUUID();
+        String markerB = "owner-b-secret-" + UUID.randomUUID();
+        String markerAdmin = "owner-admin-" + UUID.randomUUID();
+        UUID[] archivedProjectB = new UUID[1];
+        UUID[] historicalRecordB = new UUID[1];
+        UUID[] historicalTaskB = new UUID[1];
+        UUID[] historicalReportB = new UUID[1];
+        UUID[] deletedTaskB = new UUID[1];
+        UUID[] inputB = new UUID[1];
+        UUID[] ownRecordAdmin = new UUID[1];
+        for (int ownerIndex = 0; ownerIndex < 3; ownerIndex++) {
+            UUID ownerId = ownerIndex == 0 ? OwnerTestContext.USER_ID
+                    : ownerIndex == 1 ? OwnerTestContext.OTHER_ID : OwnerTestContext.ADMIN_ID;
+            String marker = ownerIndex == 0 ? markerA : ownerIndex == 1 ? markerB : markerAdmin;
+            OwnerTestContext.use(ownerId);
+            UUID firstProject = null;
+            UUID firstRecord = null;
+            UUID firstTask = null;
+            for (int index = 0; index < 12; index++) {
+                var project = projects.create(new CreateProjectRequest(marker + "-project-" + index));
+                var record = records.create(new CreateWorkRecordRequest(
+                        project.id(), marker + "-record-" + index, OCCURRED));
+                var task = tasks.create(new CreateTaskRequest(
+                        project.id(), marker + "-task-" + index, "", null, null));
+                if (index == 0) {
+                    firstProject = project.id();
+                    firstRecord = record.id();
+                    firstTask = task.id();
+                }
+                UUID reportId = UUID.randomUUID();
+                jdbc.update("""
+                        INSERT INTO reports(id,user_id,request_id,report_type,period_start,period_end,status,content)
+                        VALUES (?,?,?,'DAILY',?,?,'SUCCEEDED',?)
+                        """, reportId, ownerId, UUID.randomUUID(), DAY, DAY,
+                        marker + "-report-" + index);
+                if (index == 0 && ownerIndex == 1) historicalReportB[0] = reportId;
+            }
+            if (ownerIndex == 1) {
+                archivedProjectB[0] = firstProject;
+                historicalRecordB[0] = firstRecord;
+                historicalTaskB[0] = firstTask;
+                UUID sourceId = UUID.randomUUID();
+                jdbc.update("""
+                        INSERT INTO report_sources(id,report_id,source_type,source_role,entity_id,content,
+                                                   project_id,project_name,source_status,source_time,snapshot)
+                        VALUES (?,?,'RECORD','DAILY_RECORD',?,?,?,?,?,?,'{}'::jsonb)
+                        """, sourceId, historicalReportB[0], firstRecord, marker + "-frozen-source",
+                        firstProject, marker + "-project-0", "MANUAL", java.sql.Timestamp.from(OCCURRED));
+                jdbc.update("UPDATE reports SET source_count=1 WHERE id=?", historicalReportB[0]);
+                var deleted = tasks.create(new CreateTaskRequest(
+                        firstProject, marker + "-deleted-task", "", null, null));
+                deletedTaskB[0] = deleted.id();
+                tasks.delete(deleted.id(), deleted.version());
+                projects.archive(firstProject);
+            }
+            if (ownerIndex == 2) ownRecordAdmin[0] = firstRecord;
+        }
+        when(captureAi.extract(any(), any(), any(), anyList())).thenAnswer(call -> {
+            String content = call.getArgument(0);
+            Instant referenceAt = call.getArgument(1);
+            return new AiCaptureResult(List.of(new AiCaptureResult.RecordItem(
+                    "generated-" + content, null, referenceAt.toString())), List.of());
+        });
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+        awaitInput(inputs.create(new CreateInputRequest("http-owner-a-" + UUID.randomUUID(), markerA)).id());
+        OwnerTestContext.use(OwnerTestContext.OTHER_ID);
+        inputB[0] = inputs.create(new CreateInputRequest("http-owner-b-" + UUID.randomUUID(), markerB)).id();
+        assertThat(awaitInput(inputB[0]).status()).isEqualTo(InputStatus.SUCCEEDED);
+        OwnerTestContext.use(OwnerTestContext.ADMIN_ID);
+        awaitInput(inputs.create(new CreateInputRequest("http-owner-admin-" + UUID.randomUUID(), markerAdmin)).id());
+
+        Cookie sessionA = OwnerTestContext.login(mvc, "owner-test-a");
+        Cookie sessionB = OwnerTestContext.login(mvc, "owner-test-b");
+        Cookie sessionAdmin = OwnerTestContext.login(mvc, "owner-test-admin");
+        for (var identity : List.of(
+                new HttpOwner(sessionA, OwnerTestContext.USER_ID, "USER", markerB, 12, 12),
+                new HttpOwner(sessionB, OwnerTestContext.OTHER_ID, "USER", markerA, 12, 11),
+                new HttpOwner(sessionAdmin, OwnerTestContext.ADMIN_ID, "ADMIN", markerB, 12, 12))) {
+            assertPage(identity, get("/api/projects/page").param("includeArchived", "true")
+                    .param("page", "2").param("size", "5"), identity.allProjects(), 2);
+            assertPage(identity, get("/api/projects/page").param("page", "2").param("size", "5"),
+                    identity.activeProjects(), identity.activeProjects() - 10);
+            assertPage(identity, get("/api/tasks/page").param("page", "2").param("size", "5"),
+                    identity.allProjects(), 2);
+            assertPage(identity, get("/api/records/page").param("date", DAY.toString())
+                    .param("page", "2").param("size", "5"),
+                    identity.allProjects(), 2);
+            assertPage(identity, get("/api/reports/page").param("reportType", "DAILY")
+                    .param("date", DAY.toString()).param("page", "2").param("size", "5"),
+                    identity.allProjects(), 2);
+        }
+        assertPage(new HttpOwner(sessionA, OwnerTestContext.USER_ID, "USER", markerB, 12, 12),
+                get("/api/projects/page").param("q", markerB).param("size", "5"), 0, 0);
+        assertPage(new HttpOwner(sessionB, OwnerTestContext.OTHER_ID, "USER", markerA, 12, 11),
+                get("/api/projects/page").param("q", markerB).param("includeArchived", "true")
+                        .param("page", "2").param("size", "5"), 12, 2);
+        assertPage(new HttpOwner(sessionAdmin, OwnerTestContext.ADMIN_ID, "ADMIN", markerB, 12, 12),
+                get("/api/projects/page").param("q", markerB).param("size", "5"), 0, 0);
+
+        HttpOwner b = new HttpOwner(sessionB, OwnerTestContext.OTHER_ID, "USER", markerA, 12, 11);
+        String bProjects = performAs(b, get("/api/projects").param("includeArchived", "true"))
+                .getResponse().getContentAsString();
+        assertThat(bProjects).contains(archivedProjectB[0].toString(), "ARCHIVED").doesNotContain(markerA);
+        String bTask = performAs(b, get("/api/tasks/{id}", historicalTaskB[0]))
+                .getResponse().getContentAsString();
+        String bRecord = performAs(b, get("/api/records/{id}", historicalRecordB[0]))
+                .getResponse().getContentAsString();
+        assertThat(bTask).contains(archivedProjectB[0].toString(), "ARCHIVED");
+        assertThat(bRecord).contains(archivedProjectB[0].toString(), "ARCHIVED");
+        String bEvents = performAs(b, get("/api/tasks/{id}/events", deletedTaskB[0]))
+                .getResponse().getContentAsString();
+        assertThat(bEvents).contains("DELETED", markerB);
+        String bHistory = performAs(b, get("/api/reports").param("date", DAY.toString())
+                        .param("reportType", "DAILY"))
+                .getResponse().getContentAsString();
+        assertThat(bHistory).contains(historicalReportB[0].toString()).doesNotContain(markerA);
+        assertThat(bHistory).doesNotContain(markerAdmin);
+        String bInput = performAs(b, get("/api/inputs/{id}", inputB[0]))
+                .getResponse().getContentAsString();
+        assertThat(bInput).contains("generated-" + markerB).doesNotContain(markerA, markerAdmin);
+        String bDetail = performAs(b, get("/api/reports/{id}", historicalReportB[0]))
+                .getResponse().getContentAsString();
+        assertThat(bDetail).contains(markerB + "-frozen-source", markerB + "-project-0");
+        assertPage(b, get("/api/reports/{id}/sources/page", historicalReportB[0])
+                .param("page", "0").param("size", "5"), 1, 1);
+        HttpOwner admin = new HttpOwner(sessionAdmin, OwnerTestContext.ADMIN_ID, "ADMIN", markerB, 12, 12);
+        assertThat(performAs(admin, get("/api/records/{id}", ownRecordAdmin[0]))
+                .getResponse().getContentAsString()).contains(markerAdmin).doesNotContain(markerB);
+
+        UUID absent = UUID.randomUUID();
+        for (HttpOwner outsider : List.of(
+                new HttpOwner(sessionA, OwnerTestContext.USER_ID, "USER", markerB, 12, 12),
+                new HttpOwner(sessionAdmin, OwnerTestContext.ADMIN_ID, "ADMIN", markerB, 12, 12))) {
+            assertSameSafe404(outsider, get("/api/records/{id}", historicalRecordB[0]),
+                    get("/api/records/{id}", absent), markerB);
+            assertSameSafe404(outsider, get("/api/tasks/{id}", historicalTaskB[0]),
+                    get("/api/tasks/{id}", absent), markerB);
+            assertSameSafe404(outsider, get("/api/tasks/{id}/events", deletedTaskB[0]),
+                    get("/api/tasks/{id}/events", absent), markerB);
+            assertSameSafe404(outsider, get("/api/inputs/{id}", inputB[0]),
+                    get("/api/inputs/{id}", absent), markerB);
+            assertSameSafe404(outsider, get("/api/reports/{id}", historicalReportB[0]),
+                    get("/api/reports/{id}", absent), markerB);
+            assertSameSafe404(outsider, get("/api/reports/{id}/sources/page", historicalReportB[0])
+                            .param("size", "5"),
+                    get("/api/reports/{id}/sources/page", absent).param("size", "5"), markerB);
+            assertSameSafe404(outsider, post("/api/projects/{id}/archive", archivedProjectB[0]).with(csrf()),
+                    post("/api/projects/{id}/archive", absent).with(csrf()), markerB);
+        }
     }
 
     @Test
@@ -421,6 +580,39 @@ class BusinessOwnerIsolationIntegrationTest {
         assertThat(recovered.status()).isEqualTo(InputStatus.SUCCEEDED);
         assertThat(jdbc.queryForObject("SELECT user_id FROM work_records WHERE id=?", UUID.class,
                 recovered.records().get(0).id())).isEqualTo(OwnerTestContext.USER_ID);
+    }
+
+    private record HttpOwner(Cookie session, UUID id, String role, String forbiddenMarker,
+                             int allProjects, int activeProjects) {}
+
+    private MvcResult performAs(HttpOwner owner, MockHttpServletRequestBuilder request) throws Exception {
+        return mvc.perform(OwnerTestContext.authenticated(request, owner.session(), owner.id(), owner.role(), 0))
+                .andExpect(status().isOk()).andReturn();
+    }
+
+    private void assertPage(HttpOwner owner, MockHttpServletRequestBuilder request,
+                            int expectedTotal, int expectedItems) throws Exception {
+        String body = performAs(owner, request).getResponse().getContentAsString();
+        JsonNode page = json.readTree(body);
+        assertThat(page.path("totalElements").asInt()).isEqualTo(expectedTotal);
+        assertThat(page.path("items").size()).isEqualTo(expectedItems);
+        assertThat(body).doesNotContain(owner.forbiddenMarker());
+    }
+
+    private void assertSameSafe404(HttpOwner owner, MockHttpServletRequestBuilder foreignRequest,
+                                   MockHttpServletRequestBuilder missingRequest, String secret) throws Exception {
+        String foreign = mvc.perform(OwnerTestContext.authenticated(
+                        foreignRequest, owner.session(), owner.id(), owner.role(), 0))
+                .andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
+        String missing = mvc.perform(OwnerTestContext.authenticated(
+                        missingRequest, owner.session(), owner.id(), owner.role(), 0))
+                .andExpect(status().isNotFound()).andReturn().getResponse().getContentAsString();
+        JsonNode foreignProblem = json.readTree(foreign);
+        JsonNode missingProblem = json.readTree(missing);
+        assertThat(foreignProblem.path("status").asInt()).isEqualTo(404);
+        assertThat(foreignProblem.path("detail").asText()).isEqualTo(missingProblem.path("detail").asText());
+        assertThat(foreign).doesNotContain(secret);
+        assertThat(missing).doesNotContain(secret);
     }
 
     private Future<ReportResponse> submitWeekly(ExecutorService executor, UUID userId, LocalDate week,
