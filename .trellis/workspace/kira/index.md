@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
-- **Last Active**: 2026-09-24
+- **Total Sessions**: 12
+- **Last Active**: 2026-09-26
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~271 | Active |
+| `journal-1.md` | ~295 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-09-26 | 账号隔离与本机启用验收 | `475749a`, `ff00a0f`, `01ccae2` | `feat/auth-isolation` |
 | 11 | 2026-09-24 | 完成单屏工作区与报告布局 | `c1e4908` | `feat/single-screen-workspaces` |
 | 10 | 2026-09-22 | MVP最终验收与公开发布 | `eb5cd07` | `release/d10-workbench-delivery` |
 | 9 | 2026-09-21 | D9用户验收通过与全工作区提交 | `6f9864c` | `master` |
