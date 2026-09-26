@@ -9,6 +9,7 @@
 - 手动选择日期生成日报，按周一至周日生成自然周周报。
 - 报告保留历史版本和来源快照，支持编辑、人工补充与复制。日报可删除指定版本，原工作记录保留。
 - 工作记录、待办任务、工作汇报、项目管理四个工作区；列表分页、项目搜索和按需编辑抽屉。
+- 受邀账号登录，每名用户独立拥有业务数据；管理员可创建、启停账号、重置密码和修改角色。
 
 工作记录是默认入口，可切换 AI 快记与手工记录。待办以列表为主，新建和编辑在右侧抽屉中完成；手机上抽屉全屏展示。已访问的工作区保留草稿与筛选状态。工作汇报集中管理日报和周报，桌面并列展示正文与来源，窄屏将来源放在正文之后。
 
@@ -19,13 +20,17 @@
 ```bash
 test -f .env || cp .env.example .env
 chmod 600 .env
-# 编辑 .env，设置数据库密码、访问密码和 DeepSeek API Key
+# 编辑 .env，设置数据库密码、首位管理员引导账号密码和 DeepSeek API Key
 docker compose up -d --build --wait
 ```
 
-Compose 启动 PostgreSQL、Redis、Java 后端和 Nginx 前端，构建所需的 Java、Node 均由镜像提供。首次构建需要访问 Docker 镜像源、Maven 和 npm。
+Compose 启动 PostgreSQL、Redis、Java 后端和 Nginx 前端，构建所需的 Java、Node 均由镜像提供。后端镜像构建使用 [阿里云 Maven 公共镜像](https://developer.aliyun.com/mirror/maven)，配置在 `backend/maven-settings-aliyun.xml`；本机 Maven 构建慢时可在 `backend/` 运行 `mvn -s maven-settings-aliyun.xml clean verify`。首次构建还需要访问 Docker 镜像源和 npm。
 
-默认入口为 <http://127.0.0.1:8088>，使用 `.env` 中的 `WORKBENCH_AUTH_USER` 和 `WORKBENCH_AUTH_PASSWORD` 登录。
+从无账号版本升级且旧库已有业务行时，先备份并在隔离环境制定旧数据归属；迁移会拒绝无归属业务行，不能自动分配给首位管理员，也不能用旧应用访问已启用多人归属的新库。
+
+默认入口为 <http://127.0.0.1:8088>。首次启动前，在 `.env` 同时设置 `WORKBENCH_BOOTSTRAP_USERNAME` 和 `WORKBENCH_BOOTSTRAP_PASSWORD`，空账号表会创建首位管理员。确认该账号可登录后，从 `.env` 删除引导密码；已有账号时引导配置不会修改任何密码。后续用户由管理员在工作台账号菜单的“用户管理”中创建。应用会话仅由明确用户操作续期，连续 7 天无主动操作后需重新登录。
+
+临时按 IP 直接使用 HTTP 时，在 `.env` 设置 `APP_BIND=0.0.0.0`、`APP_PORT=8088`、`WORKBENCH_WS_ALLOWED_ORIGINS=http://<主机IP>:8088`、`WORKBENCH_COOKIE_SECURE=false`，再从同一网络访问 `http://<主机IP>:8088`。此入口的密码和会话流量未经传输加密；取得域名和证书后按下文改用 HTTPS。
 
 远程访问可建立 SSH 隧道：
 
@@ -49,9 +54,10 @@ workbench.example.com {
 
 ```dotenv
 WORKBENCH_WS_ALLOWED_ORIGINS=https://workbench.example.com
+WORKBENCH_COOKIE_SECURE=true
 ```
 
-执行 `docker compose up -d --build --wait` 应用配置。WebSocket Origin 与浏览器入口的协议、主机、端口一致；多个入口用逗号分隔。Caddy 会处理 HTTPS 证书和 WebSocket 转发；使用其他代理时需转发 Host、X-Forwarded-Proto 和 Upgrade 头。
+执行 `docker compose up -d --build --wait` 应用配置。WebSocket Origin 与浏览器入口的协议、主机、端口一致；多个入口用逗号分隔。Caddy 会处理 HTTPS 证书和 WebSocket 转发；使用其他代理时需转发 Host、X-Forwarded-Proto 和 Upgrade 头。正式 HTTPS 入口启用 Secure Cookie；本机 loopback HTTP 保持 `WORKBENCH_COOKIE_SECURE=false`。
 
 ### 查看、停止和更新
 
@@ -76,7 +82,8 @@ docker compose up -d --build --wait
 | `DEEPSEEK_BASE_URL` / `DEEPSEEK_MODEL` | 模型地址和名称 |
 | `DEEPSEEK_TIMEOUT` | 输入解析超时，默认 `PT4M` |
 | `REPORT_AI_TIMEOUT` / `REPORT_AI_MAX_TOKENS` | 报告超时与输出长度，默认 `PT6M` / `4096` |
-| `WORKBENCH_AUTH_USER` / `WORKBENCH_AUTH_PASSWORD` | Docker 入口账号密码，启动前填写；密码为单行、最多 72 个 UTF-8 字节 |
+| `WORKBENCH_BOOTSTRAP_USERNAME` / `WORKBENCH_BOOTSTRAP_PASSWORD` | 仅空账号表首次启动时创建管理员；成功后移除引导密码 |
+| `WORKBENCH_COOKIE_SECURE` | HTTPS 入口设为 `true`；loopback HTTP 开发为 `false` |
 | `APP_BIND` / `APP_PORT` | Docker 入口绑定地址与端口，默认 `127.0.0.1:8088` |
 | `WORKBENCH_WS_ALLOWED_ORIGINS` | WebSocket 允许的完整入口地址；开发默认 5173/15173，Compose 默认 8088 |
 | `POSTGRES_PORT` / `REDIS_PORT` | 数据库宿主机端口，默认 5432/6379 |
@@ -89,12 +96,14 @@ docker compose up -d --build --wait
 
 以下命令在仓库根目录 PowerShell 执行，每条成功后继续：
 
+多人版首次连接现有数据库前，先确认目标 `public` schema 的旧业务行已经过授权处理；V14 会拒绝给无归属的旧行编造 owner。下面的构建命令不处理业务数据，不能直接用启动命令跳过这一步。
+
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Docker 位于 WSL Ubuntu 时，按实际仓库位置调整 --cd
 wsl.exe -d Ubuntu --cd /mnt/e/projects/workbench -- docker compose up -d --wait postgres redis
 Push-Location backend
-mvn clean verify
+mvn -s maven-settings-aliyun.xml -DskipTests package
 Pop-Location
 Push-Location frontend
 npm ci
@@ -105,7 +114,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/start.ps1
 
 若 Docker CLI 安装在 Windows，依赖启动命令为 `docker compose up -d --wait postgres redis`。
 
-打开 <http://127.0.0.1:5173>。本机模式运行打包 JAR 和 Vite 开发服务器，模型配置由启动脚本从 `.env` 加载；日志和进程记录保存在 `.local-runtime/`。
+首次启动前也须在 `.env` 设置首位管理员引导账号密码，登录成功后移除引导密码。打开 <http://127.0.0.1:5173>，通过应用登录。本机模式运行打包 JAR 和 Vite 开发服务器，模型配置由启动脚本从 `.env` 加载；日志和进程记录保存在 `.local-runtime/`。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/stop.ps1
@@ -158,14 +167,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/backup.ps1 -Re
 
 ## 回归测试
 
-后端测试使用真实 PostgreSQL 的隔离 schema `d9_backend_tests`：
+后端测试使用真实 PostgreSQL 的隔离 schema；执行迁移测试前先核对目标 schema 是否全新，已有无归属业务行的旧 schema 不可直接复用。须显式设置指向同一新测试 schema 的 `TEST_DATABASE_URL`（JDBC URL 的 `currentSchema`）和 `WORKBENCH_TEST_SCHEMA`，不能指向 `public` 或复用日常业务 schema：
 
 ```powershell
 cd backend
-mvn clean verify
+mvn -s maven-settings-aliyun.xml clean verify
 ```
 
-浏览器回归使用 Playwright、`e2e` Profile、隔离 schema `d9_e2e` 和确定性模型替身：
+浏览器回归使用 Playwright、`e2e` Profile、隔离 schema `d9_e2e` 和确定性模型替身。先启动**全新独立 Compose 项目**的 PostgreSQL/Redis 卷和非默认宿主端口，并显式设置 `E2E_DATABASE_URL`（loopback、独立库、`currentSchema=d9_e2e`）、`POSTGRES_USER`、`POSTGRES_PASSWORD` 和 `REDIS_PORT`（非 6379）；测试配置缺少这些值会拒绝运行。不要复用日常 `ai-workbench` 持久卷。
 
 ```powershell
 cd frontend

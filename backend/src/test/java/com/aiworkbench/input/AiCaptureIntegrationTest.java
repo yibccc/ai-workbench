@@ -10,6 +10,7 @@ import com.aiworkbench.enums.InputStatus;
 import com.aiworkbench.enums.TaskPriority;
 import com.aiworkbench.service.InputService;
 import com.aiworkbench.service.ProjectService;
+import com.aiworkbench.support.OwnerTestContext;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -41,13 +42,18 @@ class AiCaptureIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @MockitoBean WorkbenchAiGateway gateway;
 
-    @BeforeEach void resetGateway() { reset(gateway); }
+    @BeforeEach void resetGateway() {
+        OwnerTestContext.ensureAccounts(jdbc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+        reset(gateway);
+    }
 
     @AfterEach void removeD6FailureFixtures() {
         jdbc.update("DELETE FROM capture_generated_items WHERE input_id IN (SELECT id FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%')");
         jdbc.update("DELETE FROM work_records WHERE capture_input_id IN (SELECT id FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%')");
         jdbc.update("DELETE FROM todo_items WHERE capture_input_id IN (SELECT id FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%')");
         jdbc.update("DELETE FROM capture_inputs WHERE client_request_id LIKE 'timeout-%' OR client_request_id LIKE 'invalid-date-%'");
+        OwnerTestContext.removeBusinessData(jdbc);
     }
 
     @Test

@@ -269,3 +269,27 @@
 ### Next Steps
 
 - 等待 PR 审查与合并
+
+
+## Session 12: 账号隔离与本机启用验收
+<!-- trellis-session: v=2 fp=ae72a0efa0aed3a9 -->
+
+**Date**: 2026-09-26
+**Task**: 账号隔离与本机启用验收
+**Branch**: `feat/auth-isolation`
+
+### Summary
+
+完成账号会话、私有业务数据与STOMP通知；本机V14启用和首管理员登录通过；后端125项、前端34项及隔离部署/离线密码验收通过；服务器IP和HTTPS待以后配置。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `475749a` | feat(workbench): add account isolation and private realtime |
+| `ff00a0f` | docs(trellis): reconcile local rollout status |
+| `01ccae2` | test(workbench): verify offline passwords and private reads |
+
+### Status
+
+[OK] **Completed**

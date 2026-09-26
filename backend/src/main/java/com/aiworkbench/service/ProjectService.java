@@ -10,6 +10,7 @@ import java.util.UUID;
 public interface ProjectService {
     ProjectResponse create(CreateProjectRequest request);
     List<ProjectResponse> list(boolean includeArchived);
+    List<ProjectResponse> listForUser(UUID userId, boolean includeArchived);
     PageResponse<ProjectResponse> page(boolean includeArchived, String q, int page, int size);
     ProjectResponse get(UUID id);
     ProjectResponse rename(UUID id, UpdateProjectRequest request);

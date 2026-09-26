@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 class TaskMigrationIntegrationTest {
@@ -34,7 +35,7 @@ class TaskMigrationIntegrationTest {
                     "INSERT INTO todo_items (id, title, status, completed_at) VALUES (?, ?, 'DONE', CURRENT_TIMESTAMP)",
                     UUID.randomUUID(), "legacy done task"));
 
-            migrate(schema, null);
+            migrate(schema, "13");
 
             inSchema(schema, jdbc -> {
                 Map<String, Object> row = jdbc.queryForMap(
@@ -54,6 +55,10 @@ class TaskMigrationIntegrationTest {
                         "SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = 'capture_generated_items'",
                         Integer.class, schema)).isEqualTo(1);
             });
+            assertThatThrownBy(() -> migrate(schema, null)).hasMessageContaining("V14 requires an empty business database");
+            inSchema(schema, jdbc -> assertThat(jdbc.queryForObject(
+                    "SELECT count(*) FROM todo_items WHERE title IN ('legacy open task', 'legacy done task')",
+                    Integer.class)).isEqualTo(2));
         } finally {
             dropSchema(schema);
         }
@@ -64,7 +69,10 @@ class TaskMigrationIntegrationTest {
         try {
             migrate(schema, null);
             inSchema(schema, jdbc -> {
-                jdbc.update("INSERT INTO todo_items (id, title) VALUES (?, ?)", UUID.randomUUID(), "fresh task");
+                UUID owner = UUID.randomUUID();
+                jdbc.update("INSERT INTO user_accounts(id,username,password_hash,role) VALUES (?,?,?,'USER')",
+                        owner, "fresh-owner-" + owner, "test-only");
+                jdbc.update("INSERT INTO todo_items (id, user_id, title) VALUES (?, ?, ?)", UUID.randomUUID(), owner, "fresh task");
                 assertThat(jdbc.queryForObject(
                         "SELECT status FROM todo_items WHERE title = ?", String.class, "fresh task"))
                         .isEqualTo("PENDING");
@@ -102,7 +110,7 @@ class TaskMigrationIntegrationTest {
                         """, taskId, inputId);
             });
 
-            migrate(schema, null);
+            migrate(schema, "13");
 
             inSchema(schema, jdbc -> {
                 assertThat(jdbc.queryForObject(
@@ -113,6 +121,12 @@ class TaskMigrationIntegrationTest {
                 assertThat(jdbc.queryForList(
                         "SELECT initial_version FROM capture_generated_items WHERE input_id=?", Long.class, inputId))
                         .containsOnly(0L);
+            });
+            assertThatThrownBy(() -> migrate(schema, null)).hasMessageContaining("V14 requires an empty business database");
+            inSchema(schema, jdbc -> {
+                assertThat(jdbc.queryForObject("SELECT count(*) FROM capture_inputs WHERE id=?", Integer.class, inputId)).isEqualTo(1);
+                assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE id=?", Integer.class, recordId)).isEqualTo(1);
+                assertThat(jdbc.queryForObject("SELECT count(*) FROM todo_items WHERE id=?", Integer.class, taskId)).isEqualTo(1);
             });
         } finally {
             dropSchema(schema);

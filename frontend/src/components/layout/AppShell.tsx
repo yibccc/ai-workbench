@@ -2,9 +2,13 @@ import type { ReactNode } from 'react'
 import { Icon } from '../Icon'
 import { navigation, type PageId } from './navigation'
 import { WORKBENCH_TIME_ZONE } from '../../utils/date'
+import type { Account } from '../../api/auth'
+import { AccountMenu } from '../../features/auth/AccountMenu'
 
-export function AppShell({ page, hasDirtyReports, children }: { page: PageId; hasDirtyReports: boolean; children: ReactNode }) {
-  const current = navigation.find(item => item.id === page)!
+export function AppShell({ page, hasDirtyReports, account, onPassword, onLogout, onUsers, children }: {
+  page: PageId | 'users'; hasDirtyReports: boolean; account: Account; onPassword: () => void; onLogout: () => void; onUsers: () => void; children: ReactNode
+}) {
+  const current = navigation.find(item => item.id === page) ?? { label: '用户管理' }
   const date = new Intl.DateTimeFormat('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
   const weekday = new Intl.DateTimeFormat('en-US', { timeZone: WORKBENCH_TIME_ZONE, weekday: 'short' }).format(new Date())
   return <div className="app-shell" data-testid="workbench">
@@ -18,10 +22,10 @@ export function AppShell({ page, hasDirtyReports, children }: { page: PageId; ha
       <p className="nav-caption">我的工作</p>
       <nav className="primary-nav" aria-label="主导航">{navigation.map(item => <a key={item.id} href={`#${item.id}`} aria-current={page === item.id ? 'page' : undefined}><Icon name={item.icon} /><span>{item.label}</span>{item.id === 'reports' && hasDirtyReports && <span className="dirty-dot" aria-label="有未保存修改" />}</a>)}</nav>
       <div className="sidebar-guide"><span className="guide-icon"><Icon name="sparkles" /></span><strong>少一点整理，多一点专注</strong><p>记下进展与计划，AI 帮你拆分，再整理成有来源的汇报。</p><a href="#reports">去整理汇报 <Icon name="arrow-right" size={14} /></a></div>
-      <div className="sidebar-footer"><span className="footer-mark"><Icon name="notebook" size={16} /></span><div><strong>Local AI Workbench</strong><span>工作时间基准 · UTC+8</span></div></div>
+      <div className="sidebar-footer"><AccountMenu account={account} onPassword={onPassword} onLogout={onLogout} onUsers={onUsers} /></div>
     </aside>
     <div className="app-body">
-      <header className="topbar"><div className="breadcrumb"><span>个人工作区</span><span aria-hidden="true">/</span><strong>{current.label}</strong></div><time className={`topbar-date ${weekday === 'Sun' ? 'weekday-sunday' : weekday === 'Sat' ? 'weekday-saturday' : ''}`}><Icon name="calendar" size={15} />{date}</time></header>
+      <header className="topbar"><div className="breadcrumb"><span>个人工作区</span><span aria-hidden="true">/</span><strong>{current.label}</strong></div><time className={`topbar-date ${weekday === 'Sun' ? 'weekday-sunday' : weekday === 'Sat' ? 'weekday-saturday' : ''}`}><Icon name="calendar" size={15} />{date}</time><div className="mobile-account"><AccountMenu account={account} onPassword={onPassword} onLogout={onLogout} onUsers={onUsers} /></div></header>
       <main id="main-content" className="main-content" tabIndex={-1}>{children}</main>
     </div>
   </div>

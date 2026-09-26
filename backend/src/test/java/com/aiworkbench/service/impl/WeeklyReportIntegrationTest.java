@@ -8,6 +8,7 @@ import com.aiworkbench.dto.report.ReportResponse;
 import com.aiworkbench.dto.report.UpdateManualAdditionsRequest;
 import com.aiworkbench.dto.report.UpdateReportRequest;
 import com.aiworkbench.entity.report.ReportSourceRow;
+import com.aiworkbench.support.OwnerTestContext;
 import com.aiworkbench.enums.ReportSectionType;
 import com.aiworkbench.enums.ReportSourceRole;
 import com.aiworkbench.enums.ReportSourceType;
@@ -53,7 +54,11 @@ class WeeklyReportIntegrationTest {
     private final List<UUID> taskIds = new ArrayList<>();
     private final List<UUID> projectIds = new ArrayList<>();
 
-    @BeforeEach void resetGateway() { reset(gateway); }
+    @BeforeEach void resetGateway() {
+        OwnerTestContext.ensureAccounts(jdbc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+        reset(gateway);
+    }
 
     @AfterEach void cleanup() {
         requestIds.forEach(id -> jdbc.update("""
@@ -66,6 +71,7 @@ class WeeklyReportIntegrationTest {
         recordIds.forEach(id -> jdbc.update("DELETE FROM work_records WHERE id=?", id));
         taskIds.forEach(id -> jdbc.update("DELETE FROM todo_items WHERE id=?", id));
         projectIds.forEach(id -> jdbc.update("DELETE FROM projects WHERE id=?", id));
+        OwnerTestContext.removeBusinessData(jdbc);
     }
 
     @Test
@@ -189,11 +195,11 @@ class WeeklyReportIntegrationTest {
 
         var executor = Executors.newFixedThreadPool(concurrentRequestIds.size());
         try {
-            List<Future<ReportResponse>> futures = concurrentRequestIds.stream().map(requestId -> executor.submit(() -> {
+            List<Future<ReportResponse>> futures = concurrentRequestIds.stream().map(requestId -> executor.submit(OwnerTestContext.as(OwnerTestContext.USER_ID, () -> {
                 ready.countDown();
                 assertThat(start.await(5, TimeUnit.SECONDS)).isTrue();
                 return service.create(new CreateReportRequest(requestId, "WEEKLY", isolatedMonday));
-            })).toList();
+            }))).toList();
             assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
             start.countDown();
 
@@ -234,23 +240,23 @@ class WeeklyReportIntegrationTest {
 
     private UUID insertProject(String name) {
         UUID id = UUID.randomUUID(); projectIds.add(id);
-        jdbc.update("INSERT INTO projects(id,name,status) VALUES (?,?,'ACTIVE')", id, name);
+        jdbc.update("INSERT INTO projects(id,user_id,name,status) VALUES (?,?,?,'ACTIVE')", id, OwnerTestContext.USER_ID, name);
         return id;
     }
 
     private UUID insertRecord(String content, Instant occurredAt, UUID projectId, boolean active) {
         UUID id = UUID.randomUUID(); recordIds.add(id);
-        jdbc.update("INSERT INTO work_records(id,project_id,content,occurred_at,is_active) VALUES (?,?,?,?,?)",
-                id, projectId, content, Timestamp.from(occurredAt), active);
+        jdbc.update("INSERT INTO work_records(id,user_id,project_id,content,occurred_at,is_active) VALUES (?,?,?,?,?,?)",
+                id, OwnerTestContext.USER_ID, projectId, content, Timestamp.from(occurredAt), active);
         return id;
     }
 
     private UUID insertTask(String title, Instant dueAt, Instant createdAt, Instant updatedAt) {
         UUID id = UUID.randomUUID(); taskIds.add(id);
         jdbc.update("""
-                INSERT INTO todo_items(id,title,status,due_at,priority,notes,version,created_at,updated_at)
-                VALUES (?,?,'PENDING',?,'MEDIUM','',0,?,?)
-                """, id, title, dueAt == null ? null : Timestamp.from(dueAt),
+                INSERT INTO todo_items(id,user_id,title,status,due_at,priority,notes,version,created_at,updated_at)
+                VALUES (?, ?, ?,'PENDING',?,'MEDIUM','',0,?,?)
+                """, id, OwnerTestContext.USER_ID, title, dueAt == null ? null : Timestamp.from(dueAt),
                 Timestamp.from(createdAt), Timestamp.from(updatedAt));
         return id;
     }

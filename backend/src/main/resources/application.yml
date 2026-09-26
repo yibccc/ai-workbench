@@ -18,9 +18,22 @@ spring:
       port: ${REDIS_PORT:6379}
       connect-timeout: 2s
       timeout: 2s
+  session:
+    store-type: redis
+    timeout: 7d
+    redis:
+      repository-type: indexed
+      namespace: workbench:session
 
 server:
   address: 127.0.0.1
+  servlet:
+    session:
+      cookie:
+        name: WORKBENCH_SESSION
+        http-only: true
+        secure: ${WORKBENCH_COOKIE_SECURE:false}
+        same-site: lax
   error:
     include-message: always
 
@@ -34,6 +47,9 @@ management:
       show-details: always
 
 workbench:
+  auth:
+    bootstrap-username: ${WORKBENCH_BOOTSTRAP_USERNAME:}
+    bootstrap-password: ${WORKBENCH_BOOTSTRAP_PASSWORD:}
   zone-id: Asia/Shanghai
   report:
     ai:

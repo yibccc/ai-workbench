@@ -7,6 +7,7 @@ Use these contracts for `scripts/local` operational scripts and local delivery d
 ## 2. Commands
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/start.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/start.ps1 -EnvFile <explicit_ignored_file>` for isolated synthetic local verification; omitting the parameter retains `.env` behavior.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/stop.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/check-safety.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/backup.ps1`
@@ -17,7 +18,8 @@ Use these contracts for `scripts/local` operational scripts and local delivery d
 
 - Start uses the built backend JAR and installed Vite, resolves the actual JVM executable, and launches hidden processes on loopback ports 8080/5173.
 - Persist PID, creation time, full command and repository root under ignored `.local-runtime`; stop/reuse only a matching identity. Refuse unrelated port occupants.
-- `.env` values are injected into the backend process without logging them. Do not pass database/model credentials to the frontend process. Restore the caller environment after process creation.
+- By default, `.env` values are injected into the backend process without logging them. `-EnvFile` changes only the source file for that invocation; it must exist, and a missing explicit file fails before launch. Do not pass database/model credentials to the frontend process. Restore the caller environment after process creation.
+- For local auth smoke tests, use an ignored synthetic EnvFile with `DEEPSEEK_API_KEY` empty and a verified absent dedicated PostgreSQL schema; never replace or read values from the user's `.env` into output. Run the existing `stop.ps1` in `finally`, then verify 8080/5173 listeners and owned PID files are gone and the original `.env` hash is unchanged.
 - Stop application processes without deleting database containers or volumes. Restart verification must use a new JVM and read existing stored data.
 - Use PostgreSQL custom archives through `pg_dump` and `pg_restore`; store sensitive dumps under ignored `.local-backups` and validate readability/checksum.
 - Restore only into a new, explicitly named isolated database. Reject the current database and every existing destination; never overwrite/drop the working database as a restore convenience.
@@ -29,6 +31,7 @@ Use these contracts for `scripts/local` operational scripts and local delivery d
 | Condition | Required behavior |
 |---|---|
 | Missing build/dependencies/.env | Fail with actionable setup instruction |
+| Explicit `-EnvFile` is missing or blank | Reject before starting either process; default `.env` behavior remains unchanged |
 | Occupied port without matching ownership | Refuse to stop or reuse it |
 | Reused PID with different creation time/command/root | Refuse process operation |
 | Existing restore destination | Reject before writing any restored data |
@@ -44,7 +47,8 @@ Use these contracts for `scripts/local` operational scripts and local delivery d
 ## 6. Verification
 
 - Script parser checks and matching/mismatched process-identity tests.
-- Unmanaged-port rejection, repeated start/stop, unset JAVA_HOME, and new-JVM persistence.
+- Unmanaged-port rejection, repeated start/stop, unset JAVA_HOME, and new-JVM persistence. Exercise both default `.env` parsing and an explicit synthetic `-EnvFile` without printing credential values.
+- Through loopback Vite/JAR with a fresh test schema, verify application login/CSRF and a business API via the Vite proxy; stop both owned processes and check port/PID cleanup. This runtime smoke complements the isolated Docker/browser checks; it does not authorize touching the working database.
 - Fresh restore and existing-archive restore; existing-destination rejection.
 - Table counts/content digests and Flyway version; exact cleanup of created verification databases.
 - User-operated README restart and sustained-use measurements remain separate acceptance observations.

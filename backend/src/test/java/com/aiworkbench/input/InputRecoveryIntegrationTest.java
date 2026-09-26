@@ -16,6 +16,7 @@ import com.aiworkbench.service.InputPersistenceService;
 import com.aiworkbench.service.InputService;
 import com.aiworkbench.service.TaskService;
 import com.aiworkbench.service.WorkRecordService;
+import com.aiworkbench.support.OwnerTestContext;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -53,6 +54,8 @@ class InputRecoveryIntegrationTest {
 
     @BeforeEach
     void resetGateway() {
+        OwnerTestContext.ensureAccounts(jdbc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
         reset(gateway);
     }
 
@@ -68,6 +71,7 @@ class InputRecoveryIntegrationTest {
         jdbc.update("DELETE FROM work_records WHERE capture_input_id IN (SELECT id FROM capture_inputs WHERE " + predicate + ")");
         jdbc.update("DELETE FROM todo_items WHERE capture_input_id IN (SELECT id FROM capture_inputs WHERE " + predicate + ")");
         jdbc.update("DELETE FROM capture_inputs WHERE " + predicate);
+        OwnerTestContext.removeBusinessData(jdbc);
     }
 
     @Test
@@ -236,10 +240,10 @@ class InputRecoveryIntegrationTest {
         UUID id = UUID.randomUUID();
         jdbc.update("""
                 INSERT INTO capture_inputs
-                    (id, content, source, captured_at, client_request_id, reference_at, zone_id, status,
+                    (id, user_id, content, source, captured_at, client_request_id, reference_at, zone_id, status,
                      processing_token, lease_expires_at)
-                VALUES (?, ?, 'AI', ?, ?, ?, 'Asia/Shanghai', 'PROCESSING', ?, ?)
-                """, id, content, Timestamp.from(referenceAt), "recovery-" + id, Timestamp.from(referenceAt),
+                VALUES (?, ?, ?, 'AI', ?, ?, ?, 'Asia/Shanghai', 'PROCESSING', ?, ?)
+                """, id, OwnerTestContext.USER_ID, content, Timestamp.from(referenceAt), "recovery-" + id, Timestamp.from(referenceAt),
                 UUID.randomUUID(), leaseExpiresAt == null ? null : Timestamp.from(leaseExpiresAt));
         return id;
     }
@@ -280,8 +284,8 @@ class InputRecoveryIntegrationTest {
                 start.await();
                 return action.call();
             };
-            Future<T> first = executor.submit(participant);
-            Future<T> second = executor.submit(participant);
+            Future<T> first = executor.submit(OwnerTestContext.as(OwnerTestContext.USER_ID, participant));
+            Future<T> second = executor.submit(OwnerTestContext.as(OwnerTestContext.USER_ID, participant));
             ready.await();
             start.countDown();
             return List.of(first.get(), second.get());

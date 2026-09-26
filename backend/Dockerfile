@@ -1,8 +1,9 @@
 FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /build
 COPY backend/pom.xml pom.xml
+COPY backend/maven-settings-aliyun.xml maven-settings.xml
 COPY backend/src src
-RUN mvn -B -DskipTests package
+RUN mvn -s /build/maven-settings.xml -B -DskipTests package
 
 FROM eclipse-temurin:17-jre-jammy
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \

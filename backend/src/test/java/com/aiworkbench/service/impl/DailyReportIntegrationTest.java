@@ -7,6 +7,8 @@ import com.aiworkbench.dto.report.CreateReportRequest;
 import com.aiworkbench.dto.report.ReportResponse;
 import com.aiworkbench.dto.report.UpdateReportRequest;
 import com.aiworkbench.entity.report.ReportSourceRow;
+import com.aiworkbench.support.OwnerTestContext;
+import jakarta.servlet.http.Cookie;
 import com.aiworkbench.enums.ReportSectionType;
 import com.aiworkbench.enums.ReportSourceType;
 import com.aiworkbench.enums.ReportStatus;
@@ -28,6 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,6 +47,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
 class DailyReportIntegrationTest {
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final LocalDate DATE = LocalDate.of(2040, 1, 2);
@@ -50,12 +55,17 @@ class DailyReportIntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired Validator validator;
     @Autowired org.springframework.test.web.servlet.MockMvc mvc;
+    private Cookie ownerSession;
     @MockitoBean ReportAiGateway gateway;
     private final List<UUID> requestIds = new ArrayList<>();
     private final List<UUID> recordIds = new ArrayList<>();
     private final List<UUID> taskIds = new ArrayList<>();
 
-    @BeforeEach void resetGateway() {
+    @BeforeEach void resetGateway() throws Exception {
+        OwnerTestContext.ensureAccounts(jdbc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+        ownerSession = OwnerTestContext.login(mvc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
         reset(gateway);
         jdbc.update("UPDATE reports SET previous_report_id=NULL WHERE period_start IN (?,?)", DATE, LocalDate.of(2041, 6, 7));
         jdbc.update("DELETE FROM report_sources WHERE report_id IN (SELECT id FROM reports WHERE period_start IN (?,?))",
@@ -79,6 +89,12 @@ class DailyReportIntegrationTest {
         }
         recordIds.forEach(id -> jdbc.update("DELETE FROM work_records WHERE id=?", id));
         taskIds.forEach(id -> jdbc.update("DELETE FROM todo_items WHERE id=?", id));
+        OwnerTestContext.removeBusinessData(jdbc);
+    }
+
+    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
+        try { return mvc.perform(OwnerTestContext.authenticated(request, ownerSession)); }
+        finally { OwnerTestContext.use(OwnerTestContext.USER_ID); }
     }
 
     @Test
@@ -186,8 +202,10 @@ class DailyReportIntegrationTest {
         ExecutorService callers = Executors.newFixedThreadPool(2);
         CountDownLatch start = new CountDownLatch(1);
         try {
-            Future<ReportResponse> first = callers.submit(() -> { start.await(); return service.create(new CreateReportRequest(requestId, "DAILY", DATE)); });
-            Future<ReportResponse> second = callers.submit(() -> { start.await(); return service.create(new CreateReportRequest(requestId, "DAILY", DATE)); });
+            Future<ReportResponse> first = callers.submit(OwnerTestContext.as(OwnerTestContext.USER_ID,
+                    () -> { start.await(); return service.create(new CreateReportRequest(requestId, "DAILY", DATE)); }));
+            Future<ReportResponse> second = callers.submit(OwnerTestContext.as(OwnerTestContext.USER_ID,
+                    () -> { start.await(); return service.create(new CreateReportRequest(requestId, "DAILY", DATE)); }));
             start.countDown();
             ReportResponse firstResponse = first.get();
             ReportResponse secondResponse = second.get();
@@ -230,14 +248,17 @@ class DailyReportIntegrationTest {
         ReportResponse first = await(create());
         ReportResponse second = await(create());
         assertThatThrownBy(() -> service.delete(first.id(), first.version() + 1)).hasMessageContaining("409");
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/reports/" + first.id())
+        perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/reports/" + first.id())
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                 .param("version", String.valueOf(first.version() + 1)))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isConflict())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().contentTypeCompatibleWith("application/problem+json"));
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/reports/" + first.id())
+        perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/reports/" + first.id())
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                 .param("version", String.valueOf(first.version())))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNoContent());
-        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/reports/" + first.id())
+        perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/reports/" + first.id())
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                 .param("version", String.valueOf(first.version())))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNoContent());
         assertThatThrownBy(() -> service.update(first.id(), new UpdateReportRequest("迟到正文", first.version()))).hasMessageContaining("404");
@@ -255,8 +276,8 @@ class DailyReportIntegrationTest {
     void rejectsProcessingAndWeeklyDeletionButAllowsFailedDaily() {
         UUID requestId = UUID.randomUUID(); requestIds.add(requestId);
         UUID id = UUID.randomUUID();
-        jdbc.update("INSERT INTO reports(id,request_id,report_type,period_start,period_end,status,content,zone_id,processing_token) VALUES (?,?,'DAILY',?,?,'PROCESSING','','Asia/Shanghai',?)",
-                id, requestId, DATE, DATE, UUID.randomUUID());
+        jdbc.update("INSERT INTO reports(id,user_id,request_id,report_type,period_start,period_end,status,content,zone_id,processing_token) VALUES (?,?,?,'DAILY',?,?,'PROCESSING','','Asia/Shanghai',?)",
+                id, OwnerTestContext.USER_ID, requestId, DATE, DATE, UUID.randomUUID());
         assertThatThrownBy(() -> service.delete(id, 0)).hasMessageContaining("409");
         jdbc.update("UPDATE reports SET status='FAILED', processing_token=NULL WHERE id=?", id);
         service.delete(id, 0);
@@ -284,23 +305,23 @@ class DailyReportIntegrationTest {
 
     private UUID insertRecord(String content, Instant occurredAt, boolean active) {
         UUID id = UUID.randomUUID(); recordIds.add(id);
-        jdbc.update("INSERT INTO work_records(id,content,occurred_at,is_active) VALUES (?,?,?,?)", id, content, Timestamp.from(occurredAt), active);
+        jdbc.update("INSERT INTO work_records(id,user_id,content,occurred_at,is_active) VALUES (?,?,?,?,?)", id, OwnerTestContext.USER_ID, content, Timestamp.from(occurredAt), active);
         return id;
     }
 
     private UUID insertTask(String title, Instant dueAt, String status, Instant deletedAt) {
         UUID id = UUID.randomUUID(); taskIds.add(id);
-        jdbc.update("INSERT INTO todo_items(id,title,status,due_at,deleted_at,priority,notes,version) VALUES (?,?,?,?,?,'MEDIUM','',0)",
-                id, title, status, Timestamp.from(dueAt), deletedAt == null ? null : Timestamp.from(deletedAt));
+        jdbc.update("INSERT INTO todo_items(id,user_id,title,status,due_at,deleted_at,priority,notes,version) VALUES (?,?,?,?,?,?,'MEDIUM','',0)",
+                id, OwnerTestContext.USER_ID, title, status, Timestamp.from(dueAt), deletedAt == null ? null : Timestamp.from(deletedAt));
         return id;
     }
 
     private UUID insertCompletionRecord(UUID taskId, String content, Instant occurredAt) {
         UUID id = UUID.randomUUID(); recordIds.add(id);
         jdbc.update("""
-                INSERT INTO work_records(id,content,source,todo_id,completion_result,occurred_at,is_active)
-                VALUES (?,?,'TASK_COMPLETION',?,'',?,true)
-                """, id, content, taskId, Timestamp.from(occurredAt));
+                INSERT INTO work_records(id,user_id,content,source,todo_id,completion_result,occurred_at,is_active)
+                VALUES (?,?,?,'TASK_COMPLETION',?,'',?,true)
+                """, id, OwnerTestContext.USER_ID, content, taskId, Timestamp.from(occurredAt));
         return id;
     }
 

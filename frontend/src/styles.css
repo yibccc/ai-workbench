@@ -83,6 +83,32 @@ p { line-height: 1.7; }
 .topbar-date { display: flex; align-items: center; gap: 8px; color: #797d90; font-size: 13px; }
 .topbar-date.weekday-sunday { color: var(--danger); font-weight: 600; }
 .topbar-date.weekday-saturday { color: var(--warning); }
+.mobile-account { display: none; }
+.sidebar-footer .account-menu { width: 100%; }
+.account-menu { position: relative; min-width: 0; }
+.account-trigger { max-width: 100%; width: 100%; justify-content: space-between; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.account-popover { position: absolute; z-index: 30; left: 0; bottom: calc(100% + 6px); display: grid; width: max(170px, 100%); padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: #fff; box-shadow: 0 12px 30px #24243b25; }
+.account-role { padding: 7px 9px; color: var(--subtle); font-size: 12px; }
+.account-popover button { justify-content: flex-start; width: 100%; padding: 8px 9px; color: var(--text); background: transparent; font-size: 13px; font-weight: 500; }
+.account-popover button:hover { background: var(--primary-soft); color: var(--primary); }
+.login-page { display: grid; place-items: center; width: 100%; height: 100vh; height: 100dvh; padding: 20px; background: linear-gradient(135deg, #f1effb, #fafbfc 55%, #eef2f8); overflow-y: auto; }
+.login-card { width: min(420px, 100%); padding: clamp(24px, 5vw, 38px); border: 1px solid var(--border); border-radius: 16px; background: #fff; box-shadow: 0 16px 60px #25243b12; }
+.login-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 34px; color: var(--text); }
+.login-brand .brand-mark { font-size: 20px; font-weight: 700; }
+.login-card > p { margin-bottom: 25px; color: var(--muted); font-size: 14px; }
+.login-card form { display: grid; gap: 17px; }
+.login-password { display: grid; gap: 8px; }
+.login-card form > button { margin-top: 8px; width: 100%; }
+.password-field { display: flex; align-items: center; min-width: 0; }
+.password-field input { border-radius: 8px 0 0 8px; }
+.password-field button { flex: none; border: 1px solid var(--border-strong); border-left: 0; border-radius: 0 8px 8px 0; min-height: 46px; }
+.users-scroll { width: 100%; }
+.users-list { display: grid; gap: 10px; }
+.user-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.user-details { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.user-details span { color: var(--muted); font-size: 13px; }
+.user-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.user-actions button { font-size: 13px; }
 .main-content { display: flex; flex: 1; flex-direction: column; width: 100%; min-height: 0; padding: 24px 28px 20px; overflow: hidden; outline: none; }
 .main-content > .retained-view { flex: 1; min-height: 0; }
 .page { display: flex; flex-direction: column; height: 100%; min-width: 0; min-height: 0; }
@@ -367,7 +393,8 @@ body:has(dialog[open]) { overflow: hidden; }
   .workspace-label, .nav-caption, .sidebar-guide, .sidebar-footer { display: none; }
   .primary-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding-bottom: 10px; }
   .primary-nav a { justify-content: center; gap: 6px; padding: 10px 4px; font-size: 13px; min-height: 42px; }.primary-nav a > svg { width: 15px; }.primary-nav .dirty-dot { margin-left: 0; width: 4px; height: 4px; }
-  .app-body { flex: 1; height: auto; margin-left: 0; }.topbar { min-height: 45px; padding: 0 22px; }.topbar-date { font-size: 12px; }.breadcrumb { font-size: 12px; gap: 8px; }
+  .app-body { flex: 1; height: auto; margin-left: 0; }.topbar { min-height: 45px; padding: 0 22px; gap: 10px; }.topbar-date { font-size: 12px; }.breadcrumb { font-size: 12px; gap: 8px; }.mobile-account { display: block; flex: none; }.mobile-account .account-trigger { max-width: 120px; min-height: 32px; padding: 5px 9px; }.mobile-account .account-popover { left: auto; right: 0; bottom: auto; top: calc(100% + 6px); }
+  .user-row { align-items: flex-start; flex-direction: column; }
   .main-content { padding: 20px 18px; }.page-header { gap: 19px; margin-bottom: 16px; }h1 { font-size: 27px; }.page-eyebrow { font-size: 12px; }.page-description { font-size: 13px; }
   .task-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }.filter-reset { grid-column: 1 / -1; justify-self: end; }
   .sidebar .brand { width: fit-content; }
@@ -377,7 +404,8 @@ body:has(dialog[open]) { overflow: hidden; }
 @media (max-width: 480px) {
   input, select, textarea { font-size: 16px; }
   .sidebar { padding: 15px 12px 0; }.brand { margin-left: 5px; }.primary-nav a { position: relative; flex-direction: column; font-size: 13px; gap: 5px; padding: 9px 2px; }.primary-nav .dirty-dot { position: absolute; top: 7px; right: 7px; }.primary-nav a > svg { width: 14px; }
-  .topbar { padding: 0 17px; }.topbar-date svg { display: none; }.breadcrumb > span:first-child, .breadcrumb > span:nth-child(2) { display: none; }
+  .topbar { padding: 0 17px; }.topbar-date { display: none; }.breadcrumb > span:first-child, .breadcrumb > span:nth-child(2) { display: none; }
+  .user-actions button { padding: 7px 9px; }
   .main-content { padding: 16px 14px; }.page-header { align-items: flex-start; }.page-header > button { min-height: 40px; padding: 8px 11px; font-size: 13px; }.page-header > div:first-child { max-width: 100%; }
   h1 { font-size: 26px; }.page-description { max-width: 310px; line-height: 1.9; }.date-navigation { width: 100%; justify-content: flex-start; gap: 7px; }.date-navigation input { flex: 1; min-height: 40px; }.date-navigation .icon-button { width: 32px; min-height: 40px; }.date-navigation .today-button { min-height: 40px; }
   .capture-card-top { padding: 13px; }.capture-card-top .subtle-label { display: none; }.capture-card-top .segmented-control { width: 100%; }.capture-card-top .segmented-control button { flex: 1; }

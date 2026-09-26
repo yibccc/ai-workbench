@@ -3,7 +3,7 @@
 <mapper namespace="com.aiworkbench.mapper.ReportMapper">
     <resultMap id="reportRow" type="com.aiworkbench.entity.report.ReportRow">
         <constructor>
-            <arg column="id" javaType="java.util.UUID"/><arg column="request_id" javaType="java.util.UUID"/>
+            <arg column="id" javaType="java.util.UUID"/><arg column="user_id" javaType="java.util.UUID"/><arg column="request_id" javaType="java.util.UUID"/>
             <arg column="report_type" javaType="java.lang.String"/><arg column="period_start" javaType="java.time.LocalDate"/>
             <arg column="period_end" javaType="java.time.LocalDate"/><arg column="status" javaType="com.aiworkbench.enums.ReportStatus"/>
             <arg column="content" javaType="java.lang.String"/><arg column="error_message" javaType="java.lang.String"/>
@@ -27,42 +27,43 @@
             <arg column="source_time" javaType="java.time.Instant"/><arg column="snapshot" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
-    <sql id="reportColumns">id, request_id, report_type, period_start, period_end, status, content,
+    <sql id="reportColumns">id, user_id, request_id, report_type, period_start, period_end, status, content,
         error_message, zone_id, version, edited_at, previous_report_id, manual_additions, manual_edited_at,
         created_at, updated_at, error_code, error_stage, source_count</sql>
     <select id="lockWeeklyVersionChain" resultType="boolean">
-        SELECT pg_advisory_xact_lock(hashtextextended('weekly-report:' || CAST(#{periodStart} AS text), 0)) IS NULL
+        SELECT pg_advisory_xact_lock(hashtextextended('weekly-report:' || CAST(#{userId} AS text) || ':' || CAST(#{periodStart} AS text), 0)) IS NULL
     </select>
     <insert id="insertReport">
-        INSERT INTO reports (id, request_id, report_type, period_start, period_end, status, content, zone_id,
+        INSERT INTO reports (id, user_id, request_id, report_type, period_start, period_end, status, content, zone_id,
                              processing_token, previous_report_id)
-        VALUES (#{id}, #{requestId}, #{reportType}, #{periodStart}, #{periodEnd}, 'PROCESSING', '', #{zoneId},
+        VALUES (#{id}, #{userId}, #{requestId}, #{reportType}, #{periodStart}, #{periodEnd}, 'PROCESSING', '', #{zoneId},
                 #{token}, #{previousReportId})
-        ON CONFLICT (request_id) DO NOTHING
+        ON CONFLICT (user_id, request_id) DO NOTHING
     </insert>
-    <select id="findById" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE id=#{id} AND deleted_at IS NULL</select>
-    <select id="lockById" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE id=#{id} FOR UPDATE</select>
-    <select id="isDeleted" resultType="boolean">SELECT deleted_at IS NOT NULL FROM reports WHERE id=#{id}</select>
+    <select id="findById" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE id=#{id} AND user_id=#{userId} AND deleted_at IS NULL</select>
+    <select id="findPersistedById" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE id=#{id}</select>
+    <select id="lockById" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE id=#{id} AND user_id=#{userId} FOR UPDATE</select>
+    <select id="isDeleted" resultType="boolean">SELECT deleted_at IS NOT NULL FROM reports WHERE id=#{id} AND user_id=#{userId}</select>
     <update id="softDelete">
         UPDATE reports SET deleted_at=#{now}, updated_at=#{now}, version=version+1
-        WHERE id=#{id} AND version=#{version} AND deleted_at IS NULL AND report_type='DAILY' AND status IN ('SUCCEEDED','FAILED')
+        WHERE id=#{id} AND user_id=#{userId} AND version=#{version} AND deleted_at IS NULL AND report_type='DAILY' AND status IN ('SUCCEEDED','FAILED')
     </update>
-    <select id="findByRequestId" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE request_id=#{requestId}</select>
+    <select id="findByRequestId" resultMap="reportRow">SELECT <include refid="reportColumns"/> FROM reports WHERE user_id=#{userId} AND request_id=#{requestId}</select>
     <select id="findReports" resultMap="reportRow">
         SELECT <include refid="reportColumns"/> FROM reports
-        WHERE deleted_at IS NULL AND report_type=#{reportType} <if test="periodStart != null">AND period_start=#{periodStart}</if>
+        WHERE user_id=#{userId} AND deleted_at IS NULL AND report_type=#{reportType} <if test="periodStart != null">AND period_start=#{periodStart}</if>
         ORDER BY created_at DESC, id DESC
     </select>
     <select id="findReportPage" resultMap="reportRow">
         SELECT <include refid="reportColumns"/> FROM reports
-        WHERE deleted_at IS NULL AND report_type=#{reportType} <if test="periodStart != null">AND period_start=#{periodStart}</if>
+        WHERE user_id=#{userId} AND deleted_at IS NULL AND report_type=#{reportType} <if test="periodStart != null">AND period_start=#{periodStart}</if>
         ORDER BY created_at DESC, id DESC
     </select>
     <select id="findLatest" resultMap="reportRow">
         SELECT <include refid="reportColumns"/> FROM reports current_report
-        WHERE deleted_at IS NULL AND report_type=#{reportType} AND period_start=#{periodStart}
+        WHERE current_report.user_id=#{userId} AND current_report.deleted_at IS NULL AND current_report.report_type=#{reportType} AND current_report.period_start=#{periodStart}
           AND NOT EXISTS (
-            SELECT 1 FROM reports next_report WHERE next_report.previous_report_id=current_report.id
+            SELECT 1 FROM reports next_report WHERE next_report.previous_report_id=current_report.id AND next_report.user_id=current_report.user_id
           )
         ORDER BY created_at DESC, id DESC LIMIT 1
     </select>
@@ -71,8 +72,8 @@
                CASE WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
                wr.project_id, p.name project_name, wr.source source_status, wr.occurred_at source_time,
                jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result)::text snapshot
-        FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id
-        WHERE wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
+        FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id AND p.user_id=wr.user_id
+        WHERE wr.user_id=#{userId} AND wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
         ORDER BY wr.occurred_at, wr.id
     </select>
     <select id="findCandidateTasks" resultMap="sourceRow">
@@ -80,8 +81,8 @@
                CASE WHEN t.notes &lt;&gt; '' THEN t.title || E'\n备注：' || t.notes ELSE t.title END content,
                t.project_id, p.name project_name, t.status source_status, t.due_at source_time,
                jsonb_build_object('priority',t.priority,'notes',t.notes)::text snapshot
-        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id
-        WHERE t.due_at &gt;=#{start} AND t.due_at &lt;#{end} AND t.deleted_at IS NULL AND t.status='PENDING'
+        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id AND p.user_id=t.user_id
+        WHERE t.user_id=#{userId} AND t.due_at &gt;=#{start} AND t.due_at &lt;#{end} AND t.deleted_at IS NULL AND t.status='PENDING'
         ORDER BY t.due_at, t.id
     </select>
     <select id="findWeeklyRecords" resultMap="sourceRow">
@@ -89,8 +90,8 @@
                CASE WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
                wr.project_id, p.name project_name, wr.source source_status, wr.occurred_at source_time,
                jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result)::text snapshot
-        FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id
-        WHERE wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
+        FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id AND p.user_id=wr.user_id
+        WHERE wr.user_id=#{userId} AND wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
         ORDER BY wr.occurred_at, wr.id
     </select>
     <select id="findCurrentTasks" resultMap="sourceRow">
@@ -99,8 +100,8 @@
                t.project_id, p.name project_name, t.status source_status,
                GREATEST(t.created_at, t.updated_at, COALESCE(t.due_at, t.updated_at)) source_time,
                jsonb_build_object('priority',t.priority,'notes',t.notes,'dueAt',t.due_at)::text snapshot
-        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id
-        WHERE t.deleted_at IS NULL AND t.status='PENDING'
+        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id AND p.user_id=t.user_id
+        WHERE t.user_id=#{userId} AND t.deleted_at IS NULL AND t.status='PENDING'
           AND ((t.created_at &gt;=#{start} AND t.created_at &lt;#{end})
             OR (t.updated_at &gt;=#{start} AND t.updated_at &lt;#{end})
             OR (t.due_at &gt;=#{start} AND t.due_at &lt;#{end}))
@@ -111,48 +112,53 @@
                CASE WHEN t.notes &lt;&gt; '' THEN t.title || E'\n备注：' || t.notes ELSE t.title END content,
                t.project_id, p.name project_name, t.status source_status, t.due_at source_time,
                jsonb_build_object('priority',t.priority,'notes',t.notes,'dueAt',t.due_at)::text snapshot
-        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id
-        WHERE t.deleted_at IS NULL AND t.status='PENDING'
+        FROM todo_items t LEFT JOIN projects p ON p.id=t.project_id AND p.user_id=t.user_id
+        WHERE t.user_id=#{userId} AND t.deleted_at IS NULL AND t.status='PENDING'
           AND t.due_at IS NOT NULL AND t.due_at &gt;=#{start} AND t.due_at &lt;#{end}
         ORDER BY t.due_at, t.id
     </select>
     <insert id="insertSource">
         INSERT INTO report_sources (id, report_id, source_type, source_role, entity_id, content, project_id, project_name, source_status, source_time, snapshot)
-        VALUES (#{id}, #{reportId}, #{source.sourceType}, #{source.sourceRole}, #{source.entityId}, #{source.content}, #{source.projectId},
-                #{source.projectName}, #{source.sourceStatus}, #{source.sourceTime}, CAST(#{source.snapshot} AS jsonb))
+        SELECT #{id}, r.id, #{source.sourceType}, #{source.sourceRole}, #{source.entityId}, #{source.content}, #{source.projectId},
+                #{source.projectName}, #{source.sourceStatus}, #{source.sourceTime}, CAST(#{source.snapshot} AS jsonb)
+        FROM reports r WHERE r.id=#{reportId} AND r.user_id=#{userId}
     </insert>
     <select id="findSources" resultMap="sourceRow">
         SELECT id, report_id, source_type, source_role, entity_id, content, project_id, project_name, source_status, source_time, snapshot::text snapshot
-        FROM report_sources WHERE report_id=#{reportId} ORDER BY source_time, source_role, id
+        FROM report_sources WHERE report_id=#{reportId} AND EXISTS (
+            SELECT 1 FROM reports r WHERE r.id=report_sources.report_id AND r.user_id=#{userId})
+        ORDER BY source_time, source_role, id
     </select>
     <select id="findSourcePage" resultMap="sourceRow">
         SELECT id, report_id, source_type, source_role, entity_id, content, project_id, project_name,
                source_status, source_time, snapshot::text snapshot
-        FROM report_sources WHERE report_id=#{reportId}
+        FROM report_sources WHERE report_id=#{reportId} AND EXISTS (
+            SELECT 1 FROM reports r WHERE r.id=report_sources.report_id AND r.user_id=#{userId})
         ORDER BY source_time, source_role, id
     </select>
     <select id="countSources" resultType="long">
-        SELECT count(*) FROM report_sources WHERE report_id=#{reportId}
+        SELECT count(*) FROM report_sources WHERE report_id=#{reportId} AND EXISTS (
+            SELECT 1 FROM reports r WHERE r.id=report_sources.report_id AND r.user_id=#{userId})
     </select>
     <update id="updateSourceCount">
-        UPDATE reports SET source_count=#{sourceCount} WHERE id=#{id} AND status='PROCESSING'
+        UPDATE reports SET source_count=#{sourceCount} WHERE id=#{id} AND user_id=#{userId} AND status='PROCESSING'
     </update>
     <update id="markSucceeded">
         UPDATE reports SET status='SUCCEEDED', content=#{content}, error_message=NULL, processing_token=NULL,
-            version=version+1, updated_at=#{now} WHERE id=#{id} AND deleted_at IS NULL AND status='PROCESSING' AND processing_token=#{token}
+            version=version+1, updated_at=#{now} WHERE id=#{id} AND user_id=#{userId} AND deleted_at IS NULL AND status='PROCESSING' AND processing_token=#{token}
     </update>
     <update id="markFailed">
         UPDATE reports SET status='FAILED', error_message=#{message}, error_code=#{errorCode},
             error_stage=#{errorStage}, source_count=#{sourceCount}, processing_token=NULL, updated_at=#{now}
-        WHERE id=#{id} AND deleted_at IS NULL AND status='PROCESSING' AND processing_token=#{token}
+        WHERE id=#{id} AND user_id=#{userId} AND deleted_at IS NULL AND status='PROCESSING' AND processing_token=#{token}
     </update>
     <update id="updateContent">
         UPDATE reports SET content=#{content}, version=version+1, edited_at=#{now}, updated_at=#{now}
-        WHERE id=#{id} AND deleted_at IS NULL AND status='SUCCEEDED' AND version=#{version}
+        WHERE id=#{id} AND user_id=#{userId} AND deleted_at IS NULL AND status='SUCCEEDED' AND version=#{version}
     </update>
     <update id="updateManualAdditions">
         UPDATE reports SET manual_additions=#{manualAdditions}, version=version+1,
             manual_edited_at=#{now}, updated_at=#{now}
-        WHERE id=#{id} AND deleted_at IS NULL AND status='SUCCEEDED' AND version=#{version}
+        WHERE id=#{id} AND user_id=#{userId} AND deleted_at IS NULL AND status='SUCCEEDED' AND version=#{version}
     </update>
 </mapper>

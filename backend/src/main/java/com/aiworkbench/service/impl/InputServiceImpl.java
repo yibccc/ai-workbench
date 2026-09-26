@@ -11,6 +11,7 @@ import com.aiworkbench.entity.input.InputRow;
 import com.aiworkbench.enums.TaskPriority;
 import com.aiworkbench.exception.DeepSeekNotConfiguredException;
 import com.aiworkbench.mapper.InputMapper;
+import com.aiworkbench.security.CurrentUser;
 import com.aiworkbench.service.InputPersistenceService;
 import com.aiworkbench.service.InputService;
 import com.aiworkbench.service.ProjectService;
@@ -48,13 +49,13 @@ public class InputServiceImpl implements InputService {
 
     public InputResponse create(CreateInputRequest request) {
         ProcessingClaim claim = persistence.createOrGet(request.requestId().trim(), request.content().trim(), Instant.now(), zoneId);
-        if (claim.owner()) schedule(claim.row().id(), claim.token());
+        if (claim.owner()) schedule(claim.row().userId(), claim.row().id(), claim.token());
         return get(claim.row().id());
     }
 
     public InputResponse retry(UUID id) {
         ProcessingClaim claim = persistence.beginRetry(id, Instant.now());
-        if (claim.owner()) schedule(claim.row().id(), claim.token());
+        if (claim.owner()) schedule(claim.row().userId(), claim.row().id(), claim.token());
         return get(id);
     }
 
@@ -65,11 +66,11 @@ public class InputServiceImpl implements InputService {
 
     public InputResponse get(UUID id) { return toResponse(persistence.require(id)); }
 
-    private void schedule(UUID id, UUID token) {
+    private void schedule(UUID userId, UUID id, UUID token) {
         if (!processingTokens.add(token)) return;
         try {
             taskExecutor.execute(() -> {
-                try { process(persistence.require(id), token); }
+                try { process(persistence.requireOwned(userId, id), token); }
                 finally { processingTokens.remove(token); }
             });
         } catch (RuntimeException exception) {
@@ -80,7 +81,7 @@ public class InputServiceImpl implements InputService {
 
     private void process(InputRow row, UUID token) {
         try {
-            List<ProjectResponse> projects = projectService.list(false);
+            List<ProjectResponse> projects = projectService.listForUser(row.userId(), false);
             AiCaptureResult result = aiGateway.extract(row.content(), row.referenceAt(), ZoneId.of(row.zoneId()),
                     projects.stream().map(ProjectResponse::name).toList());
             PreparedCapture prepared = validate(result, projects, row.referenceAt());
@@ -140,9 +141,9 @@ public class InputServiceImpl implements InputService {
     }
 
     private InputResponse toResponse(InputRow row) {
-        List<InputResponse.GeneratedRecord> records = mapper.findRecords(row.id()).stream()
+        List<InputResponse.GeneratedRecord> records = mapper.findRecords(row.userId(), row.id()).stream()
                 .map(r -> new InputResponse.GeneratedRecord(r.id(), r.projectId(), r.projectName(), r.content(), r.occurredAt())).toList();
-        List<InputResponse.GeneratedTask> tasks = mapper.findTasks(row.id()).stream()
+        List<InputResponse.GeneratedTask> tasks = mapper.findTasks(row.userId(), row.id()).stream()
                 .map(t -> new InputResponse.GeneratedTask(t.id(), t.projectId(), t.projectName(), t.title(), t.notes(), t.dueAt(), t.priority(), t.version())).toList();
         return new InputResponse(row.id(), row.clientRequestId(), row.content(), row.referenceAt(), row.zoneId(), row.status(),
                 row.errorMessage(), row.attemptCount(), row.completedAt(), row.createdAt(), row.updatedAt(), records, tasks);

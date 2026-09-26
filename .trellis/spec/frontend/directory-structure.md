@@ -6,18 +6,19 @@ Use React feature modules plus shared infrastructure. Frontend components do not
 
 ```text
 src/
-├── App.tsx                 Page composition and cross-feature coordination
+├── App.tsx                 Authenticated root, page composition and cross-feature coordination
 ├── main.tsx                Entry point
 ├── styles.css              Shared styles
 ├── features/
 │   ├── capture/            AI input and generated results
+│   ├── auth/               Login, account menu, password dialog and ADMIN user page
 │   ├── projects/           Project management and project picker
 │   ├── records/            Record-list presentation
 │   ├── tasks/              Task form, filters and list
 │   └── reports/            Daily/weekly panels and shared report hooks
 ├── components/             Pagination and collapsible sections
 ├── api/                    Shared HTTP client; per-feature requests and types
-├── hooks/                  Shared realtime lifecycle
+├── hooks/                  Identity-scoped STOMP and fallback lifecycle
 └── utils/                  Shanghai date conversion
 ```
 
@@ -27,9 +28,9 @@ src/
 - Shared components receive state/callbacks rather than fetching unrelated business entities.
 - `useReportHistory` owns history paging/metadata. `useReportSources` owns source paging, size and stale-request cancellation.
 - App composes feature components and coordinates editing/navigation; new feature-specific list logic belongs in its feature directory.
-- Keep WebSocket lifecycle shared so collapsing a panel does not open duplicate connections or discard pending requests.
-- AppShell provides records/tasks/reports/projects navigation. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions across navigation.
-- `ToastProvider` owns transient operation feedback across features. Its body portal avoids clipping by the viewport-height shell; callers from retained views only notify while their view is visible. Each new event restarts the five-second timer, and the close action dismisses immediately. Keep validation, unsaved, and stored failure messages in their local context.
+- Keep STOMP lifecycle shared so collapsing a panel does not open duplicate connections or discard same-user pending requests. Close subscriptions, fallback timers and identity-specific pending IDs on account change; see [Identity and Session UI](identity-session.md).
+- AppShell provides records/tasks/reports/projects navigation plus an account menu. ADMIN user management is an auxiliary view, not a fifth business nav item. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions within one account; the authenticated root remounts it on account change.
+- `ToastProvider` owns transient operation feedback across features and sits above the login/workspace switch so an expiry Toast survives the immediate redirect. Its body portal avoids clipping by the viewport-height shell; callers from retained views only notify while their view is visible. Each new event restarts the five-second timer, and the close action dismisses immediately. Keep validation, unsaved, and stored failure messages in their local context.
 
   ```tsx
   const { notify, toastRef } = useToast<HTMLDivElement>()

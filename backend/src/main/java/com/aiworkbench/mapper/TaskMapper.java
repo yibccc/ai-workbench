@@ -15,6 +15,7 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface TaskMapper {
     void insert(
+            @Param("userId") UUID userId,
             @Param("id") UUID id,
             @Param("projectId") UUID projectId,
             @Param("title") String title,
@@ -22,11 +23,12 @@ public interface TaskMapper {
             @Param("dueAt") Instant dueAt,
             @Param("priority") TaskPriority priority);
 
-    Optional<TaskRow> findById(UUID id);
+    Optional<TaskRow> findById(@Param("userId") UUID userId, @Param("id") UUID id);
 
-    Optional<TaskRow> findAnyById(UUID id);
+    Optional<TaskRow> findAnyById(@Param("userId") UUID userId, @Param("id") UUID id);
 
     List<TaskRow> findAll(
+            @Param("userId") UUID userId,
             @Param("status") TaskStatus status,
             @Param("projectId") UUID projectId,
             @Param("unassigned") boolean unassigned,
@@ -35,12 +37,13 @@ public interface TaskMapper {
             @Param("now") Instant now,
             @Param("todayStart") Instant todayStart,
             @Param("tomorrowStart") Instant tomorrowStart);
-    List<TaskRow> findPage(@Param("status") TaskStatus status, @Param("projectId") UUID projectId,
+    List<TaskRow> findPage(@Param("userId") UUID userId, @Param("status") TaskStatus status, @Param("projectId") UUID projectId,
             @Param("unassigned") boolean unassigned, @Param("priority") TaskPriority priority,
             @Param("dueFilter") TaskDueFilter dueFilter, @Param("now") Instant now,
             @Param("todayStart") Instant todayStart, @Param("tomorrowStart") Instant tomorrowStart);
 
     int update(
+            @Param("userId") UUID userId,
             @Param("id") UUID id,
             @Param("projectId") UUID projectId,
             @Param("title") String title,
@@ -49,15 +52,16 @@ public interface TaskMapper {
             @Param("priority") TaskPriority priority,
             @Param("version") long version);
 
-    int complete(@Param("id") UUID id, @Param("version") long version, @Param("completedAt") Instant completedAt);
+    int complete(@Param("userId") UUID userId, @Param("id") UUID id, @Param("version") long version, @Param("completedAt") Instant completedAt);
 
-    int reopen(@Param("id") UUID id, @Param("version") long version);
+    int reopen(@Param("userId") UUID userId, @Param("id") UUID id, @Param("version") long version);
 
-    int touchCompletionResult(@Param("id") UUID id, @Param("version") long version);
+    int touchCompletionResult(@Param("userId") UUID userId, @Param("id") UUID id, @Param("version") long version);
 
-    int softDelete(@Param("id") UUID id, @Param("version") long version, @Param("deletedAt") Instant deletedAt);
+    int softDelete(@Param("userId") UUID userId, @Param("id") UUID id, @Param("version") long version, @Param("deletedAt") Instant deletedAt);
 
     void insertEvent(
+            @Param("userId") UUID userId,
             @Param("id") UUID id,
             @Param("todoId") UUID todoId,
             @Param("eventType") String eventType,
@@ -69,5 +73,5 @@ public interface TaskMapper {
             @Param("result") String result,
             @Param("occurredAt") Instant occurredAt);
 
-    List<TaskEventRow> findEvents(UUID todoId);
+    List<TaskEventRow> findEvents(@Param("userId") UUID userId, @Param("todoId") UUID todoId);
 }

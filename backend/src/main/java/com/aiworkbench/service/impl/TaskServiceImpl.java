@@ -16,6 +16,7 @@ import com.aiworkbench.enums.TaskPriority;
 import com.aiworkbench.enums.TaskStatus;
 import com.aiworkbench.mapper.TaskMapper;
 import com.aiworkbench.mapper.WorkRecordMapper;
+import com.aiworkbench.security.CurrentUser;
 import com.aiworkbench.service.ProjectService;
 import com.aiworkbench.service.TaskService;
 import java.time.Clock;
@@ -64,7 +65,7 @@ public class TaskServiceImpl implements TaskService {
         }
         UUID id = UUID.randomUUID();
         TaskPriority priority = request.priority() == null ? TaskPriority.MEDIUM : request.priority();
-        mapper.insert(id, request.projectId(), request.title().trim(), normalizeNotes(request.notes()),
+        mapper.insert(CurrentUser.requireId(), id, request.projectId(), request.title().trim(), normalizeNotes(request.notes()),
                 request.dueAt(), priority);
         return get(id);
     }
@@ -79,12 +80,13 @@ public class TaskServiceImpl implements TaskService {
         if (unassigned && projectId != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "未分类筛选不能与项目筛选同时使用");
         }
+        if (projectId != null) projectService.get(projectId);
         Instant now = clock.instant();
         LocalDate today = LocalDate.now(clock.withZone(zoneId));
         Instant todayStart = today.atStartOfDay(zoneId).toInstant();
         Instant tomorrowStart = today.plusDays(1).atStartOfDay(zoneId).toInstant();
         TaskDueFilter effectiveDueFilter = dueFilter == null ? TaskDueFilter.ALL : dueFilter;
-        return mapper.findAll(status, projectId, unassigned, priority, effectiveDueFilter,
+        return mapper.findAll(CurrentUser.requireId(), status, projectId, unassigned, priority, effectiveDueFilter,
                 now, todayStart, tomorrowStart).stream().map(TaskRow::toResponse).toList();
     }
 
@@ -95,12 +97,14 @@ public class TaskServiceImpl implements TaskService {
         if (unassigned && projectId != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "未分类筛选不能与项目筛选同时使用");
         }
+        if (projectId != null) projectService.get(projectId);
         Instant now = clock.instant();
         LocalDate today = LocalDate.now(clock.withZone(zoneId));
         Instant todayStart = today.atStartOfDay(zoneId).toInstant();
         Instant tomorrowStart = today.plusDays(1).atStartOfDay(zoneId).toInstant();
         TaskDueFilter effective = dueFilter == null ? TaskDueFilter.ALL : dueFilter;
-        return PageQueries.select(page, size, () -> mapper.findPage(status, projectId, unassigned,
+        UUID userId = CurrentUser.requireId();
+        return PageQueries.select(page, size, () -> mapper.findPage(userId, status, projectId, unassigned,
                 priority, effective, now, todayStart, tomorrowStart), TaskRow::toResponse);
     }
 
@@ -115,7 +119,7 @@ public class TaskServiceImpl implements TaskService {
         if (request.projectId() != null && !request.projectId().equals(current.projectId())) {
             projectService.requireActive(request.projectId());
         }
-        int changed = mapper.update(id, request.projectId(), request.title().trim(),
+        int changed = mapper.update(CurrentUser.requireId(), id, request.projectId(), request.title().trim(),
                 normalizeNotes(request.notes()), request.dueAt(), request.priority(), request.version());
         if (changed == 0) {
             throw versionConflict();
@@ -127,10 +131,10 @@ public class TaskServiceImpl implements TaskService {
     public void delete(UUID id, long version) {
         TaskRow current = require(id);
         Instant now = clock.instant();
-        if (mapper.softDelete(id, version, now) == 0) {
+        if (mapper.softDelete(CurrentUser.requireId(), id, version, now) == 0) {
             throw versionConflict();
         }
-        workRecordMapper.invalidateTaskCompletion(id, now);
+        workRecordMapper.invalidateTaskCompletion(CurrentUser.requireId(), id, now);
         insertEvent(current, "DELETED", current.status(), current.status(), version + 1, "", now);
     }
 
@@ -142,7 +146,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         Instant now = clock.instant();
-        if (mapper.complete(id, request.version(), now) == 0) {
+        if (mapper.complete(CurrentUser.requireId(), id, request.version(), now) == 0) {
             TaskRow latest = require(id);
             if (latest.status() == TaskStatus.COMPLETED) {
                 return latest.toResponse();
@@ -150,7 +154,7 @@ public class TaskServiceImpl implements TaskService {
             throw versionConflict();
         }
         String result = normalizeResult(request.result());
-        workRecordMapper.insertTaskCompletion(UUID.randomUUID(), current.projectId(), id,
+        workRecordMapper.insertTaskCompletion(CurrentUser.requireId(), UUID.randomUUID(), current.projectId(), id,
                 completionContent(current.title()), result, now);
         insertEvent(current, "COMPLETED", TaskStatus.PENDING, TaskStatus.COMPLETED,
                 request.version() + 1, result, now);
@@ -164,14 +168,14 @@ public class TaskServiceImpl implements TaskService {
             return current.toResponse();
         }
         Instant now = clock.instant();
-        if (mapper.reopen(id, request.version()) == 0) {
+        if (mapper.reopen(CurrentUser.requireId(), id, request.version()) == 0) {
             TaskRow latest = require(id);
             if (latest.status() == TaskStatus.PENDING) {
                 return latest.toResponse();
             }
             throw versionConflict();
         }
-        workRecordMapper.invalidateTaskCompletion(id, now);
+        workRecordMapper.invalidateTaskCompletion(CurrentUser.requireId(), id, now);
         insertEvent(current, "REOPENED", TaskStatus.COMPLETED, TaskStatus.PENDING,
                 request.version() + 1, current.completionResult(), now);
         return get(id);
@@ -185,10 +189,10 @@ public class TaskServiceImpl implements TaskService {
         }
         String result = normalizeResult(request.result());
         Instant now = clock.instant();
-        if (mapper.touchCompletionResult(id, request.version()) == 0) {
+        if (mapper.touchCompletionResult(CurrentUser.requireId(), id, request.version()) == 0) {
             throw versionConflict();
         }
-        if (workRecordMapper.updateCompletionResult(id, result, now) != 1) {
+        if (workRecordMapper.updateCompletionResult(CurrentUser.requireId(), id, result, now) != 1) {
             throw new IllegalStateException("待办的当前完成记录缺失");
         }
         insertEvent(current, "COMPLETION_RESULT_UPDATED", TaskStatus.COMPLETED, TaskStatus.COMPLETED,
@@ -199,22 +203,22 @@ public class TaskServiceImpl implements TaskService {
     @Transactional(readOnly = true)
     public List<TaskEventResponse> events(UUID id) {
         requireAny(id);
-        return mapper.findEvents(id).stream().map(TaskEventRow::toResponse).toList();
+        return mapper.findEvents(CurrentUser.requireId(), id).stream().map(TaskEventRow::toResponse).toList();
     }
 
     private TaskRow require(UUID id) {
-        return mapper.findById(id)
+        return mapper.findById(CurrentUser.requireId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "待办不存在"));
     }
 
     private TaskRow requireAny(UUID id) {
-        return mapper.findAnyById(id)
+        return mapper.findAnyById(CurrentUser.requireId(), id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "待办不存在"));
     }
 
     private void insertEvent(TaskRow task, String type, TaskStatus fromStatus, TaskStatus toStatus,
             long version, String result, Instant occurredAt) {
-        mapper.insertEvent(UUID.randomUUID(), task.id(), type, task.title(), task.projectId(),
+        mapper.insertEvent(CurrentUser.requireId(), UUID.randomUUID(), task.id(), type, task.title(), task.projectId(),
                 fromStatus, toStatus, version, result, occurredAt);
     }
 

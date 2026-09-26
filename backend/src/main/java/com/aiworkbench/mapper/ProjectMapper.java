@@ -9,10 +9,10 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface ProjectMapper {
-    void insert(@Param("id") UUID id, @Param("name") String name);
-    Optional<ProjectRow> findById(UUID id);
-    List<ProjectRow> findAll(@Param("includeArchived") boolean includeArchived);
-    List<ProjectRow> findPage(@Param("includeArchived") boolean includeArchived, @Param("q") String q);
-    int rename(@Param("id") UUID id, @Param("name") String name);
-    int archive(UUID id);
+    void insert(@Param("userId") UUID userId, @Param("id") UUID id, @Param("name") String name);
+    Optional<ProjectRow> findById(@Param("userId") UUID userId, @Param("id") UUID id);
+    List<ProjectRow> findAll(@Param("userId") UUID userId, @Param("includeArchived") boolean includeArchived);
+    List<ProjectRow> findPage(@Param("userId") UUID userId, @Param("includeArchived") boolean includeArchived, @Param("q") String q);
+    int rename(@Param("userId") UUID userId, @Param("id") UUID id, @Param("name") String name);
+    int archive(@Param("userId") UUID userId, @Param("id") UUID id);
 }

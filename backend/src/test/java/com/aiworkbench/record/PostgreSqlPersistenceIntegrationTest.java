@@ -7,11 +7,14 @@ import com.aiworkbench.dto.record.UpdateWorkRecordRequest;
 import com.aiworkbench.dto.record.WorkRecordResponse;
 import com.aiworkbench.service.ProjectService;
 import com.aiworkbench.service.WorkRecordService;
+import com.aiworkbench.support.OwnerTestContext;
+import jakarta.servlet.http.Cookie;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +22,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
 @Transactional
 class PostgreSqlPersistenceIntegrationTest {
 
@@ -46,6 +52,20 @@ class PostgreSqlPersistenceIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+    private Cookie ownerSession;
+
+    @BeforeEach
+    void owner() throws Exception {
+        OwnerTestContext.ensureAccounts(jdbcTemplate);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+        ownerSession = OwnerTestContext.login(mockMvc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+    }
+
+    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
+        try { return mockMvc.perform(OwnerTestContext.authenticated(request, ownerSession)); }
+        finally { OwnerTestContext.use(OwnerTestContext.USER_ID); }
+    }
 
     @Test
     void persistsHistoricalRecordsWithSeparateOccurrenceAndCreationTimes() {
@@ -107,14 +127,16 @@ class PostgreSqlPersistenceIntegrationTest {
         ProjectResponse project = projectService.create(new CreateProjectRequest("接口状态项目"));
         projectService.archive(project.id());
 
-        mockMvc.perform(post("/api/records")
+        perform(post("/api/records")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateWorkRecordRequest(
                                 project.id(), "不能新增", Instant.parse("2026-09-19T03:00:00Z")))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("归档项目不能用于新记录"));
 
-        mockMvc.perform(post("/api/records")
+        perform(post("/api/records")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"projectId\":null,\"content\":\"   \",\"occurredAt\":null}"))
                 .andExpect(status().isBadRequest())
@@ -126,7 +148,7 @@ class PostgreSqlPersistenceIntegrationTest {
         ProjectResponse project = projectService.create(new CreateProjectRequest("Constraint Project"));
 
         assertThatThrownBy(() -> jdbcTemplate.update(
-                "INSERT INTO projects (id, name) VALUES (?, ?)", UUID.randomUUID(), project.name().toLowerCase()))
+                "INSERT INTO projects (id, user_id, name) VALUES (?, ?, ?)", UUID.randomUUID(), OwnerTestContext.USER_ID, project.name().toLowerCase()))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 

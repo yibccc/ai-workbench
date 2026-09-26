@@ -16,6 +16,7 @@ This directory contains guidelines for backend development. Fill in each file wi
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Controller / service interfaces / service implementations / mapper layers | Active |
 | [Database Guidelines](./database-guidelines.md) | PostgreSQL migrations, MyBatis mapping, time ranges, and project associations | Active |
+| [Identity and Isolation](./identity-isolation.md) | Account/session APIs, explicit idle time, owner-scoped SQL and private STOMP | Active |
 | [Error Handling](./error-handling.md) | Problem details, validation, conflicts, and safe exception translation | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
 | [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
@@ -23,7 +24,7 @@ This directory contains guidelines for backend development. Fill in each file wi
 | [Pagination](./pagination.md) | PageHelper query scope, zero-based API, thread-local cleanup and browser behavior | Active |
 | [Report Deletion](./report-deletion.md) | Daily version soft deletion, concurrency, idempotency and retained evidence | Active |
 | [Local Delivery](./local-delivery.md) | Windows process ownership, WSL Docker, backup and isolated restore | Active |
-| [Linux Deployment](./linux-deployment.md) | Four-service Docker build, authenticated Nginx ingress and exact WebSocket origins | Active |
+| [Linux Deployment](./linux-deployment.md) | Four-service Docker build, app-authenticated ingress and exact STOMP origins | Active |
 
 ---
 

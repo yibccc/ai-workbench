@@ -1,6 +1,27 @@
-import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
+import { expect, test as base, type APIRequestContext, type Locator, type Page } from '@playwright/test'
 
 const apiBase = 'http://127.0.0.1:18080'
+const e2eUsername = 'e2e_admin'
+const e2ePassword = 'E2eOnly-Synthetic-9384!'
+const test = base.extend<{ request: APIRequestContext }>({
+  request: async ({ playwright }, applyFixture) => {
+    const setup = await playwright.request.newContext({ baseURL: apiBase })
+    const csrfResponse = await setup.get('/api/auth/csrf')
+    expect(csrfResponse.ok()).toBeTruthy()
+    const { token } = await csrfResponse.json() as { token: string }
+    const loginResponse = await setup.post('/api/auth/login', {
+      headers: { 'X-XSRF-TOKEN': token }, data: { username: e2eUsername, password: e2ePassword },
+    })
+    expect(loginResponse.status()).toBe(200)
+    const currentCsrf = await (await setup.get('/api/auth/csrf')).json() as { token: string }
+    const request = await playwright.request.newContext({
+      baseURL: apiBase, storageState: await setup.storageState(), extraHTTPHeaders: { 'X-XSRF-TOKEN': currentCsrf.token },
+    })
+    await setup.dispose()
+    await applyFixture(request)
+    await request.dispose()
+  },
+})
 
 async function reset(request: APIRequestContext) {
   const response = await request.post(`${apiBase}/api/e2e/reset`)
@@ -15,8 +36,36 @@ async function createProject(request: APIRequestContext, name = 'E2E 项目') {
 
 async function openWorkbench(page: Page) {
   await page.goto('/')
+  await page.getByLabel('用户名').fill(e2eUsername)
+  await page.getByLabel('密码', { exact: true }).fill(e2ePassword)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
   await expect(page.getByTestId('workbench')).toBeVisible()
   await expect(page.getByText(/backend ·|postgres ·|redis ·|deepseek ·/)).toHaveCount(0)
+}
+
+async function pendingStorageKey(page: Page) {
+  const response = await page.context().request.get('/api/auth/me')
+  expect(response.status()).toBe(200)
+  const account = await response.json() as { id: string }
+  return `ai-workbench.pending.v2.${account.id}`
+}
+
+async function openSyntheticAdminManagement(page: Page, request: APIRequestContext) {
+  const username = `e2e_self_${crypto.randomUUID().slice(0, 8)}`
+  const password = 'E2eOnly-SelfAdmin-9384!'
+  const created = await request.post(`${apiBase}/api/admin/users`, { data: { username, password, role: 'ADMIN' } })
+  expect(created.status()).toBe(201)
+  const account = await created.json() as { id: string }
+  await page.goto('/')
+  await page.getByLabel('用户名').fill(username)
+  await page.getByLabel('密码', { exact: true }).fill(password)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  await page.getByRole('button', { name: /^账号菜单/ }).click()
+  await page.getByRole('menuitem', { name: '用户管理' }).click()
+  const row = page.locator('.user-row').filter({ hasText: username })
+  await expect(row).toContainText('当前账号')
+  return { account, row, username }
 }
 
 async function openSection(page: Page, id: string) {
@@ -309,9 +358,10 @@ test('日报接收其他窗口删除事件并清理已删除的恢复跟踪', as
   expect((await request.delete(`${apiBase}/api/reports/${report.id}?version=${latest.version}`)).status()).toBe(204)
   await expect(panel.getByTestId('daily-content')).toHaveCount(0)
   await expect(panel.getByLabel('日报历史版本')).toContainText('暂无历史版本')
-  await page.evaluate(id => localStorage.setItem('ai-workbench.pending.v1', JSON.stringify([`REPORT:${id}`])), report.id)
+  const storageKey = await pendingStorageKey(page)
+  await page.evaluate(({ key, id }) => localStorage.setItem(key, JSON.stringify([`REPORT:${id}`])), { key: storageKey, id: report.id })
   await page.reload()
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('ai-workbench.pending.v1'))).toBe('[]')
+  await expect.poll(() => page.evaluate(key => localStorage.getItem(key), storageKey)).toBe('[]')
   await session.detach()
 })
 
@@ -1076,7 +1126,8 @@ test('超过8秒的输入通过WebSocket自动完成，断线后GET恢复并提�
   await page.getByTestId('capture-content').fill('[E2E_DELAY_9S] 延迟生成记录和待办')
   await page.getByTestId('capture-submit').click()
   await expect(page.getByText('原文已保存，AI 正在处理')).toBeVisible()
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('ai-workbench.pending.v1'))).toContain('INPUT:')
+  const storageKey = await pendingStorageKey(page)
+  await expect.poll(() => page.evaluate(key => localStorage.getItem(key) ?? '', storageKey)).toContain('INPUT:')
   await page.reload()
   await expect(page.getByText('原文已保存，AI 正在处理')).toBeVisible()
   await context.setOffline(true)
@@ -1181,6 +1232,393 @@ test('日报周报短来源不产生双滚动，长来源内部滚动且分页�
     expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(2)
     await expect(sourcePager).toBeInViewport()
   }
+})
+
+test('账号菜单、管理员创建与换账号隔离', async ({ page, request }) => {
+  const username = `e2e_user_${crypto.randomUUID().slice(0, 8)}`
+  const password = 'E2eOnly-User-9384!'
+  const record = await request.post(`${apiBase}/api/records`, { data: {
+    projectId: null, content: '仅管理员可见的工作记录', occurredAt: new Date().toISOString(),
+  } })
+  expect(record.ok()).toBeTruthy()
+  await openWorkbench(page)
+  await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: '手工记录' }).click()
+  await page.getByTestId('record-content').fill('管理员未保存草稿')
+  await page.getByRole('button', { name: /^账号菜单/ }).click()
+  await page.getByRole('menuitem', { name: '用户管理' }).click()
+  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(4)
+  await page.getByRole('button', { name: '创建用户' }).click()
+  const dialog = page.getByRole('dialog', { name: '创建用户' })
+  await expect(dialog.getByLabel('角色')).toHaveValue('USER')
+  await dialog.getByLabel('用户名').fill(username)
+  await dialog.getByLabel('密码', { exact: true }).fill(password)
+  await dialog.getByLabel('确认密码').fill(password)
+  await dialog.getByRole('button', { name: '创建用户' }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(page.getByText(username).first()).toBeVisible()
+  await page.setViewportSize({ width: 390, height: 700 })
+  await navigate(page, '工作记录')
+  const mobileMenu = page.locator('.mobile-account')
+  await expect(mobileMenu.getByRole('button', { name: /^账号菜单/ })).toBeVisible()
+  await mobileMenu.getByRole('button', { name: /^账号菜单/ }).click()
+  await expect(mobileMenu.getByRole('menuitem', { name: '修改密码' })).toBeVisible()
+  await expect(mobileMenu.getByRole('menuitem', { name: '退出登录' })).toBeVisible()
+  await mobileMenu.getByRole('menuitem', { name: '修改密码' }).click()
+  const mobilePassword = page.getByRole('dialog', { name: '修改密码' })
+  await expect(mobilePassword.getByLabel('当前密码')).toBeVisible()
+  await expect(mobilePassword.getByLabel('新密码', { exact: true })).toBeVisible()
+  await expect(mobilePassword.getByLabel('确认新密码')).toBeVisible()
+  await mobilePassword.getByRole('button', { name: '取消' }).click()
+  await expect(mobilePassword).toHaveCount(0)
+  await mobileMenu.getByRole('button', { name: /^账号菜单/ }).click()
+  await mobileMenu.getByRole('menuitem', { name: '用户管理' }).click()
+  await expect(page.getByRole('heading', { name: '用户管理' })).toBeVisible()
+  await mobileMenu.getByRole('button', { name: /^账号菜单/ }).click()
+  await mobileMenu.getByRole('menuitem', { name: '退出登录' }).click()
+  await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
+  await page.getByLabel('用户名').fill(username)
+  await page.getByLabel('密码', { exact: true }).fill(password)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: '手工记录' }).click()
+  await expect(page.getByTestId('record-content')).not.toHaveValue('管理员未保存草稿')
+  await expect(page.getByText('仅管理员可见的工作记录')).toHaveCount(0)
+  await page.getByRole('button', { name: /^账号菜单/ }).click()
+  await expect(page.getByRole('menuitem', { name: '用户管理' })).toHaveCount(0)
+  expect((await page.context().request.get('/api/admin/users')).status()).toBe(403)
+  await page.setViewportSize({ width: 390, height: 700 })
+  await expect(page.locator('.mobile-account').getByRole('button', { name: /^账号菜单/ })).toBeVisible()
+  await expect(page.locator('.mobile-account').getByRole('button', { name: /^账号菜单/ })).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '修改密码' })).toBeVisible()
+  await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '退出登录' })).toBeVisible()
+  await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '用户管理' })).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(4)
+})
+
+test('旧身份迟到HTTP与STOMP订阅及pending不会进入新身份', async ({ page, request }) => {
+  test.setTimeout(60_000)
+  const username = `e2e_switch_${crypto.randomUUID().slice(0, 8)}`
+  const password = 'E2eOnly-Switch-9384!'
+  const created = await request.post(`${apiBase}/api/admin/users`, { data: { username, password, role: 'USER' } })
+  expect(created.status()).toBe(201)
+  const projectName = `仅A可见-${crypto.randomUUID().slice(0, 8)}`
+  expect((await request.post(`${apiBase}/api/projects`, { data: { name: projectName } })).status()).toBe(200)
+  const sockets: import('@playwright/test').WebSocket[] = []
+  let subscribedA = false
+  page.on('websocket', socket => {
+    if (new URL(socket.url()).pathname !== '/ws/events') return
+    sockets.push(socket)
+    socket.on('framesent', frame => {
+      if (String(frame.payload).startsWith('SUBSCRIBE') && String(frame.payload).includes('/user/queue/workbench-events')) subscribedA = true
+    })
+  })
+  await openWorkbench(page)
+  const aPendingKey = await pendingStorageKey(page)
+  await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: '手工记录' }).click()
+  await page.getByTestId('record-content').fill('A的未保存草稿')
+  await navigate(page, '待办任务')
+  await navigate(page, '工作汇报')
+  await navigate(page, '工作记录')
+  await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: 'AI 快记' }).click()
+  await page.route('**/api/inputs/*', async route => {
+    if (route.request().method() !== 'GET') { await route.continue(); return }
+    const response = await route.fetch()
+    if (response.status() !== 200) { await route.fulfill({ response }); return }
+    const body = await response.json() as Record<string, unknown>
+    await route.fulfill({ response, json: { ...body, status: 'PROCESSING', records: [], tasks: [] } })
+  })
+  await page.getByTestId('capture-content').fill('[E2E_DELAY_9S] A的未完成输入')
+  await page.getByTestId('capture-submit').click()
+  await expect.poll(() => subscribedA).toBe(true)
+  await expect.poll(() => page.evaluate(key => localStorage.getItem(key) ?? '', aPendingKey)).toContain('INPUT:')
+  const aInputId = await page.evaluate(key => (JSON.parse(localStorage.getItem(key) ?? '[]') as string[]).at(-1)?.slice('INPUT:'.length), aPendingKey)
+  expect(aInputId).toBeTruthy()
+
+  let releaseOld!: () => void
+  let oldCaptured!: () => void
+  let oldSettled!: () => void
+  const oldGate = new Promise<void>(resolve => { releaseOld = resolve })
+  const captured = new Promise<void>(resolve => { oldCaptured = resolve })
+  const settled = new Promise<void>(resolve => { oldSettled = resolve })
+  let held = false
+  await page.route('**/api/projects/page?**', async route => {
+    if (held) { await route.continue(); return }
+    held = true
+    const response = await route.fetch()
+    oldCaptured()
+    await oldGate
+    try { await route.fulfill({ response }) } catch { /* Identity switch aborts this request. */ }
+    oldSettled()
+  })
+  await navigate(page, '项目管理')
+  await captured
+  await page.getByRole('button', { name: /^账号菜单/ }).click()
+  await page.getByRole('menuitem', { name: '退出登录' }).click()
+  await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
+  await expect.poll(() => sockets[0]?.isClosed()).toBe(true)
+  await page.getByLabel('用户名').fill(username)
+  await page.getByLabel('密码', { exact: true }).fill(password)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  const bPendingKey = await pendingStorageKey(page)
+  expect(bPendingKey).not.toBe(aPendingKey)
+  await navigate(page, '工作记录')
+  await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: '手工记录' }).click()
+  await expect(page.getByTestId('record-content')).not.toHaveValue('A的未保存草稿')
+  await navigate(page, '待办任务')
+  await navigate(page, '工作汇报')
+  await navigate(page, '项目管理')
+  const bBusinessWrites: string[] = []
+  page.on('request', outgoing => {
+    const pathname = new URL(outgoing.url()).pathname
+    if (outgoing.method() !== 'GET' && /^\/api\/(records|tasks|inputs|reports|projects)(\/|$)/.test(pathname)) {
+      bBusinessWrites.push(outgoing.postData() ?? '')
+    }
+  })
+  releaseOld()
+  await settled
+  let bFetchedOldInput = 0
+  page.on('request', outgoing => {
+    if (new URL(outgoing.url()).pathname === `/api/inputs/${aInputId}`) bFetchedOldInput++
+  })
+  await page.waitForTimeout(10_000) // A's delayed AI completion can publish only to A's closed socket.
+  expect(sockets).toHaveLength(1)
+  expect(bFetchedOldInput).toBe(0)
+  expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key) ?? '[]'), bPendingKey)).toEqual([])
+  await expect(page.getByText(projectName)).toHaveCount(0)
+  await expect(page.getByText('A的未完成输入')).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  await expect(page.getByText(projectName)).toHaveCount(0)
+  await navigate(page, '工作记录')
+  await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: '手工记录' }).click()
+  await expect(page.getByTestId('record-content')).not.toHaveValue('A的未保存草稿')
+  await expect(page.getByText('A的未完成输入')).toHaveCount(0)
+  expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key) ?? '[]'), bPendingKey)).toEqual([])
+  expect(bFetchedOldInput).toBe(0)
+  expect(bBusinessWrites).toEqual([])
+  await page.getByTestId('record-content').fill('B自己的工作记录')
+  await page.getByTestId('record-submit').click()
+  await expect(page.getByTestId('record-item')).toContainText('B自己的工作记录')
+  expect(bBusinessWrites).toHaveLength(1)
+  expect(bBusinessWrites[0]).toContain('B自己的工作记录')
+  expect(bBusinessWrites[0]).not.toContain('A的未保存草稿')
+})
+
+test('明确键盘与表单操作续期，背景点击和被动加载不续期', async ({ page }) => {
+  let activitySignals = 0
+  page.on('request', outgoing => { if (new URL(outgoing.url()).pathname === '/api/auth/activity') activitySignals++ })
+  await openWorkbench(page)
+  await page.clock.install()
+  expect(activitySignals).toBe(0)
+  await page.locator('.topbar').click({ position: { x: 350, y: 10 } })
+  expect(activitySignals).toBe(0)
+  await page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: '待办任务' }).focus()
+  await page.keyboard.press('Enter')
+  await expect.poll(() => activitySignals).toBe(1)
+  await expect(page.getByRole('heading', { name: '待办任务', level: 1 })).toBeVisible()
+  await page.clock.fastForward(61_000)
+  const create = page.locator('.tasks-page > .page-header').getByRole('button', { name: '新建待办' })
+  await create.focus()
+  await page.keyboard.press('Space')
+  await expect.poll(() => activitySignals).toBe(2)
+  const editor = page.getByRole('dialog', { name: '新建待办' })
+  await editor.getByLabel('待办标题').fill('表单键盘提交续期')
+  await page.clock.fastForward(61_000)
+  await editor.getByLabel('待办标题').press('Enter')
+  await expect.poll(() => activitySignals).toBe(3)
+  await expect(editor).toHaveCount(0)
+})
+
+test('用户管理取消无变更，重置表单校验与焦点恢复', async ({ page, request }) => {
+  const username = `e2e_managed_${crypto.randomUUID().slice(0, 8)}`
+  const created = await request.post(`${apiBase}/api/admin/users`, { data: {
+    username, password: 'E2eOnly-Managed-9384!', role: 'USER',
+  } })
+  expect(created.status()).toBe(201)
+  const user = await created.json() as { id: string }
+  await openWorkbench(page)
+  await page.getByRole('button', { name: /^账号菜单/ }).click()
+  await page.getByRole('menuitem', { name: '用户管理' }).click()
+  const row = page.locator('.user-row').filter({ hasText: username })
+  await expect(row).toContainText('普通用户')
+  await row.getByRole('button', { name: '修改角色' }).click()
+  const roleDialog = page.getByRole('dialog', { name: '修改用户角色？' })
+  await expect(roleDialog).toContainText('现有会话会失效，业务数据保留')
+  await roleDialog.getByRole('button', { name: '取消' }).click()
+  await expect(row).toContainText('普通用户')
+  await row.getByRole('button', { name: '停用' }).click()
+  await page.getByRole('dialog', { name: '停用用户？' }).getByRole('button', { name: '取消' }).click()
+  const unchanged = await (await request.get(`${apiBase}/api/admin/users`)).json() as Array<{ id: string; enabled: boolean; role: string }>
+  expect(unchanged.find(item => item.id === user.id)).toMatchObject({ enabled: true, role: 'USER' })
+  const reset = row.getByRole('button', { name: '重置密码' })
+  await reset.click()
+  const passwordDialog = page.getByRole('dialog', { name: new RegExp(`重置 ${username} 的密码`) })
+  await passwordDialog.getByLabel('密码', { exact: true }).fill('E2eOnly-Changed-9384!')
+  await passwordDialog.getByLabel('确认密码').fill('different')
+  await passwordDialog.getByRole('button', { name: '重置密码' }).click()
+  await expect(passwordDialog.getByRole('alert')).toContainText('不一致')
+  await passwordDialog.getByRole('button', { name: '取消' }).click()
+  await expect(reset).toBeFocused()
+})
+
+for (const action of ['自降级', '自停用', '自重置密码'] as const) {
+  test(`管理员${action}成功后立即撤出工作台，刷新失败也不保留旧管理页`, async ({ page, request }) => {
+    const { account, row, username } = await openSyntheticAdminManagement(page, request)
+    let listRefreshes = 0
+    await page.route('**/api/admin/users', async route => {
+      if (route.request().method() === 'GET') { listRefreshes++; await route.abort('failed'); return }
+      await route.continue()
+    })
+    const mutationPath = `/api/admin/users/${account.id}/${action === '自降级' ? 'role' : action === '自停用' ? 'enabled' : 'reset-password'}`
+    const succeeded = page.waitForResponse(response => new URL(response.url()).pathname === mutationPath && response.status() === 200)
+    if (action === '自降级') {
+      await row.getByRole('button', { name: '修改角色' }).click()
+      await page.getByRole('dialog', { name: '修改用户角色？' }).getByRole('button', { name: '确认修改' }).click()
+    } else if (action === '自停用') {
+      await row.getByRole('button', { name: '停用' }).click()
+      await page.getByRole('dialog', { name: '停用用户？' }).getByRole('button', { name: '确认停用' }).click()
+    } else {
+      await row.getByRole('button', { name: '重置密码' }).click()
+      const dialog = page.getByRole('dialog', { name: `重置 ${username} 的密码` })
+      await dialog.getByLabel('密码', { exact: true }).fill('E2eOnly-SelfReset-9384!')
+      await dialog.getByLabel('确认密码').fill('E2eOnly-SelfReset-9384!')
+      await dialog.getByRole('button', { name: '重置密码' }).click()
+    }
+    await succeeded
+    await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
+    await expect(page.getByTestId('workbench')).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: '用户管理' })).toHaveCount(0)
+    await expect(page.locator('.viewport-toast')).toContainText('账号权限或密码已变更，请重新登录')
+    await page.waitForTimeout(100)
+    expect(listRefreshes).toBe(0)
+  })
+}
+
+test('STOMP断线时HTTP可用，15秒兜底取回结果且自动通信不续期', async ({ page, request }) => {
+  test.setTimeout(75_000)
+  let socketAttempts = 0
+  let firstSocket: import('@playwright/test').WebSocketRoute | null = null
+  let firstConnected = false
+  let disconnectedSocket: import('@playwright/test').WebSocketRoute | null = null
+  let recovered = false
+  let activitySignals = 0
+  let inputGets = 0
+  let holdResult = true
+  page.on('request', outgoing => {
+    if (new URL(outgoing.url()).pathname === '/api/auth/activity') activitySignals++
+  })
+  await page.routeWebSocket('**/ws/events', ws => {
+    socketAttempts++
+    if (socketAttempts === 1) {
+      firstSocket = ws
+      const server = ws.connectToServer()
+      server.onMessage(message => { if (String(message).startsWith('CONNECTED')) firstConnected = true; ws.send(message) })
+    }
+    else if (socketAttempts === 2) disconnectedSocket = ws // Open without CONNECTED: HTTP fallback remains authoritative.
+    else {
+      const server = ws.connectToServer()
+      server.onMessage(message => { if (String(message).startsWith('CONNECTED')) recovered = true; ws.send(message) })
+    }
+  })
+  await page.route('**/api/inputs/*', async route => {
+    if (!holdResult) { await route.continue(); return }
+    inputGets++
+    const response = await route.fetch()
+    const body = await response.json() as Record<string, unknown>
+    await route.fulfill({ response, json: { ...body, status: 'PROCESSING', records: [], tasks: [] } })
+  })
+  await openWorkbench(page)
+  await page.getByTestId('capture-content').fill('[E2E_MULTI] 断线后由HTTP兜底取回结果')
+  await page.getByTestId('capture-submit').click()
+  await expect.poll(() => socketAttempts).toBeGreaterThanOrEqual(1)
+  await expect.poll(() => firstConnected).toBe(true)
+  if (!firstSocket) throw new Error('STOMP connection was not opened')
+  await firstSocket.close()
+  await expect.poll(() => socketAttempts).toBeGreaterThanOrEqual(2)
+  const project = await request.post(`${apiBase}/api/projects`, { data: { name: '断线期间HTTP仍可用' } })
+  expect(project.status()).toBe(200)
+  await expect(page.getByText('原文已保存，AI 正在处理。关闭页面也不会丢失原文。')).toBeVisible()
+  const afterForegroundPolls = inputGets
+  const afterInteraction = activitySignals
+  await expect.poll(() => inputGets, { timeout: 20_000 }).toBeGreaterThan(afterForegroundPolls)
+  expect(activitySignals).toBe(afterInteraction)
+  if (!disconnectedSocket) throw new Error('Disconnected STOMP retry was not opened')
+  const beforeReconnect = inputGets
+  await disconnectedSocket.close()
+  await expect.poll(() => socketAttempts).toBeGreaterThanOrEqual(3)
+  await expect.poll(() => recovered).toBe(true)
+  await expect.poll(() => inputGets).toBeGreaterThan(beforeReconnect)
+  expect(activitySignals).toBe(afterInteraction)
+  holdResult = false
+  await expect(page.getByText('已生成 2 条工作记录和 2 项待办。')).toBeVisible({ timeout: 20_000 })
+})
+
+test('真实会话撤销立即撤出业务页并保留五秒提示', async ({ page, request }) => {
+  const username = `e2e_expired_${crypto.randomUUID().slice(0, 8)}`
+  const password = 'E2eOnly-Expired-9384!'
+  const created = await request.post(`${apiBase}/api/admin/users`, { data: { username, password, role: 'USER' } })
+  expect(created.status()).toBe(201)
+  const user = await created.json() as { id: string }
+  await page.goto('/')
+  await page.getByLabel('用户名').fill(username)
+  await page.getByLabel('密码', { exact: true }).fill(password)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  const disabled = await request.patch(`${apiBase}/api/admin/users/${user.id}/enabled`, { data: { enabled: false } })
+  expect(disabled.status()).toBe(200)
+  await navigate(page, '项目管理')
+  await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
+  await expect(page.getByTestId('workbench')).toHaveCount(0)
+  await expect(page.locator('.viewport-toast')).toContainText('会话已失效')
+  await expect(page.locator('.viewport-toast')).toHaveCount(0, { timeout: 6500 })
+})
+
+test('失效提示替换旧事件后重计五秒且可提前关闭', async ({ page, request }) => {
+  const username = `e2e_toast_${crypto.randomUUID().slice(0, 8)}`
+  const password = 'E2eOnly-Toast-9384!'
+  const created = await request.post(`${apiBase}/api/admin/users`, { data: { username, password, role: 'USER' } })
+  expect(created.status()).toBe(201)
+  const user = await created.json() as { id: string }
+  await page.goto('/')
+  await page.getByLabel('用户名').fill(username)
+  await page.getByLabel('密码', { exact: true }).fill(password)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  await page.clock.install()
+  await navigate(page, '项目管理')
+  await page.getByLabel('新项目名称').fill(`提示计时-${crypto.randomUUID().slice(0, 8)}`)
+  await page.getByRole('button', { name: '创建项目', exact: true }).click()
+  const toast = page.locator('.viewport-toast')
+  await expect(toast).toContainText('项目已创建')
+  await page.clock.fastForward(3000)
+  expect((await request.patch(`${apiBase}/api/admin/users/${user.id}/enabled`, { data: { enabled: false } })).status()).toBe(200)
+  await navigate(page, '待办任务')
+  await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
+  await expect(toast).toContainText('会话已失效')
+  await page.clock.fastForward(2100)
+  await expect(toast).toContainText('会话已失效') // The earlier project's 5-second deadline has passed.
+  await toast.getByRole('button', { name: '关闭提示' }).click()
+  await expect(toast).toHaveCount(0)
+})
+
+test('403、404与网络失败保留当前身份和原页面', async ({ page }) => {
+  await openWorkbench(page)
+  const pageUrl = '**/api/projects/page?**'
+  await page.route(pageUrl, route => route.fulfill({ status: 403, contentType: 'application/problem+json', body: JSON.stringify({ detail: '无权读取' }) }))
+  await navigate(page, '项目管理')
+  await expect(page.getByRole('alert')).toContainText('无权读取')
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  await page.unrouteAll({ behavior: 'wait' })
+  await page.route(pageUrl, route => route.fulfill({ status: 404, contentType: 'application/problem+json', body: JSON.stringify({ detail: '资源不存在' }) }))
+  await page.getByRole('button', { name: '重新加载' }).click()
+  await expect(page.getByRole('alert')).toContainText('资源不存在')
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  await page.unrouteAll({ behavior: 'wait' })
+  await page.route(pageUrl, route => route.abort())
+  await page.getByRole('button', { name: '重新加载' }).click()
+  await expect(page.getByRole('alert')).toContainText('暂时无法读取项目')
+  await expect(page.getByTestId('workbench')).toBeVisible()
 })
 
 test('143来源使用完整快照和局部别名生成，不发生静默截断', async ({ page, request }) => {

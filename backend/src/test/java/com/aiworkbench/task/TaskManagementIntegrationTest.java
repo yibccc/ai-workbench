@@ -11,18 +11,23 @@ import com.aiworkbench.enums.TaskPriority;
 import com.aiworkbench.enums.TaskStatus;
 import com.aiworkbench.service.ProjectService;
 import com.aiworkbench.service.TaskService;
+import com.aiworkbench.support.OwnerTestContext;
+import jakarta.servlet.http.Cookie;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
 @Transactional
 class TaskManagementIntegrationTest {
     @Autowired TaskService taskService;
@@ -42,6 +48,20 @@ class TaskManagementIntegrationTest {
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
+    private Cookie ownerSession;
+
+    @BeforeEach
+    void owner() throws Exception {
+        OwnerTestContext.ensureAccounts(jdbcTemplate);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+        ownerSession = OwnerTestContext.login(mockMvc);
+        OwnerTestContext.use(OwnerTestContext.USER_ID);
+    }
+
+    private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
+        try { return mockMvc.perform(OwnerTestContext.authenticated(request, ownerSession)); }
+        finally { OwnerTestContext.use(OwnerTestContext.USER_ID); }
+    }
 
     @Test
     void appliesDefaultsAndPersistsTasksWithoutInventingDueDates() {
@@ -108,26 +128,29 @@ class TaskManagementIntegrationTest {
 
         UpdateTaskRequest stale = new UpdateTaskRequest(
                 null, "过期保存", "旧数据", null, TaskPriority.LOW, created.version());
-        mockMvc.perform(put("/api/tasks/{id}", created.id())
+        perform(put("/api/tasks/{id}", created.id())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(stale)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("待办已被其他操作修改，请刷新后重试"));
         assertThat(taskService.get(created.id()).title()).isEqualTo("第一次保存");
-        mockMvc.perform(delete("/api/tasks/{id}", created.id()).param("version", String.valueOf(created.version())))
+        perform(delete("/api/tasks/{id}", created.id())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .param("version", String.valueOf(created.version())))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("待办已被其他操作修改，请刷新后重试"));
     }
 
     @Test
     void rejectsContradictoryAndInvalidFilterParametersWithProblemDetails() throws Exception {
-        mockMvc.perform(get("/api/tasks")
+        perform(get("/api/tasks")
                         .param("projectId", UUID.randomUUID().toString())
                         .param("unassigned", "true"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("未分类筛选不能与项目筛选同时使用"));
 
-        mockMvc.perform(get("/api/tasks").param("priority", "URGENT"))
+        perform(get("/api/tasks").param("priority", "URGENT"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("请求参数无效"));
     }

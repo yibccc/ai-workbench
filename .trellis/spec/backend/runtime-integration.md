@@ -1,6 +1,6 @@
 # Runtime Integration Contract
 
-> Deployment scope: host development remains loopback-only. The container backend deliberately listens on 0.0.0.0 inside the Compose network and publishes no host port; authenticated Nginx is the ingress. See [Linux Deployment](linux-deployment.md) for exact-origin configuration, runtime credentials and HTTPS deployment boundaries.
+> Deployment scope: host development remains loopback-only. The container backend deliberately listens on 0.0.0.0 inside the Compose network and publishes no host port; Nginx proxies the ingress while application Security authenticates business/status APIs. See [Linux Deployment](linux-deployment.md) and [Identity and Isolation](identity-isolation.md) for exact-origin, Session and HTTPS boundaries.
 
 ## Scenario: Local infrastructure and runtime status
 
@@ -16,7 +16,7 @@ Use this contract when changing local PostgreSQL or Redis wiring, DeepSeek confi
 - `WorkbenchStatus(String application, Instant checkedAt, Map<String, ProbeStatus> components, Map<String, String> versions)`
 - `ProbeStatus(String status, String detail)`
 
-`GET /api/status` is observational and must not make a paid model request. `POST /api/ai/probe` is the only D1 endpoint that performs a live DeepSeek call.
+`GET /api/status` is observational, requires application login, and must not make a paid model request. `POST /api/ai/probe` also requires login and is the only D1 endpoint that performs a live DeepSeek call. Neither endpoint is a public authentication bypass; `/actuator/health` remains internal-only through the proxy.
 
 ### 3. Contracts
 
