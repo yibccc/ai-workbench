@@ -1,0 +1,5 @@
+interface:
+  display_name: "网页交接接入"
+  short_description: "核对交接包并接入 Trellis 规划，不开始编码"
+policy:
+  allow_implicit_invocation: false

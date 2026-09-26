@@ -1,0 +1,5 @@
+interface:
+  display_name: "独立代码审查"
+  short_description: "审查完整 diff 与 AC 证据，不改代码"
+policy:
+  allow_implicit_invocation: false
