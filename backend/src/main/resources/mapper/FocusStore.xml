@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.mapper.FocusStore">
+    <resultMap id="routineRow" type="com.aiworkbench.mapper.FocusStore$RoutineRow">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/><arg column="title" javaType="java.lang.String"/>
+            <arg column="project_id" javaType="java.util.UUID"/><arg column="weekdays" javaType="java.lang.String"/>
+            <arg column="default_duration_minutes" javaType="int"/><arg column="enabled" javaType="boolean"/>
+            <arg column="version" javaType="long"/><arg column="created_at" javaType="java.time.Instant"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="sessionRow" type="com.aiworkbench.dto.focus.FocusModels$Session">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/><arg column="request_id" javaType="java.util.UUID"/>
+            <arg column="title" javaType="java.lang.String"/><arg column="task_id" javaType="java.util.UUID"/>
+            <arg column="project_id" javaType="java.util.UUID"/><arg column="target_ms" javaType="long"/>
+            <arg column="interval_ms" javaType="long"/><arg column="zone_id" javaType="java.lang.String"/>
+            <arg column="phase" javaType="java.lang.String"/><arg column="version" javaType="long"/>
+            <arg column="started_at" javaType="java.time.Instant"/><arg column="anchor_at" javaType="java.time.Instant"/>
+            <arg column="ended_at" javaType="java.time.Instant"/><arg column="focus_ms" javaType="long"/>
+            <arg column="break_ms" javaType="long"/><arg column="pause_ms" javaType="long"/>
+            <arg column="pending_start" javaType="java.time.Instant"/><arg column="pending_end" javaType="java.time.Instant"/>
+            <arg column="resume_phase" javaType="java.lang.String"/><arg column="break_remaining_ms" javaType="long"/>
+            <arg column="next_break_at_ms" javaType="long"/><arg column="reminders_dismissed" javaType="boolean"/>
+            <arg column="reminder_ordinal" javaType="int"/><arg column="controller_id" javaType="java.util.UUID"/>
+            <arg column="controller_generation" javaType="long"/><arg column="controller_expires_at" javaType="java.time.Instant"/>
+            <arg column="progress" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="segmentRow" type="com.aiworkbench.mapper.FocusStore$Segment">
+        <constructor><arg column="start_at" javaType="java.time.Instant"/><arg column="end_at" javaType="java.time.Instant"/>
+            <arg column="focus_ms" javaType="long"/><arg column="break_ms" javaType="long"/></constructor>
+    </resultMap>
+    <resultMap id="totalsRow" type="com.aiworkbench.mapper.FocusStore$Totals">
+        <constructor><arg column="focus_ms" javaType="long"/><arg column="break_ms" javaType="long"/>
+            <arg column="session_count" javaType="long"/></constructor>
+    </resultMap>
+    <select id="routines" resultMap="routineRow">
+        SELECT * FROM focus_routines WHERE user_id=#{userId} ORDER BY created_at DESC,id DESC
+    </select>
+    <select id="routine" resultMap="routineRow">
+        SELECT * FROM focus_routines WHERE user_id=#{userId} AND id=#{id}
+    </select>
+    <select id="session" resultMap="sessionRow">
+        SELECT * FROM focus_sessions WHERE user_id=#{userId} AND id=#{id}<if test="lock"> FOR UPDATE</if>
+    </select>
+    <select id="current" resultMap="sessionRow">
+        SELECT * FROM focus_sessions WHERE user_id=#{userId} AND phase &lt;&gt; 'ENDED' ORDER BY started_at DESC LIMIT 1
+    </select>
+    <select id="byRequest" resultMap="sessionRow">
+        SELECT * FROM focus_sessions WHERE user_id=#{userId} AND request_id=#{requestId}
+    </select>
+    <insert id="insertRoutine">
+        INSERT INTO focus_routines(id,user_id,title,project_id,weekdays,default_duration_minutes)
+        VALUES (#{id},#{userId},#{title},#{projectId},#{weekdays},#{duration})
+    </insert>
+    <update id="updateRoutine">
+        UPDATE focus_routines SET title=#{title},project_id=#{projectId},weekdays=#{weekdays},
+            default_duration_minutes=#{duration},enabled=#{enabled},version=version+1,updated_at=#{now}
+        WHERE id=#{id} AND user_id=#{userId} AND version=#{version}
+    </update>
+    <update id="toggleRoutine">
+        UPDATE focus_routines SET enabled=#{enabled},version=version+1,updated_at=#{now}
+        WHERE id=#{id} AND user_id=#{userId} AND version=#{version}
+    </update>
+    <insert id="insertOccurrence">
+        INSERT INTO todo_items(id,user_id,project_id,title,notes,priority,routine_id,occurrence_date,default_focus_duration_minutes)
+        VALUES (#{id},#{userId},#{projectId},#{title},'','MEDIUM',#{routineId},#{date},#{duration})
+        ON CONFLICT (user_id,routine_id,occurrence_date) DO NOTHING
+    </insert>
+    <insert id="insertSession">
+        INSERT INTO focus_sessions(id,user_id,request_id,task_id,project_id,title,target_ms,interval_ms,zone_id,
+            phase,started_at,anchor_at,next_break_at_ms)
+        VALUES (#{id},#{userId},#{requestId},#{taskId},#{projectId},#{title},#{targetMs},#{intervalMs},#{zoneId},
+            'RUNNING',#{now},#{now},#{intervalMs})
+        ON CONFLICT DO NOTHING
+    </insert>
+    <update id="updateSession">
+        UPDATE focus_sessions SET phase=#{session.phase},version=version+1,anchor_at=#{session.anchorAt},
+            ended_at=#{session.endedAt},focus_ms=#{session.focusMs},break_ms=#{session.breakMs},
+            pause_ms=#{session.pauseMs},pending_start=#{session.pendingStart},pending_end=#{session.pendingEnd},
+            resume_phase=#{session.resumePhase},break_remaining_ms=#{session.breakRemainingMs},
+            next_break_at_ms=#{session.nextBreakAtMs},reminders_dismissed=#{session.remindersDismissed},
+            reminder_ordinal=#{session.reminderOrdinal},controller_id=#{session.controllerId},
+            controller_generation=#{session.controllerGeneration},controller_expires_at=#{session.controllerExpiresAt},
+            updated_at=#{now}
+        WHERE id=#{session.id} AND user_id=#{userId} AND version=#{session.version}
+    </update>
+    <insert id="insertInterval">
+        INSERT INTO focus_intervals(session_id,user_id,ordinal,kind,start_at,end_at,confirmed)
+        SELECT #{sessionId},#{userId},COALESCE(MAX(ordinal),0)+1,#{kind},#{start},#{end},#{confirmed}
+        FROM focus_intervals WHERE session_id=#{sessionId}
+        HAVING #{end} &gt; #{start}
+    </insert>
+    <select id="segments" resultMap="segmentRow">
+        SELECT start_at,end_at,
+            CASE WHEN kind='FOCUS' THEN (EXTRACT(EPOCH FROM end_at-start_at)*1000)::bigint ELSE 0 END focus_ms,
+            CASE WHEN kind='BREAK' THEN (EXTRACT(EPOCH FROM end_at-start_at)*1000)::bigint ELSE 0 END break_ms
+        FROM focus_intervals WHERE user_id=#{userId} AND session_id=#{sessionId}
+            AND confirmed AND kind IN ('FOCUS','BREAK') ORDER BY start_at,ordinal
+    </select>
+    <insert id="insertFocusRecord">
+        INSERT INTO work_records(id,user_id,project_id,todo_id,focus_session_id,content,source,is_active,
+            completion_result,business_date,focus_ms,break_ms,segment_start,segment_end,occurred_at)
+        VALUES (#{id},#{userId},#{projectId},#{taskId},#{sessionId},#{content},'FOCUS_SESSION',TRUE,'',
+            #{date},#{focusMs},#{breakMs},#{start},#{end},#{start})
+        ON CONFLICT (user_id,focus_session_id,business_date) WHERE source='FOCUS_SESSION' DO NOTHING
+    </insert>
+    <update id="updateProgress">
+        UPDATE focus_sessions SET progress=#{progress},version=version+1,updated_at=#{now}
+        WHERE id=#{id} AND user_id=#{userId} AND version=#{version} AND phase='ENDED'
+    </update>
+    <update id="updateRecordProgress">
+        UPDATE work_records SET progress=#{progress},updated_at=#{now}
+        WHERE user_id=#{userId} AND focus_session_id=#{id} AND source='FOCUS_SESSION'
+    </update>
+    <select id="todayTotals" resultMap="totalsRow">
+        SELECT COALESCE(sum(focus_ms),0) focus_ms,COALESCE(sum(break_ms),0) break_ms,
+            count(DISTINCT focus_session_id) session_count
+        FROM work_records WHERE user_id=#{userId} AND source='FOCUS_SESSION' AND business_date=#{date} AND is_active
+    </select>
+</mapper>

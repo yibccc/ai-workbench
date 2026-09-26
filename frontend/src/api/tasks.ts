@@ -20,6 +20,9 @@ export interface TaskItem {
   completionRecordId: string | null
   completionResult: string
   version: number
+  routineId?: string | null
+  occurrenceDate?: string | null
+  defaultFocusDurationMinutes?: number | null
   createdAt: string
   updatedAt: string
 }

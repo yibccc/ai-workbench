@@ -43,6 +43,19 @@ async function openWorkbench(page: Page) {
   await expect(page.getByText(/backend ·|postgres ·|redis ·|deepseek ·/)).toHaveCount(0)
 }
 
+function mockFocusSession(phase: 'RUNNING' | 'MICRO_BREAK' | 'RECOVERY_REQUIRED') {
+  const now = new Date().toISOString()
+  return {
+    id: 'd9500000-0000-4000-8000-000000000001', requestId: 'd9500000-0000-4000-8000-000000000002', title: '模拟专注', taskId: null, projectId: null,
+    targetMs: 1_500_000, intervalMs: 600_000, zoneId: 'Asia/Shanghai', phase, version: 1, startedAt: now,
+    anchorAt: now, endedAt: null, focusMs: 600_000, breakMs: 0, pauseMs: 0,
+    pendingStart: phase === 'RECOVERY_REQUIRED' ? new Date(Date.now() - 90_000).toISOString() : null,
+    pendingEnd: phase === 'RECOVERY_REQUIRED' ? now : null, resumePhase: 'RUNNING', breakRemainingMs: 15_000,
+    nextBreakAtMs: 1_200_000, remindersDismissed: false, reminderOrdinal: 1,
+    controllerId: null, controllerGeneration: 0, controllerExpiresAt: null, progress: '',
+  }
+}
+
 async function pendingStorageKey(page: Page) {
   const response = await page.context().request.get('/api/auth/me')
   expect(response.status()).toBe(200)
@@ -123,6 +136,362 @@ async function assertPinnedPager(rows: Locator, pager: Locator, lastRow?: Locato
 }
 
 test.beforeEach(async ({ request }) => reset(request))
+
+test('专注独立页从待办带入但不自动开工，跨页可暂停并保留记录草稿', async ({ page, request }) => {
+  const created = await request.post(`${apiBase}/api/tasks`, { data: { title: '整理专注验收材料', notes: '', priority: 'MEDIUM' } })
+  expect(created.ok()).toBeTruthy()
+  const task = await created.json() as { id: string }
+  expect((await request.post(`${apiBase}/api/tasks`, { data: { title: '准备下一项任务', notes: '', priority: 'LOW' } })).ok()).toBeTruthy()
+  await openWorkbench(page)
+  await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: '手工记录' }).click()
+  await page.getByTestId('record-content').fill('专注前的未保存草稿')
+  await navigate(page, '待办任务')
+  await page.getByTestId('task-item').filter({ hasText: '整理专注验收材料' }).getByRole('button', { name: '带入专注' }).click()
+  await expect(page.getByTestId('focus-page')).toBeVisible()
+  await expect(page.getByLabel('目标', { exact: true })).toHaveValue('整理专注验收材料')
+  const beforeStart = await (await request.get(`${apiBase}/api/focus/current`)).text()
+  expect(beforeStart === '' || beforeStart === 'null').toBe(true)
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByTestId('focus-page').getByRole('button', { name: '暂停', exact: true })).toBeVisible()
+  const current = await (await request.get(`${apiBase}/api/focus/current`)).json() as { id: string; taskId: string }
+  expect(current.taskId).toBe(task.id)
+  await navigate(page, '待办任务')
+  await page.getByTestId('task-item').filter({ hasText: '准备下一项任务' }).getByRole('button', { name: '带入专注' }).click()
+  await expect(page.getByText(/当前仍在进行“整理专注验收材料”/)).toBeVisible()
+  expect((await (await request.get(`${apiBase}/api/focus/current`)).json()).id).toBe(current.id)
+  await navigate(page, '工作记录')
+  await expect(page.getByTestId('record-content')).toHaveValue('专注前的未保存草稿')
+  await expect(page.getByTestId('record-list').getByText('今日专注汇总')).toHaveCount(0)
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  await expect(page.getByRole('button', { name: '继续', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: /^返回专注：/ }).click()
+  await expect(page.getByTestId('focus-page')).toBeVisible()
+  await expect(page.getByText('已暂停')).toBeVisible()
+  await page.goBack()
+  await expect(page.getByTestId('record-content')).toHaveValue('专注前的未保存草稿')
+  expect((await (await request.get(`${apiBase}/api/focus/current`)).json()).id).toBe(current.id)
+  await page.goForward()
+  await expect(page.getByTestId('focus-page').getByText('已暂停')).toBeVisible()
+  expect((await (await request.get(`${apiBase}/api/focus/current`)).json()).id).toBe(current.id)
+  await page.reload()
+  await expect(page.getByTestId('focus-page').getByText('已暂停')).toBeVisible()
+  expect((await (await request.get(`${apiBase}/api/focus/current`)).json()).id).toBe(current.id)
+})
+
+test('专注五项导航及规则和汇总在窄屏保持可达', async ({ page }) => {
+  await openWorkbench(page)
+  for (const width of [320, 390, 760, 1440]) {
+    await page.setViewportSize({ width, height: 700 })
+    await navigate(page, '专注')
+    await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(5)
+    await expect(page.getByTestId('focus-page').getByRole('heading', { name: '专注', exact: true })).toBeVisible()
+    await page.getByRole('tab', { name: '重复规则' }).click()
+    await expect(page.getByRole('heading', { name: '每日重复任务' })).toBeVisible()
+    await page.getByRole('tab', { name: '今日汇总' }).click()
+    await expect(page.getByRole('heading', { name: '今日专注汇总' })).toBeVisible()
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true)
+  }
+})
+
+test('专注新写入关闭时不补造今天，旧会话仍可暂停收尾', async ({ page }) => {
+  let session = mockFocusSession('RUNNING')
+  let fillCalls = 0
+  await page.route('**/api/focus/capabilities', route => route.fulfill({ json: { writeEnabled: false } }))
+  await page.route('**/api/focus/routines/fill-today', async route => { fillCalls++; await route.fulfill({ status: 409, json: { detail: '专注写入尚未开放' } }) })
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/transition', async route => {
+    session = { ...session, version: session.version + 1, phase: 'PAUSED' }
+    await route.fulfill({ json: session })
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await expect(page.getByText(/新专注和重复规则写入尚未开放/)).toBeVisible()
+  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  await expect(page.getByText('已暂停')).toBeVisible()
+  await page.getByRole('tab', { name: '重复规则' }).click()
+  await expect(page.getByRole('button', { name: '保存规则' })).toBeDisabled()
+  expect(fillCalls).toBe(0)
+})
+
+test('重复规则显式补齐今天且修改后不替换已生成待办', async ({ page, request }) => {
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByRole('tab', { name: '重复规则' }).click()
+  await page.getByRole('region', { name: '专注内容' }).getByLabel('名称').fill('每天整理计划')
+  await page.getByLabel('默认专注时长（分钟）').fill('30')
+  await page.getByRole('button', { name: '保存规则' }).click()
+  await expect(page.locator('.focus-routine').filter({ hasText: '每天整理计划' })).toBeVisible()
+  await page.getByRole('button', { name: '检查并补齐今天' }).click()
+  await expect.poll(async () => (await (await request.get(`${apiBase}/api/tasks`)).json() as Array<{ title: string }>).filter(task => task.title === '每天整理计划').length).toBe(1)
+  await page.locator('.focus-routine').filter({ hasText: '每天整理计划' }).getByRole('button', { name: '编辑' }).click()
+  await page.getByRole('region', { name: '专注内容' }).getByLabel('名称').fill('以后整理计划')
+  await page.getByRole('button', { name: '保存规则' }).click()
+  await page.getByRole('button', { name: '检查并补齐今天' }).click()
+  const tasks = await (await request.get(`${apiBase}/api/tasks`)).json() as Array<{ title: string; defaultFocusDurationMinutes: number }>
+  expect(tasks.filter(task => task.title === '每天整理计划')).toHaveLength(1)
+  expect(tasks.filter(task => task.title === '以后整理计划')).toHaveLength(0)
+  expect(tasks.find(task => task.title === '每天整理计划')?.defaultFocusDurationMinutes).toBe(30)
+  await page.locator('.focus-routine').filter({ hasText: '以后整理计划' }).getByRole('button', { name: '停用' }).click()
+  await expect(page.locator('.focus-routine').filter({ hasText: '以后整理计划' })).toContainText('已停用')
+})
+
+test('切换账号会清除旧专注状态与顶栏控制', async ({ page, request }) => {
+  const username = `e2e_focus_b_${crypto.randomUUID().slice(0, 8)}`
+  const password = 'E2eOnly-FocusB-9384!'
+  expect((await request.post(`${apiBase}/api/admin/users`, { data: { username, password, role: 'USER' } })).status()).toBe(201)
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('仅 A 的专注')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeVisible()
+  await navigate(page, '工作记录')
+  await expect(page.getByRole('link', { name: /仅 A 的专注/ })).toBeVisible()
+  await page.locator('.sidebar-footer').getByRole('button', { name: /^账号菜单/ }).click()
+  await page.locator('.sidebar-footer').getByRole('menuitem', { name: '退出登录' }).click()
+  await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
+  await page.getByLabel('用户名').fill(username)
+  await page.getByLabel('密码', { exact: true }).fill(password)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  await expect(page.getByRole('link', { name: /仅 A 的专注/ })).toHaveCount(0)
+  await navigate(page, '专注')
+  await expect(page.getByRole('button', { name: '开始专注' })).toBeVisible()
+  expect((await page.context().request.get('/api/focus/current')).status()).toBe(200)
+})
+
+test('开始响应丢失后恢复旧会话，结算后新目标使用新的请求键', async ({ page }) => {
+  let starts = 0
+  await page.route('**/api/focus/sessions', async route => {
+    if (route.request().method() !== 'POST') { await route.continue(); return }
+    starts++
+    const response = await route.fetch()
+    if (starts === 1) await route.abort('failed')
+    else await route.fulfill({ response })
+  })
+  await openWorkbench(page)
+  const account = await (await page.context().request.get('/api/auth/me')).json() as { id: string }
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('响应丢失的旧会话')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '响应丢失的旧会话' })).toBeVisible()
+  const first = await (await page.context().request.get('/api/focus/current')).json() as { id: string }
+  expect(await page.evaluate(key => sessionStorage.getItem(key), `ai-workbench.focus-start.${account.id}`)).toBeNull()
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  await expect(page.getByRole('heading', { name: '本次投入已保存' })).toBeVisible()
+  await page.getByRole('button', { name: '开始新专注' }).click()
+  await page.getByLabel('目标', { exact: true }).fill('新的独立目标')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '新的独立目标' })).toBeVisible()
+  const second = await (await page.context().request.get('/api/focus/current')).json() as { id: string }
+  expect(second.id).not.toBe(first.id)
+  expect(starts).toBe(2)
+})
+
+test('旧请求已在别处结束时，新专注自动换请求键', async ({ page, request }) => {
+  const oldRequestId = crypto.randomUUID()
+  const started = await request.post(`${apiBase}/api/focus/sessions`, { data: {
+    requestId: oldRequestId, title: '已结算的旧目标', taskId: null, projectId: null, targetMinutes: 25, intervalMinutes: 10,
+  } })
+  expect(started.status()).toBe(201)
+  const old = await started.json() as { id: string; version: number }
+  expect((await request.post(`${apiBase}/api/focus/sessions/${old.id}/end`, { data: { version: old.version } })).ok()).toBeTruthy()
+  await openWorkbench(page)
+  const account = await (await page.context().request.get('/api/auth/me')).json() as { id: string }
+  await page.evaluate(({ key, value }) => sessionStorage.setItem(key, value), { key: `ai-workbench.focus-start.${account.id}`, value: oldRequestId })
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('真正的新目标')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '真正的新目标' })).toBeVisible()
+  const current = await (await page.context().request.get('/api/focus/current')).json() as { id: string; requestId: string }
+  expect(current.id).not.toBe(old.id)
+  expect(current.requestId).not.toBe(oldRequestId)
+  expect(await page.evaluate(key => sessionStorage.getItem(key), `ai-workbench.focus-start.${account.id}`)).toBeNull()
+})
+
+test('微休息在其他工作区显示唯一全局引导，跳过和关闭提醒保持可操作', async ({ page }) => {
+  let session = mockFocusSession('MICRO_BREAK')
+  const actions: string[] = []
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/transition', async route => {
+    const body = route.request().postDataJSON() as { action: string }
+    actions.push(body.action)
+    session = { ...session, version: session.version + 1, phase: 'RUNNING', breakRemainingMs: 0, remindersDismissed: body.action === 'DISMISS_REMINDERS' }
+    await route.fulfill({ json: session })
+  })
+  await openWorkbench(page)
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(1)
+  await page.evaluate(() => { window.location.hash = 'reports' })
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(1)
+  await page.getByRole('dialog', { name: '微休息引导' }).getByRole('button', { name: '跳过本次' }).click()
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(0)
+  expect(actions).toContain('SKIP_BREAK')
+  session = { ...mockFocusSession('MICRO_BREAK'), version: session.version + 1, reminderOrdinal: 2 }
+  await page.reload()
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(1)
+  await page.getByRole('dialog', { name: '微休息引导' }).getByRole('button', { name: '关闭本段提醒' }).click()
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(0)
+  expect(actions).toContain('DISMISS_REMINDERS')
+})
+
+test('音频不可用时给出可见反馈，恢复缺口需要明确确认或舍弃', async ({ page }) => {
+  let session = mockFocusSession('RECOVERY_REQUIRED')
+  const decisions: boolean[] = []
+  await page.addInitScript(() => { Object.defineProperty(window, 'AudioContext', { configurable: true, value: class { constructor() { throw new Error('audio denied') } } }) })
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/recover', async route => {
+    const body = route.request().postDataJSON() as { confirm: boolean }
+    decisions.push(body.confirm)
+    session = { ...session, version: session.version + 1, phase: 'RUNNING', pendingStart: null, pendingEnd: null, anchorAt: new Date().toISOString() }
+    await route.fulfill({ json: session })
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await expect(page.locator('.focus-recovery strong')).toHaveText('请确认失联时间')
+  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await expect(page.getByText('声音未启用。请检查浏览器声音权限；视觉提示仍可使用。')).toBeVisible()
+  await page.getByRole('button', { name: '确认这段时间' }).click()
+  expect(decisions).toEqual([true])
+  session = { ...mockFocusSession('RECOVERY_REQUIRED'), version: session.version + 1 }
+  await page.reload()
+  await expect(page.locator('.focus-recovery strong')).toHaveText('请确认失联时间')
+  await page.getByRole('button', { name: '舍弃这段时间' }).click()
+  expect(decisions).toEqual([true, false])
+})
+
+test('本机时钟跳变时冻结未确认投入并等待服务端恢复判断', async ({ page }) => {
+  let session = { ...mockFocusSession('RUNNING'), nextBreakAtMs: 690_000 }
+  let checkpointCount = 0
+  const transitions: string[] = []
+  let releaseCheckpoint: () => void = () => undefined
+  const held = new Promise<void>(resolve => { releaseCheckpoint = resolve })
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', async route => {
+    checkpointCount++
+    if (checkpointCount > 1) {
+      await held
+      session = { ...session, version: session.version + 1, phase: 'RECOVERY_REQUIRED', pendingStart: new Date(Date.now() - 90_000).toISOString(), pendingEnd: new Date().toISOString() }
+    }
+    await route.fulfill({ json: session })
+  })
+  await page.route('**/api/focus/sessions/*/transition', async route => { transitions.push(route.request().postDataJSON().action); await route.fulfill({ json: session }) })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await expect.poll(() => checkpointCount).toBeGreaterThanOrEqual(1)
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' })
+    document.dispatchEvent(new Event('visibilitychange'))
+    const clock = Date.now.bind(Date)
+    Date.now = () => clock() + 120_000
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect.poll(() => checkpointCount).toBeGreaterThanOrEqual(2)
+  await expect(page.locator('.focus-clock')).toHaveText('15:00')
+  expect(transitions).toEqual([])
+  releaseCheckpoint()
+  await expect(page.locator('.focus-recovery strong')).toHaveText('请确认失联时间')
+})
+
+test('结束专注只在记录列表显示投入，日报冻结来源明确标记净时长', async ({ page, request }) => {
+  const started = await request.post(`${apiBase}/api/focus/sessions`, { data: {
+    requestId: crypto.randomUUID(), title: '整理周会材料', taskId: null, projectId: null, targetMinutes: 25, intervalMinutes: 10,
+  } })
+  expect(started.status()).toBe(201)
+  const session = await started.json() as { id: string; version: number }
+  await new Promise(resolve => setTimeout(resolve, 1200))
+  const checkpoint = await request.post(`${apiBase}/api/focus/sessions/${session.id}/checkpoint`, { data: { version: session.version } })
+  expect(checkpoint.ok()).toBeTruthy()
+  const confirmed = await checkpoint.json() as { version: number }
+  const ended = await request.post(`${apiBase}/api/focus/sessions/${session.id}/end`, { data: { version: confirmed.version } })
+  expect(ended.ok()).toBeTruthy()
+  const settled = await ended.json() as { version: number }
+  const progress = await request.put(`${apiBase}/api/focus/sessions/${session.id}/progress`, { data: { version: settled.version, progress: '整理了会议提纲' } })
+  expect(progress.ok()).toBeTruthy()
+  const today = await (await request.get(`${apiBase}/api/focus/today`)).json() as { date: string; records: Array<{ source: string; focusMs: number }> }
+  expect(today.records.some(record => record.source === 'FOCUS_SESSION' && record.focusMs > 0)).toBe(true)
+  const reportResponse = await request.post(`${apiBase}/api/reports`, { data: { reportType: 'DAILY', date: today.date, requestId: crypto.randomUUID() } })
+  expect(reportResponse.ok()).toBeTruthy()
+  const report = await reportResponse.json() as { id: string }
+  await expect.poll(async () => {
+    const detail = await (await request.get(`${apiBase}/api/reports/${report.id}`)).json() as { status: string; errorCode?: string; errorStage?: string; errorMessage?: string; sourceCount?: number }
+    return detail.status === 'FAILED' ? JSON.stringify(detail) : detail.status
+  }).toBe('SUCCEEDED')
+  await openWorkbench(page)
+  await expect(page.getByTestId('record-item').filter({ hasText: '整理周会材料' })).toContainText('专注投入')
+  await expect(page.getByTestId('record-item').filter({ hasText: '整理周会材料' })).toContainText('进展：整理了会议提纲')
+  await expect(page.getByTestId('record-list').getByText('今日专注汇总')).toHaveCount(0)
+  await navigate(page, '工作汇报')
+  await expect(page.getByRole('region', { name: '日报来源数据' }).locator('article strong').filter({ hasText: '专注投入' })).toBeVisible()
+  await expect(page.getByRole('region', { name: '日报来源数据' }).getByText(/净时长/)).toBeVisible()
+  await expect(page.getByRole('region', { name: '日报来源数据' }).getByText('整理了会议提纲')).toBeVisible()
+  await expect(page.getByRole('region', { name: '日报来源数据' }).getByText(/不代表任务完成/)).toBeVisible()
+})
+
+test('结束已提交但响应丢失时读取权威状态且重试不重复记录', async ({ page, request }) => {
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('响应丢失的结算')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeEnabled()
+  await new Promise(resolve => setTimeout(resolve, 1200))
+  const current = await (await request.get(`${apiBase}/api/focus/current`)).json() as { id: string; version: number }
+  let dropped = false
+  await page.route(`**/api/focus/sessions/${current.id}/end`, async route => {
+    const response = await route.fetch()
+    expect(response.ok()).toBeTruthy()
+    dropped = true
+    await route.abort('failed')
+  })
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  await expect(page.getByRole('heading', { name: '本次投入已保存' })).toBeVisible()
+  await expect(page.getByText('结束请求已提交，已从服务器恢复本次投入。')).toBeVisible()
+  expect(dropped).toBe(true)
+  const records = async () => {
+    const today = await (await request.get(`${apiBase}/api/focus/today`)).json() as { records: Array<{ sessionId: string; progress: string }> }
+    return today.records.filter(record => record.sessionId === current.id)
+  }
+  expect(await records()).toHaveLength(1)
+  const retried = await request.post(`${apiBase}/api/focus/sessions/${current.id}/end`, { data: { version: current.version } })
+  expect(retried.ok()).toBeTruthy()
+  expect(await records()).toHaveLength(1)
+  await page.getByLabel('补充进展（可选）').fill('已整理响应丢失场景')
+  await page.getByRole('button', { name: '保存进展' }).click()
+  await expect.poll(async () => (await records())[0]?.progress).toBe('已整理响应丢失场景')
+  await navigate(page, '工作记录')
+  await expect(page.getByTestId('record-item').filter({ hasText: '响应丢失的结算' })).toContainText('专注投入')
+})
+
+test('浏览器纽约时区仍按服务端业务日显示专注记录和今日汇总', async ({ page, request }) => {
+  await openWorkbench(page)
+  const started = await request.post(`${apiBase}/api/focus/sessions`, { data: {
+    requestId: crypto.randomUUID(), title: '跨时区业务日核对', taskId: null, projectId: null, targetMinutes: 25, intervalMinutes: 10,
+  } })
+  expect(started.status()).toBe(201)
+  const session = await started.json() as { id: string; version: number }
+  await new Promise(resolve => setTimeout(resolve, 1100))
+  expect((await request.post(`${apiBase}/api/focus/sessions/${session.id}/end`, { data: { version: session.version } })).ok()).toBeTruthy()
+  const today = await (await request.get(`${apiBase}/api/focus/today`)).json() as { date: string; records: Array<{ sessionId: string; businessDate: string }> }
+  expect(today.records.some(record => record.sessionId === session.id && record.businessDate === today.date)).toBe(true)
+  const browser = page.context().browser()
+  if (!browser) throw new Error('Browser is unavailable')
+  const newYork = await browser.newContext({ baseURL: 'http://127.0.0.1:15173', timezoneId: 'America/New_York', storageState: await page.context().storageState() })
+  try {
+    const nyPage = await newYork.newPage()
+    await nyPage.goto('/')
+    await expect(nyPage.getByTestId('workbench')).toBeVisible()
+    expect(await nyPage.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone)).toBe('America/New_York')
+    await expect(nyPage.getByTestId('record-item').filter({ hasText: '跨时区业务日核对' })).toContainText('专注投入')
+    await navigate(nyPage, '专注')
+    await nyPage.getByRole('tab', { name: '今日汇总' }).click()
+    await expect(nyPage.locator('.focus-today')).toContainText(today.date)
+    await expect(nyPage.locator('.focus-today')).toContainText('跨时区业务日核对')
+  } finally { await newYork.close() }
+})
 
 test('四区按需挂载并保留草稿筛选，AI刷新保留待办上下文', async ({ page, request }) => {
   await createProject(request)
@@ -1246,7 +1615,7 @@ test('账号菜单、管理员创建与换账号隔离', async ({ page, request 
   await page.getByTestId('record-content').fill('管理员未保存草稿')
   await page.getByRole('button', { name: /^账号菜单/ }).click()
   await page.getByRole('menuitem', { name: '用户管理' }).click()
-  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(4)
+  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(5)
   await page.getByRole('button', { name: '创建用户' }).click()
   const dialog = page.getByRole('dialog', { name: '创建用户' })
   await expect(dialog.getByLabel('角色')).toHaveValue('USER')
@@ -1292,7 +1661,7 @@ test('账号菜单、管理员创建与换账号隔离', async ({ page, request 
   await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '修改密码' })).toBeVisible()
   await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '退出登录' })).toBeVisible()
   await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '用户管理' })).toHaveCount(0)
-  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(4)
+  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(5)
 })
 
 test('旧身份迟到HTTP与STOMP订阅及pending不会进入新身份', async ({ page, request }) => {
@@ -1428,6 +1797,36 @@ test('明确键盘与表单操作续期，背景点击和被动加载不续期',
   await editor.getByLabel('待办标题').press('Enter')
   await expect.poll(() => activitySignals).toBe(3)
   await expect(editor).toHaveCount(0)
+})
+
+test('专注被动检查点不续期，前台明确暂停才发送活动信号', async ({ page }) => {
+  let activitySignals = 0
+  let checkpointRequests = 0
+  let checkpointResponses = 0
+  page.on('request', outgoing => {
+    const path = new URL(outgoing.url()).pathname
+    if (path === '/api/auth/activity') activitySignals++
+    if (/^\/api\/focus\/sessions\/[^/]+\/checkpoint$/.test(path)) checkpointRequests++
+  })
+  page.on('response', response => {
+    if (/^\/api\/focus\/sessions\/[^/]+\/checkpoint$/.test(new URL(response.url()).pathname) && response.ok()) checkpointResponses++
+  })
+  await page.clock.install()
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('被动检查点活动边界')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect.poll(() => checkpointResponses).toBeGreaterThanOrEqual(1)
+  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
+  // Start and navigation were explicit interactions. Observe only the quiet period.
+  activitySignals = 0
+  checkpointRequests = 0
+  await page.clock.fastForward(21_000)
+  await expect.poll(() => checkpointRequests).toBeGreaterThanOrEqual(1)
+  expect(activitySignals).toBe(0)
+  await page.clock.fastForward(41_000)
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  await expect.poll(() => activitySignals).toBe(1)
 })
 
 test('用户管理取消无变更，重置表单校验与焦点恢复', async ({ page, request }) => {

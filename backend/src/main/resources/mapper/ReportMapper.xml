@@ -69,9 +69,14 @@
     </select>
     <select id="findCandidateRecords" resultMap="sourceRow">
         SELECT gen_random_uuid() id, NULL::uuid report_id, 'RECORD' source_type, 'DAILY_RECORD' source_role, wr.id entity_id,
-               CASE WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
+               CASE WHEN wr.source='FOCUS_SESSION' THEN wr.content || E'\n净投入：' || wr.focus_ms || ' 毫秒' ||
+                   CASE WHEN COALESCE(wr.progress,'') &lt;&gt; '' THEN E'\n进展：' || wr.progress ELSE '' END
+                    WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
                wr.project_id, p.name project_name, wr.source source_status, wr.occurred_at source_time,
-               jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result)::text snapshot
+               jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result,
+                   'sessionId',wr.focus_session_id,'businessDate',wr.business_date,'focusMs',wr.focus_ms,
+                   'breakMs',wr.break_ms,'segmentStart',wr.segment_start,'segmentEnd',wr.segment_end,
+                   'progress',wr.progress)::text snapshot
         FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id AND p.user_id=wr.user_id
         WHERE wr.user_id=#{userId} AND wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
         ORDER BY wr.occurred_at, wr.id
@@ -87,9 +92,14 @@
     </select>
     <select id="findWeeklyRecords" resultMap="sourceRow">
         SELECT gen_random_uuid() id, NULL::uuid report_id, 'RECORD' source_type, 'WEEK_RECORD' source_role, wr.id entity_id,
-               CASE WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
+               CASE WHEN wr.source='FOCUS_SESSION' THEN wr.content || E'\n净投入：' || wr.focus_ms || ' 毫秒' ||
+                   CASE WHEN COALESCE(wr.progress,'') &lt;&gt; '' THEN E'\n进展：' || wr.progress ELSE '' END
+                    WHEN wr.completion_result &lt;&gt; '' THEN wr.content || E'\n完成结果：' || wr.completion_result ELSE wr.content END content,
                wr.project_id, p.name project_name, wr.source source_status, wr.occurred_at source_time,
-               jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result)::text snapshot
+               jsonb_build_object('source',wr.source,'taskId',wr.todo_id,'completionResult',wr.completion_result,
+                   'sessionId',wr.focus_session_id,'businessDate',wr.business_date,'focusMs',wr.focus_ms,
+                   'breakMs',wr.break_ms,'segmentStart',wr.segment_start,'segmentEnd',wr.segment_end,
+                   'progress',wr.progress)::text snapshot
         FROM work_records wr LEFT JOIN projects p ON p.id=wr.project_id AND p.user_id=wr.user_id
         WHERE wr.user_id=#{userId} AND wr.occurred_at &gt;=#{start} AND wr.occurred_at &lt;#{end} AND wr.is_active
         ORDER BY wr.occurred_at, wr.id

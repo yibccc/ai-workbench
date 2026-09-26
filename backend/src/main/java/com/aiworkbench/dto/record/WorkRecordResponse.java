@@ -14,7 +14,14 @@ public record WorkRecordResponse(
         String completionResult,
         Instant occurredAt,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        UUID sessionId,
+        java.time.LocalDate businessDate,
+        Long focusMs,
+        Long breakMs,
+        Instant segmentStart,
+        Instant segmentEnd,
+        String progress) {
     public record ProjectSummary(UUID id, String name, String status) {
     }
 }

@@ -12,6 +12,7 @@ src/
 ├── features/
 │   ├── capture/            AI input and generated results
 │   ├── auth/               Login, account menu, password dialog and ADMIN user page
+│   ├── focus/              Focus timer, routines, daily totals and account-scoped controller
 │   ├── projects/           Project management and project picker
 │   ├── records/            Record-list presentation
 │   ├── tasks/              Task form, filters and list
@@ -29,7 +30,7 @@ src/
 - `useReportHistory` owns history paging/metadata. `useReportSources` owns source paging, size and stale-request cancellation.
 - App composes feature components and coordinates editing/navigation; new feature-specific list logic belongs in its feature directory.
 - Keep STOMP lifecycle shared so collapsing a panel does not open duplicate connections or discard same-user pending requests. Close subscriptions, fallback timers and identity-specific pending IDs on account change; see [Identity and Session UI](identity-session.md).
-- AppShell provides records/tasks/reports/projects navigation plus an account menu. ADMIN user management is an auxiliary view, not a fifth business nav item. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions within one account; the authenticated root remounts it on account change.
+- AppShell provides records/tasks/focus/reports/projects navigation plus an account menu. ADMIN user management is an auxiliary view outside the five business nav items. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions within one account; the authenticated root remounts it on account change. The focus controller and its compact shell control live at the account root so they remain active when the focus view is hidden.
 - `ToastProvider` owns transient operation feedback across features and sits above the login/workspace switch so an expiry Toast survives the immediate redirect. Its body portal avoids clipping by the viewport-height shell; callers from retained views only notify while their view is visible. Each new event restarts the five-second timer, and the close action dismisses immediately. Keep validation, unsaved, and stored failure messages in their local context.
 
   ```tsx

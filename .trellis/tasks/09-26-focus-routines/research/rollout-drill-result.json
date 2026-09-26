@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-26",
+  "head": "3d1293095a3370403f27e051fa0639141a3c24b5",
+  "jarSha256": "D8BE60DC9F9ABAD6CE8499C2C74CCF7BF46EAB1B03D6F555C10F767B6BB1C23C",
+  "database": "focus_routines_test",
+  "schema": "d9_focus_rollout_20260926",
+  "redisPort": 26379,
+  "httpPort": 18083,
+  "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .trellis/tasks/09-26-focus-routines/research/rollout-drill.ps1",
+  "exitCode": 0,
+  "stages": [
+    { "name": "closed-before-write", "writeEnabled": false, "newStartStatus": 409 },
+    { "name": "enabled-write", "writeEnabled": true, "sessionId": "c28d80df-7927-4f23-ba39-20378380c752", "focusMs": 2061, "recordCount": 1 },
+    { "name": "closed-after-write", "writeEnabled": false, "newStartStatus": 409, "retainedFocusMs": 2061, "retainedRecordCount": 1 }
+  ],
+  "ownedProcessStopped": true,
+  "result": "PASS"
+}

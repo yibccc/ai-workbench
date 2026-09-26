@@ -8,6 +8,10 @@ import { navigation, type PageId } from './components/layout/navigation'
 import { RetainedView } from './components/RetainedView'
 import { RecordsPage } from './features/records/RecordsPage'
 import { TasksPanel, type TaskEditRequest } from './features/tasks/TasksPanel'
+import type { TaskItem } from './api/tasks'
+import { FocusPage, type FocusDraft } from './features/focus/FocusPage'
+import { formatDuration, projectedBreakMs, projectedFocusMs, useFocusController } from './features/focus/useFocusController'
+import { fetchFocusCapabilities, fillToday } from './api/focus'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { ProjectsPanel } from './features/projects/ProjectsPanel'
 import { ToastProvider } from './components/ToastProvider'
@@ -132,6 +136,10 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
   const [taskEdit, setTaskEdit] = useState<TaskEditRequest | null>(null)
   const [dirtyReports, setDirtyReports] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
+  const [focusDraft, setFocusDraft] = useState<FocusDraft | null>(null)
+  const [focusFillError, setFocusFillError] = useState<string | null>(null)
+  const [focusWriteEnabled, setFocusWriteEnabled] = useState(false)
+  const [focusCapabilityError, setFocusCapabilityError] = useState<string | null>(null)
   const firstNavigation = useRef(true)
   const refreshProjects = useCallback(async () => {
     const items = await fetchProjects(true)
@@ -158,18 +166,51 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
       .forEach(region => region.scrollTo({ top: 0 }))
   }, [page])
   const refreshContent = useCallback(async () => setRevision(value => value + 1), [])
+  const onFocusSettled = useCallback(() => { void refreshContent() }, [refreshContent])
+  const focus = useFocusController(account.id, onFocusSettled)
+  const prepareFocus = useCallback(async () => {
+    try {
+      const capability = await fetchFocusCapabilities()
+      setFocusWriteEnabled(capability.writeEnabled); setFocusCapabilityError(null)
+      if (!capability.writeEnabled) { setFocusFillError(null); return }
+      try {
+        const result = await fillToday()
+        setFocusFillError(null)
+        if (result.blocked.length) showToast(`有 ${result.blocked.length} 条重复规则未生成今日待办：${result.blocked.map(item => item.reason).join('；')}`, 'info')
+        void refreshContent()
+      } catch (caught) { setFocusFillError(caught instanceof Error ? caught.message : '今日重复任务检查失败') }
+    } catch (caught) {
+      setFocusWriteEnabled(false)
+      setFocusCapabilityError(caught instanceof Error ? caught.message : '专注功能状态读取失败')
+    }
+  }, [refreshContent, showToast])
+  useEffect(() => { void Promise.resolve().then(prepareFocus) }, [prepareFocus])
+  const focusTask = useCallback((task: TaskItem) => {
+    setFocusDraft({ taskId: task.id, title: task.title, projectId: task.project?.id ?? null,
+      targetMinutes: task.defaultFocusDurationMinutes ?? 25, nonce: Date.now() })
+    window.location.hash = 'focus'; setPage('focus')
+  }, [setPage])
   const editTask = useCallback((id: string) => {
     setTaskEdit({ id, request: Date.now() }); window.location.hash = 'tasks'; setPage('tasks')
   }, [setPage])
-  return <><AppShell page={page} hasDirtyReports={dirtyReports} account={account} onPassword={() => setPasswordOpen(true)} onLogout={onLogout}
+  const currentFocus = focus.session?.phase === 'ENDED' ? null : focus.session
+  const focusStatus = currentFocus ? `${currentFocus.title} · ${currentFocus.phase === 'RUNNING' ? formatDuration(Math.max(0, currentFocus.targetMs - projectedFocusMs(currentFocus, focus.now))) : currentFocus.phase === 'MICRO_BREAK' ? '微休息' : currentFocus.phase === 'PAUSED' ? '已暂停' : '待确认'}` : null
+  const focusToggle = currentFocus?.phase === 'RUNNING' ? { label: '暂停', disabled: focus.busy || focus.unverified, onClick: () => { void focus.transition('PAUSE') } }
+    : currentFocus?.phase === 'PAUSED' ? { label: '继续', disabled: focus.busy || focus.unverified, onClick: () => { void focus.transition('RESUME') } } : null
+  return <><AppShell page={page} hasDirtyReports={dirtyReports} focusStatus={focusStatus} focusToggle={focusToggle} account={account} onPassword={() => setPasswordOpen(true)} onLogout={onLogout}
     onUsers={() => { window.location.hash = 'users'; setPage('users') }}>
     {projectError && <div className="notice error" role="alert"><span>项目列表读取失败：{projectError}</span><button className="text-button" type="button" onClick={() => void refreshProjects().catch((caught: unknown) => setProjectError(caught instanceof Error ? caught.message : '加载失败'))}>重新加载</button></div>}
+    {focusCapabilityError && <div className="notice error" role="alert"><span>专注功能状态读取失败：{focusCapabilityError}</span><button className="text-button" type="button" onClick={() => void prepareFocus()}>重试</button></div>}
+    {focusFillError && <div className="notice error" role="alert"><span>今日重复任务检查失败：{focusFillError}</span><button className="text-button" type="button" onClick={() => void fillToday().then(result => { setFocusFillError(null); if (result.blocked.length) showToast(`有 ${result.blocked.length} 条规则未生成：${result.blocked.map(item => item.reason).join('；')}`, 'info'); void refreshContent() }).catch((caught: unknown) => setFocusFillError(caught instanceof Error ? caught.message : '重试失败'))}>重试</button></div>}
     <RetainedView active={page === 'records'}><RecordsPage projects={projects} revision={revision} onDataChanged={refreshContent} onEditTask={editTask} /></RetainedView>
-    <RetainedView active={page === 'tasks'}><TasksPanel projects={projects} refreshKey={revision} editRequest={taskEdit} onRecordsChanged={refreshContent} /></RetainedView>
+    <RetainedView active={page === 'tasks'}><TasksPanel projects={projects} refreshKey={revision} editRequest={taskEdit} onRecordsChanged={refreshContent} onFocusTask={focusTask} /></RetainedView>
+    <RetainedView active={page === 'focus'}><FocusPage projects={projects} draft={focusDraft} control={focus} writeEnabled={focusWriteEnabled} revision={revision} onTasksChanged={() => { void refreshContent() }} /></RetainedView>
     <RetainedView active={page === 'reports'}><ReportsPage onDirtyChange={setDirtyReports} /></RetainedView>
     <RetainedView active={page === 'projects'}><ProjectsPanel onProjectsChanged={async () => { await refreshProjects(); await refreshContent() }} /></RetainedView>
     {page === 'users' && account.role === 'ADMIN' && <UsersPage currentId={account.id} onSelfRevoked={onSelfRevoked} />}
   </AppShell>
+    {focus.reminderNotice && currentFocus?.phase !== 'MICRO_BREAK' && <div className="focus-reminder-notice" role="status">{focus.reminderNotice}</div>}
+    {currentFocus?.phase === 'MICRO_BREAK' && !focus.unverified && <div className="focus-break-overlay" role="dialog" aria-label="微休息引导" aria-modal="false"><div className="focus-break-card"><p className="page-eyebrow">微休息</p><h2>闭眼放松 15 秒</h2><p className="focus-break-time">{formatDuration(Math.max(0, currentFocus.breakRemainingMs - (projectedBreakMs(currentFocus, focus.now) - currentFocus.breakMs)))}</p><p className="muted">这是休息引导，不检测您的状态。可随时跳过或关闭本段后续提醒。</p><div className="focus-actions"><button type="button" disabled={focus.busy} onClick={() => void focus.transition('SKIP_BREAK')}>跳过本次</button><button type="button" className="secondary" disabled={focus.busy} onClick={() => void focus.transition('DISMISS_REMINDERS')}>关闭本段提醒</button><a className="secondary focus-break-link" href="#focus">查看专注</a></div></div></div>}
     {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} onChanged={() => showToast('密码已修改，其他设备上的会话已失效', 'success')} />}
   </>
 }

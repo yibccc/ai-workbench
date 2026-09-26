@@ -16,6 +16,7 @@ This directory contains guidelines for backend development. Fill in each file wi
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Controller / service interfaces / service implementations / mapper layers | Active |
 | [Database Guidelines](./database-guidelines.md) | PostgreSQL migrations, MyBatis mapping, time ranges, and project associations | Active |
+| [Focus Routines](./focus-routines.md) | Routine occurrences, focus session ledger, settlement, and report evidence | Active |
 | [Identity and Isolation](./identity-isolation.md) | Account/session APIs, explicit idle time, owner-scoped SQL and private STOMP | Active |
 | [Error Handling](./error-handling.md) | Problem details, validation, conflicts, and safe exception translation | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |

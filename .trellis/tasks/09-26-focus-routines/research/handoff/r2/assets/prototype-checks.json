@@ -1,0 +1,162 @@
+{
+  "artifactRevision": 2,
+  "os": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "python": "3.13.5",
+  "playwright": "1.57.0",
+  "chromium": "144.0.7559.96",
+  "imageChecks": [
+    {
+      "image": "overview-desktop.png",
+      "viewport": [
+        1440,
+        1200
+      ],
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "documentHeight": 1200,
+      "openDialog": null,
+      "dialogOverflow": false,
+      "workspace": "focus",
+      "miniVisible": false
+    },
+    {
+      "image": "focus-desktop.png",
+      "viewport": [
+        1440,
+        1200
+      ],
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "documentHeight": 1200,
+      "openDialog": null,
+      "dialogOverflow": false,
+      "workspace": "focus",
+      "miniVisible": false
+    },
+    {
+      "image": "microbreak-desktop.png",
+      "viewport": [
+        1440,
+        1200
+      ],
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "documentHeight": 1200,
+      "openDialog": "break-dialog",
+      "dialogOverflow": false,
+      "workspace": "focus",
+      "miniVisible": false
+    },
+    {
+      "image": "repeat-desktop.png",
+      "viewport": [
+        1440,
+        1200
+      ],
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "documentHeight": 1200,
+      "openDialog": "repeat-dialog",
+      "dialogOverflow": false,
+      "workspace": "focus",
+      "miniVisible": false
+    },
+    {
+      "image": "focus-mobile.png",
+      "viewport": [
+        390,
+        1000
+      ],
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "documentHeight": 1771,
+      "openDialog": null,
+      "dialogOverflow": false,
+      "workspace": "focus",
+      "miniVisible": false
+    },
+    {
+      "image": "records-desktop.png",
+      "viewport": [
+        1440,
+        1200
+      ],
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "documentHeight": 1200,
+      "openDialog": null,
+      "dialogOverflow": false,
+      "workspace": "records",
+      "miniVisible": true
+    }
+  ],
+  "responsiveChecks": [
+    {
+      "width": 1280,
+      "documentWidth": 1280,
+      "workspace": "focus",
+      "navigationCount": 5
+    },
+    {
+      "width": 1280,
+      "documentWidth": 1280,
+      "workspace": "records",
+      "navigationCount": 5
+    },
+    {
+      "width": 1024,
+      "documentWidth": 1024,
+      "workspace": "focus",
+      "navigationCount": 5
+    },
+    {
+      "width": 1024,
+      "documentWidth": 1024,
+      "workspace": "records",
+      "navigationCount": 5
+    },
+    {
+      "width": 768,
+      "documentWidth": 768,
+      "workspace": "focus",
+      "navigationCount": 5
+    },
+    {
+      "width": 768,
+      "documentWidth": 768,
+      "workspace": "records",
+      "navigationCount": 5
+    },
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "workspace": "focus",
+      "navigationCount": 5
+    },
+    {
+      "width": 390,
+      "documentWidth": 390,
+      "workspace": "records",
+      "navigationCount": 5
+    },
+    {
+      "width": 320,
+      "documentWidth": 320,
+      "workspace": "focus",
+      "navigationCount": 5
+    },
+    {
+      "width": 320,
+      "documentWidth": 320,
+      "workspace": "records",
+      "navigationCount": 5
+    }
+  ],
+  "prototypeFlows": [
+    "任务带入 → 独立页确认开始 → 暂停/继续 → 切记录页/顶栏返回 → 草稿保留 → 不替换现有目标 → 规则抽屉开关 → 结束预览",
+    "全局微休息预览 → 跳过 → 返回同一独立页静态状态"
+  ],
+  "pageErrors": [],
+  "productionTestsExecuted": false,
+  "scope": "Standalone HTML rendering/navigation only. No live timer, audio, persistence, database, isolation or production E2E validation."
+}

@@ -11,7 +11,8 @@ export function ToastProvider({ page, children }: { page: string; children: Reac
     setToast({ id: ++nextId.current, message, kind, page: targetPage ?? (window.location.hash.slice(1) || 'records') })
   }, [])
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => setToast(current => current?.page === page ? current : null))
+    const scheduledAfterId = nextId.current
+    const frame = window.requestAnimationFrame(() => setToast(current => current && current.id <= scheduledAfterId && current.page !== page ? null : current))
     return () => window.cancelAnimationFrame(frame)
   }, [page])
   useEffect(() => {

@@ -5,8 +5,8 @@ import { WORKBENCH_TIME_ZONE } from '../../utils/date'
 import type { Account } from '../../api/auth'
 import { AccountMenu } from '../../features/auth/AccountMenu'
 
-export function AppShell({ page, hasDirtyReports, account, onPassword, onLogout, onUsers, children }: {
-  page: PageId | 'users'; hasDirtyReports: boolean; account: Account; onPassword: () => void; onLogout: () => void; onUsers: () => void; children: ReactNode
+export function AppShell({ page, hasDirtyReports, focusStatus, focusToggle, account, onPassword, onLogout, onUsers, children }: {
+  page: PageId | 'users'; hasDirtyReports: boolean; focusStatus?: string | null; focusToggle?: { label: string; disabled: boolean; onClick: () => void } | null; account: Account; onPassword: () => void; onLogout: () => void; onUsers: () => void; children: ReactNode
 }) {
   const current = navigation.find(item => item.id === page) ?? { label: '用户管理' }
   const date = new Intl.DateTimeFormat('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
@@ -25,7 +25,7 @@ export function AppShell({ page, hasDirtyReports, account, onPassword, onLogout,
       <div className="sidebar-footer"><AccountMenu account={account} onPassword={onPassword} onLogout={onLogout} onUsers={onUsers} /></div>
     </aside>
     <div className="app-body">
-      <header className="topbar"><div className="breadcrumb"><span>个人工作区</span><span aria-hidden="true">/</span><strong>{current.label}</strong></div><time className={`topbar-date ${weekday === 'Sun' ? 'weekday-sunday' : weekday === 'Sat' ? 'weekday-saturday' : ''}`}><Icon name="calendar" size={15} />{date}</time><div className="mobile-account"><AccountMenu account={account} onPassword={onPassword} onLogout={onLogout} onUsers={onUsers} /></div></header>
+      <header className="topbar"><div className="breadcrumb"><span>个人工作区</span><span aria-hidden="true">/</span><strong>{current.label}</strong></div><div className="topbar-actions">{focusStatus && page !== 'focus' && <div className="focus-compact-controls"><a className="focus-compact" href="#focus" aria-label={`返回专注：${focusStatus}`}><Icon name="clock" size={15} /><span>{focusStatus}</span></a>{focusToggle && <button type="button" className="focus-compact-toggle" disabled={focusToggle.disabled} onClick={focusToggle.onClick}>{focusToggle.label}</button>}</div>}<time className={`topbar-date ${weekday === 'Sun' ? 'weekday-sunday' : weekday === 'Sat' ? 'weekday-saturday' : ''}`}><Icon name="calendar" size={15} />{date}</time><div className="mobile-account"><AccountMenu account={account} onPassword={onPassword} onLogout={onLogout} onUsers={onUsers} /></div></div></header>
       <main id="main-content" className="main-content" tabIndex={-1}>{children}</main>
     </div>
   </div>
