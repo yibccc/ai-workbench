@@ -47,6 +47,7 @@ review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa06391
 ## 残余风险与下一轮
 
 - 本地无音频感知与物理睡眠证据。需要在实际 Windows Chrome/Edge 前台分别验证开始/结束声音、拒绝时的可见降级、双标签只响一次、≤3 秒提示和真实睡眠恢复；记录浏览器版本、入口 URL、设备/声音状态及结果。未测前 AC-003/005 不判 PASS。
+- 独立人工验收实例已准备于 `http://127.0.0.1:15174`，合成账号与运行边界见 `.trellis/tasks/09-26-focus-routines/research/manual-acceptance.md`；本地登录和功能开关已核实，声音与设备项目仍须人实际观察。
 - 现有本机仅验证 loopback HTTP。若交付环境提供直接 IP HTTP 与 HTTPS 入口，应分别跑相同的登录、声音/CSRF/WebSocket 与回退检查；未配置入口不宣称通过。
 - 隔离测试环境保留在独立 Compose 项目 `focus-routines-20260926`，未使用或改动日常 `ai-workbench` 卷。结束人工验收后可按明确项目名停止该测试环境。
 
