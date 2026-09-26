@@ -164,8 +164,6 @@ p { line-height: 1.7; }
 .focus-duration-options button { justify-content: flex-start; width: 100%; min-height: 36px; padding: 7px 11px; border: 0; background: transparent; color: var(--text); font-size: 14px; font-weight: 500; }
 .focus-duration-options button:hover, .focus-duration-options button:focus-visible, .focus-duration-options button[aria-selected="true"] { background: var(--primary-soft); color: var(--primary); }
 .focus-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 15px; }
-.focus-recovery { margin: 19px 0; padding: 17px; border: 1px solid #ead5ad; border-radius: 9px; background: var(--warning-bg); }
-.focus-recovery p { margin: 7px 0; font-size: 14px; }
 .focus-task-link { margin: -5px 0 0; color: var(--primary); font-size: 13px; }
 .focus-progress { grid-column: 1 / -1; }
 .focus-progress textarea { min-height: 90px; max-height: 200px; margin: 12px 0; }

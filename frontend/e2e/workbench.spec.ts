@@ -43,14 +43,13 @@ async function openWorkbench(page: Page) {
   await expect(page.getByText(/backend ·|postgres ·|redis ·|deepseek ·/)).toHaveCount(0)
 }
 
-function mockFocusSession(phase: 'RUNNING' | 'MICRO_BREAK' | 'RECOVERY_REQUIRED') {
+function mockFocusSession(phase: 'RUNNING' | 'MICRO_BREAK' | 'PAUSED') {
   const now = new Date().toISOString()
   return {
     id: 'd9500000-0000-4000-8000-000000000001', requestId: 'd9500000-0000-4000-8000-000000000002', title: '模拟专注', taskId: null, projectId: null,
     targetMs: 1_500_000, intervalMs: 600_000, zoneId: 'Asia/Shanghai', phase, version: 1, startedAt: now,
     anchorAt: now, endedAt: null, focusMs: 600_000, breakMs: 0, pauseMs: 0,
-    pendingStart: phase === 'RECOVERY_REQUIRED' ? new Date(Date.now() - 90_000).toISOString() : null,
-    pendingEnd: phase === 'RECOVERY_REQUIRED' ? now : null, resumePhase: 'RUNNING', breakRemainingMs: 15_000,
+    resumePhase: phase === 'PAUSED' ? 'RUNNING' : null, breakRemainingMs: 15_000,
     nextBreakAtMs: 1_200_000, remindersDismissed: false, reminderOrdinal: 1,
     controllerId: null, controllerGeneration: 0, controllerExpiresAt: null, progress: '',
   }
@@ -377,7 +376,7 @@ test('带入待办时长优先，新建无关联专注恢复默认 45 分钟', a
   await page.getByRole('button', { name: '开始专注' }).click()
   await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeEnabled()
   await page.getByRole('button', { name: '提前结束并保存投入' }).click()
-  await expect(page.getByRole('heading', { name: '本次投入已保存' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '本次会话已保存' })).toBeVisible()
   await page.getByRole('button', { name: '开始新专注' }).click()
   await expect(page.getByLabel('目标净时长（分钟）')).toHaveValue('45')
   await expect(page.getByLabel('目标', { exact: true })).toHaveValue('')
@@ -426,7 +425,7 @@ test('开始响应丢失后恢复旧会话，结算后新目标使用新的请�
   const first = await (await page.context().request.get('/api/focus/current')).json() as { id: string }
   expect(await page.evaluate(key => sessionStorage.getItem(key), `ai-workbench.focus-start.${account.id}`)).toBeNull()
   await page.getByRole('button', { name: '提前结束并保存投入' }).click()
-  await expect(page.getByRole('heading', { name: '本次投入已保存' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '本次会话已保存' })).toBeVisible()
   await page.getByRole('button', { name: '开始新专注' }).click()
   await page.getByLabel('目标', { exact: true }).fill('新的独立目标')
   await page.getByRole('button', { name: '开始专注' }).click()
@@ -483,33 +482,22 @@ test('微休息在其他工作区显示唯一全局引导，跳过和关闭提�
   expect(actions).toContain('DISMISS_REMINDERS')
 })
 
-test('音频不可用时给出可见反馈，恢复缺口需要明确确认或舍弃', async ({ page }) => {
-  let session = mockFocusSession('RECOVERY_REQUIRED')
-  const decisions: boolean[] = []
+test('恢复已有会话时声音拒绝有可见反馈且无需确认失联时间', async ({ page }) => {
+  const session = mockFocusSession('RUNNING')
   await page.addInitScript(() => { Object.defineProperty(window, 'AudioContext', { configurable: true, value: class { constructor() { throw new Error('audio denied') } } }) })
   await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
   await page.route('**/api/focus/sessions/*/checkpoint', route => route.fulfill({ json: session }))
-  await page.route('**/api/focus/sessions/*/recover', async route => {
-    const body = route.request().postDataJSON() as { confirm: boolean }
-    decisions.push(body.confirm)
-    session = { ...session, version: session.version + 1, phase: 'RUNNING', pendingStart: null, pendingEnd: null, anchorAt: new Date().toISOString() }
-    await route.fulfill({ json: session })
-  })
   await openWorkbench(page)
   await navigate(page, '专注')
-  await expect(page.locator('.focus-recovery strong')).toHaveText('请确认失联时间')
+  await expect(page.locator('.focus-recovery')).toHaveCount(0)
   await page.getByRole('button', { name: '启用并试听声音' }).click()
   await expect(page.getByText('声音未启用。请检查浏览器声音权限；视觉提示仍可使用。')).toBeVisible()
-  await page.getByRole('button', { name: '确认这段时间' }).click()
-  expect(decisions).toEqual([true])
-  session = { ...mockFocusSession('RECOVERY_REQUIRED'), version: session.version + 1 }
   await page.reload()
-  await expect(page.locator('.focus-recovery strong')).toHaveText('请确认失联时间')
-  await page.getByRole('button', { name: '舍弃这段时间' }).click()
-  expect(decisions).toEqual([true, false])
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '模拟专注' })).toBeVisible()
+  await expect(page.locator('.focus-recovery')).toHaveCount(0)
 })
 
-test('本机时钟跳变时冻结未确认投入并等待服务端恢复判断', async ({ page }) => {
+test('本机时钟跳变时冻结本地投影并同步服务端权威时长', async ({ page }) => {
   let session = { ...mockFocusSession('RUNNING'), nextBreakAtMs: 690_000 }
   let checkpointCount = 0
   const transitions: string[] = []
@@ -520,7 +508,7 @@ test('本机时钟跳变时冻结未确认投入并等待服务端恢复判断',
     checkpointCount++
     if (checkpointCount > 1) {
       await held
-      session = { ...session, version: session.version + 1, phase: 'RECOVERY_REQUIRED', pendingStart: new Date(Date.now() - 90_000).toISOString(), pendingEnd: new Date().toISOString() }
+      session = { ...session, version: session.version + 1, anchorAt: new Date().toISOString() }
     }
     await route.fulfill({ json: session })
   })
@@ -540,7 +528,160 @@ test('本机时钟跳变时冻结未确认投入并等待服务端恢复判断',
   await expect(page.locator('.focus-clock')).toHaveText('15:00')
   expect(transitions).toEqual([])
   releaseCheckpoint()
-  await expect(page.locator('.focus-recovery strong')).toHaveText('请确认失联时间')
+  await expect(page.getByTestId('focus-page').getByText('专注中')).toBeVisible()
+  await expect(page.locator('.focus-recovery')).toHaveCount(0)
+})
+
+test('隐藏与睡眠式长空档继续净计时，回前台只开启一次当前微休息', async ({ page }) => {
+  let session = { ...mockFocusSession('RUNNING'), targetMs: 1_500_000, focusMs: 600_000, nextBreakAtMs: 690_000, reminderOrdinal: 0 }
+  let hidden = false
+  let hiddenCheckpoints = 0
+  let activitySignals = 0
+  const actions: string[] = []
+  page.on('request', outgoing => { if (new URL(outgoing.url()).pathname === '/api/auth/activity') activitySignals++ })
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', async route => {
+    const body = route.request().postDataJSON() as { controllerId: string | null }
+    if (hidden) {
+      hiddenCheckpoints++
+      expect(body.controllerId).toBeNull()
+      session = { ...session, version: session.version + 1, focusMs: 750_000, breakMs: 0, phase: 'RUNNING', anchorAt: new Date().toISOString() }
+    } else session = { ...session, version: session.version + 1, anchorAt: new Date().toISOString() }
+    await route.fulfill({ json: session })
+  })
+  await page.route('**/api/focus/sessions/*/transition', async route => {
+    const body = route.request().postDataJSON() as { action: string }
+    actions.push(body.action)
+    session = { ...session, version: session.version + 1, phase: 'MICRO_BREAK', reminderOrdinal: 1, breakRemainingMs: 15_000, anchorAt: new Date().toISOString() }
+    await route.fulfill({ json: session })
+  })
+  await page.clock.install()
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await expect(page.getByTestId('focus-page').getByText('专注中')).toBeVisible()
+  activitySignals = 0
+  hidden = true
+  await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')) })
+  await page.clock.fastForward(90_000)
+  await expect.poll(() => hiddenCheckpoints).toBeGreaterThanOrEqual(1)
+  expect(activitySignals).toBe(0)
+  expect(actions).toEqual([])
+  expect(session.phase).toBe('RUNNING')
+  expect(session.focusMs).toBe(750_000)
+  expect(session.breakMs).toBe(0)
+  expect(session.reminderOrdinal).toBe(0)
+  hidden = false
+  await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')) })
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(1)
+  expect(actions).toEqual(['BREAK_DUE'])
+  await expect(page.locator('.focus-recovery')).toHaveCount(0)
+})
+
+test('真实服务器经过超过60秒的隐藏时段仍累计净专注且不在后台开休息', async ({ page, request }) => {
+  test.setTimeout(100_000)
+  let hidden = false
+  let hiddenCheckpoints = 0
+  let activitySignals = 0
+  const breaks: string[] = []
+  page.on('request', outgoing => {
+    const url = new URL(outgoing.url())
+    if (url.pathname === '/api/auth/activity') activitySignals++
+    if (/^\/api\/focus\/sessions\/[^/]+\/checkpoint$/.test(url.pathname) && hidden) hiddenCheckpoints++
+    if (/^\/api\/focus\/sessions\/[^/]+\/transition$/.test(url.pathname) && outgoing.postDataJSON()?.action === 'BREAK_DUE') breaks.push('BREAK_DUE')
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await expect(page.getByText('切换页面或设备睡眠时仍会计时；停工时请手动暂停或结束。净时长排除暂停与微休息。')).toBeVisible()
+  await page.getByLabel('目标', { exact: true }).fill('后台真实经过时间')
+  await page.getByLabel('提醒间隔（分钟）').fill('1')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
+  const started = await (await request.get(`${apiBase}/api/focus/current`)).json() as { id: string }
+  activitySignals = 0
+  hidden = true
+  await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')) })
+  await page.waitForTimeout(62_000)
+  expect(hiddenCheckpoints).toBeGreaterThanOrEqual(1)
+  expect(activitySignals).toBe(0)
+  expect(breaks).toEqual([])
+  const beforeVisible = await (await request.get(`${apiBase}/api/focus/sessions/${started.id}`)).json() as { phase: string; focusMs: number; breakMs: number }
+  expect(beforeVisible.phase).toBe('RUNNING')
+  expect(beforeVisible.focusMs).toBeGreaterThan(0)
+  expect(beforeVisible.breakMs).toBe(0)
+  hidden = false
+  await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')) })
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toBeVisible({ timeout: 15_000 })
+  expect(breaks).toEqual(['BREAK_DUE'])
+  const afterVisible = await (await request.get(`${apiBase}/api/focus/sessions/${started.id}`)).json() as { focusMs: number }
+  expect(afterVisible.focusMs).toBeGreaterThanOrEqual(60_000)
+  await expect(page.locator('.focus-recovery')).toHaveCount(0)
+})
+
+test('暂停期间的长空档不增加净专注也不补播提醒', async ({ page }) => {
+  let session = { ...mockFocusSession('PAUSED'), focusMs: 600_000, pauseMs: 0, nextBreakAtMs: 690_000, reminderOrdinal: 0 }
+  let hidden = false
+  let hiddenCheckpoints = 0
+  const actions: string[] = []
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', async route => {
+    if (hidden) { hiddenCheckpoints++; session = { ...session, version: session.version + 1, pauseMs: 90_000, focusMs: 600_000, anchorAt: new Date().toISOString() } }
+    await route.fulfill({ json: session })
+  })
+  await page.route('**/api/focus/sessions/*/transition', async route => { actions.push((route.request().postDataJSON() as { action: string }).action); await route.fulfill({ json: session }) })
+  await page.clock.install()
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  hidden = true
+  await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }); document.dispatchEvent(new Event('visibilitychange')) })
+  await page.clock.fastForward(90_000)
+  await expect.poll(() => hiddenCheckpoints).toBeGreaterThanOrEqual(1)
+  hidden = false
+  await page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' }); document.dispatchEvent(new Event('visibilitychange')) })
+  await expect(page.getByTestId('focus-page').getByText('已暂停')).toBeVisible()
+  expect(session.focusMs).toBe(600_000)
+  expect(session.pauseMs).toBe(90_000)
+  expect(actions).toEqual([])
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(0)
+})
+
+test('前台目标25分钟按10分钟间隔两次休息后净1500秒总1530秒', async ({ page }) => {
+  let session = { ...mockFocusSession('RUNNING'), targetMs: 1_500_000, focusMs: 0, breakMs: 0, nextBreakAtMs: 600_000, reminderOrdinal: 0, breakRemainingMs: 0 }
+  const actions: string[] = []
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', async route => {
+    session = { ...session, version: session.version + 1 }
+    await route.fulfill({ json: session })
+  })
+  await page.route('**/api/focus/sessions/*/transition', async route => {
+    const action = (route.request().postDataJSON() as { action: string }).action
+    actions.push(action)
+    if (action === 'BREAK_DUE') session = { ...session, phase: 'MICRO_BREAK', version: session.version + 1, reminderOrdinal: session.reminderOrdinal + 1, breakRemainingMs: 15_000, anchorAt: new Date().toISOString() }
+    await route.fulfill({ json: session })
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  const sync = () => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  session = { ...session, focusMs: 600_000, anchorAt: new Date().toISOString() }
+  await sync()
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(1)
+  expect(actions).toEqual(['BREAK_DUE'])
+  session = { ...session, phase: 'RUNNING', version: session.version + 1, breakMs: 15_000, breakRemainingMs: 0, nextBreakAtMs: 1_200_000, anchorAt: new Date().toISOString() }
+  await sync()
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(0)
+  session = { ...session, focusMs: 1_200_000, anchorAt: new Date().toISOString() }
+  await sync()
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(1)
+  expect(actions).toEqual(['BREAK_DUE', 'BREAK_DUE'])
+  session = { ...session, phase: 'RUNNING', version: session.version + 1, breakMs: 30_000, breakRemainingMs: 0, nextBreakAtMs: 1_800_000, anchorAt: new Date().toISOString() }
+  await sync()
+  await expect(page.getByRole('dialog', { name: '微休息引导' })).toHaveCount(0)
+  session = { ...session, phase: 'ENDED', version: session.version + 1, focusMs: 1_500_000, endedAt: new Date().toISOString(), anchorAt: new Date().toISOString() }
+  await sync()
+  await expect(page.getByRole('heading', { name: '本次会话已保存' })).toBeVisible()
+  expect(actions).toEqual(['BREAK_DUE', 'BREAK_DUE'])
+  expect(session.focusMs).toBe(1_500_000)
+  expect(session.breakMs).toBe(30_000)
+  expect(session.focusMs + session.breakMs).toBe(1_530_000)
 })
 
 test('结束专注只在记录列表显示投入，日报冻结来源明确标记净时长', async ({ page, request }) => {
@@ -568,12 +709,14 @@ test('结束专注只在记录列表显示投入，日报冻结来源明确标�
     return detail.status === 'FAILED' ? JSON.stringify(detail) : detail.status
   }).toBe('SUCCEEDED')
   await openWorkbench(page)
-  await expect(page.getByTestId('record-item').filter({ hasText: '整理周会材料' })).toContainText('专注投入')
+  await expect(page.getByTestId('record-item').filter({ hasText: '整理周会材料' })).toContainText('会话计时')
+  await expect(page.getByTestId('record-item').filter({ hasText: '整理周会材料' })).toContainText('系统不检测实际工作；停工请手动暂停或结束。')
   await expect(page.getByTestId('record-item').filter({ hasText: '整理周会材料' })).toContainText('进展：整理了会议提纲')
   await expect(page.getByTestId('record-list').getByText('今日专注汇总')).toHaveCount(0)
   await navigate(page, '工作汇报')
-  await expect(page.getByRole('region', { name: '日报来源数据' }).locator('article strong').filter({ hasText: '专注投入' })).toBeVisible()
+  await expect(page.getByRole('region', { name: '日报来源数据' }).locator('article strong').filter({ hasText: '会话计时' })).toBeVisible()
   await expect(page.getByRole('region', { name: '日报来源数据' }).getByText(/净时长/)).toBeVisible()
+  await expect(page.getByRole('region', { name: '日报来源数据' }).getByText(/不检测实际工作；停工需手动暂停或结束/)).toBeVisible()
   await expect(page.getByRole('region', { name: '日报来源数据' }).getByText('整理了会议提纲')).toBeVisible()
   await expect(page.getByRole('region', { name: '日报来源数据' }).getByText(/不代表任务完成/)).toBeVisible()
 })
@@ -594,7 +737,7 @@ test('结束已提交但响应丢失时读取权威状态且重试不重复记�
     await route.abort('failed')
   })
   await page.getByRole('button', { name: '提前结束并保存投入' }).click()
-  await expect(page.getByRole('heading', { name: '本次投入已保存' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '本次会话已保存' })).toBeVisible()
   await expect(page.getByText('结束请求已提交，已从服务器恢复本次投入。')).toBeVisible()
   expect(dropped).toBe(true)
   const records = async () => {
@@ -609,7 +752,7 @@ test('结束已提交但响应丢失时读取权威状态且重试不重复记�
   await page.getByRole('button', { name: '保存进展' }).click()
   await expect.poll(async () => (await records())[0]?.progress).toBe('已整理响应丢失场景')
   await navigate(page, '工作记录')
-  await expect(page.getByTestId('record-item').filter({ hasText: '响应丢失的结算' })).toContainText('专注投入')
+  await expect(page.getByTestId('record-item').filter({ hasText: '响应丢失的结算' })).toContainText('会话计时')
 })
 
 test('浏览器纽约时区仍按服务端业务日显示专注记录和今日汇总', async ({ page, request }) => {
@@ -631,7 +774,7 @@ test('浏览器纽约时区仍按服务端业务日显示专注记录和今日�
     await nyPage.goto('/')
     await expect(nyPage.getByTestId('workbench')).toBeVisible()
     expect(await nyPage.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone)).toBe('America/New_York')
-    await expect(nyPage.getByTestId('record-item').filter({ hasText: '跨时区业务日核对' })).toContainText('专注投入')
+    await expect(nyPage.getByTestId('record-item').filter({ hasText: '跨时区业务日核对' })).toContainText('会话计时')
     await navigate(nyPage, '专注')
     await nyPage.getByRole('tab', { name: '今日汇总' }).click()
     await expect(nyPage.locator('.focus-today')).toContainText(today.date)

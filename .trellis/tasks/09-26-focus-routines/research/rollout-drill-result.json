@@ -1,7 +1,8 @@
 {
-  "date": "2026-09-26",
-  "head": "3d1293095a3370403f27e051fa0639141a3c24b5",
-  "jarSha256": "D8BE60DC9F9ABAD6CE8499C2C74CCF7BF46EAB1B03D6F555C10F767B6BB1C23C",
+  "date": "2026-09-27",
+  "head": "4496d19d74df79c126060588e469e84a4751453a",
+  "implementation": "V16 worktree under review; jar hash identifies the executed build",
+  "jarSha256": "061C40F7B96BE646E86D8C5998E72CBC65D32F3402D952C5314FC6E05E42B1CF",
   "database": "focus_routines_test",
   "schema": "d9_focus_rollout_20260926",
   "redisPort": 26379,
@@ -10,8 +11,8 @@
   "exitCode": 0,
   "stages": [
     { "name": "closed-before-write", "writeEnabled": false, "newStartStatus": 409 },
-    { "name": "enabled-write", "writeEnabled": true, "sessionId": "c28d80df-7927-4f23-ba39-20378380c752", "focusMs": 2061, "recordCount": 1 },
-    { "name": "closed-after-write", "writeEnabled": false, "newStartStatus": 409, "retainedFocusMs": 2061, "retainedRecordCount": 1 }
+    { "name": "enabled-write", "writeEnabled": true, "sessionId": "6d8ed8af-2d3b-4d93-b84c-67053104bccc", "focusMs": 2071, "recordCount": 1 },
+    { "name": "closed-after-write", "writeEnabled": false, "newStartStatus": 409, "retainedFocusMs": 2071, "retainedRecordCount": 1 }
   ],
   "ownedProcessStopped": true,
   "result": "PASS"

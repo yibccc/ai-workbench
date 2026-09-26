@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { checkpointFocus, endFocus, fetchCurrentFocus, fetchFocusSession, recoverFocus, startFocus, transitionFocus, type FocusAction, type FocusSession } from '../../api/focus'
+import { checkpointFocus, endFocus, fetchCurrentFocus, fetchFocusSession, startFocus, transitionFocus, type FocusAction, type FocusSession } from '../../api/focus'
 
 function randomUuid() {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
@@ -93,9 +93,7 @@ export function useFocusController(accountId: string, onSettled: () => void) {
             setReminderNotice('结束请求已提交，已从服务器恢复本次投入。')
             return latest
           }
-          setError(latest.phase === 'RECOVERY_REQUIRED'
-            ? '结束前出现待确认的失联时间，请先确认或舍弃该区间。'
-            : '结束状态未变，请重试；服务器尚未保存本次结束。')
+          setError('结束状态未变，请重试；服务器尚未保存本次结束。')
         } catch {
           setError('无法确认结束是否已提交，请重新读取会话后重试。')
         }
@@ -137,11 +135,10 @@ export function useFocusController(accountId: string, onSettled: () => void) {
   }, [accountId, adopt, refresh])
 
   const transition = useCallback((action: FocusAction) => run(current => transitionFocus(current, action)), [run])
-  const recover = useCallback((confirm: boolean) => run(current => recoverFocus(current, confirm)), [run])
   const end = useCallback(() => run(endFocus, false, true), [run])
   const clearEnded = useCallback(() => { endedRef.current = null; setSession(null) }, [])
   const checkpointNow = useCallback(async () => {
-    const result = await run(current => checkpointFocus(current, tabId), true)
+    const result = await run(current => checkpointFocus(current, document.visibilityState === 'visible' ? tabId : null), true)
     if (result) setUnverified(false)
   }, [run])
 
@@ -173,13 +170,13 @@ export function useFocusController(accountId: string, onSettled: () => void) {
     const sync = window.setInterval(() => {
       if (!live || busyRef.current) return
       const current = sessionRef.current
-      if (current && document.visibilityState === 'visible') {
+      if (current) {
         void checkpointNow()
       } else void refresh().catch(() => undefined)
     }, 20_000)
     const visible = () => {
       setUnverified(true)
-      if (document.visibilityState !== 'visible') return
+      if (document.visibilityState !== 'visible') { initialized.current = false; setReminderNotice(null) }
       if (sessionRef.current) void checkpointNow()
       else void refresh().catch(() => undefined)
     }
@@ -223,6 +220,7 @@ export function useFocusController(accountId: string, onSettled: () => void) {
     const breakStarted = previous?.id === session.id && previous.phase === 'RUNNING' && session.phase === 'MICRO_BREAK' && session.reminderOrdinal > previous.ordinal
     const breakEnded = previous?.id === session.id && previous.phase === 'MICRO_BREAK' && session.phase === 'RUNNING' && session.reminderOrdinal === previous.ordinal
     if (!breakStarted && !breakEnded) return
+    if (document.visibilityState !== 'visible') return
     queueMicrotask(() => setReminderNotice(breakStarted ? '微休息开始，请闭眼放松 15 秒' : '微休息结束，继续专注'))
     const ownsLease = session.controllerId === tabId && !!session.controllerExpiresAt && Date.parse(session.controllerExpiresAt) > Date.now()
     if (!soundEnabled || !ownsLease || document.visibilityState !== 'visible' || !audioRef.current) return
@@ -247,13 +245,15 @@ export function useFocusController(accountId: string, onSettled: () => void) {
   useEffect(() => {
     if (!session || unverified || busyRef.current || document.visibilityState !== 'visible') return
     if (session.phase === 'RUNNING') {
-      if (projectedFocusMs(session, now) >= session.targetMs || (!session.remindersDismissed && projectedFocusMs(session, now) >= session.nextBreakAtMs)) {
+      if (projectedFocusMs(session, now) >= session.targetMs) {
+        void Promise.resolve().then(checkpointNow)
+      } else if (!session.remindersDismissed && projectedFocusMs(session, now) >= session.nextBreakAtMs) {
         void transition('BREAK_DUE')
       }
     } else if (session.phase === 'MICRO_BREAK' && projectedBreakMs(session, now) >= session.breakMs + session.breakRemainingMs) {
       void transition('BREAK_DONE')
     }
-  }, [now, session, transition, unverified])
+  }, [checkpointNow, now, session, transition, unverified])
 
-  return { session, loading, busy, unverified, error, soundEnabled, soundError, reminderNotice, now: unverified && session ? Date.parse(session.anchorAt) : now, refresh, start, transition, recover, end, clearEnded, enableSound, adopt }
+  return { session, loading, busy, unverified, error, soundEnabled, soundError, reminderNotice, now: unverified && session ? Date.parse(session.anchorAt) : now, refresh, start, transition, end, clearEnded, enableSound, adopt }
 }

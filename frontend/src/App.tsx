@@ -194,7 +194,7 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     setTaskEdit({ id, request: Date.now() }); window.location.hash = 'tasks'; setPage('tasks')
   }, [setPage])
   const currentFocus = focus.session?.phase === 'ENDED' ? null : focus.session
-  const focusStatus = currentFocus ? `${currentFocus.title} · ${currentFocus.phase === 'RUNNING' ? formatDuration(Math.max(0, currentFocus.targetMs - projectedFocusMs(currentFocus, focus.now))) : currentFocus.phase === 'MICRO_BREAK' ? '微休息' : currentFocus.phase === 'PAUSED' ? '已暂停' : '待确认'}` : null
+  const focusStatus = currentFocus ? `${currentFocus.title} · ${currentFocus.phase === 'RUNNING' ? formatDuration(Math.max(0, currentFocus.targetMs - projectedFocusMs(currentFocus, focus.now))) : currentFocus.phase === 'MICRO_BREAK' ? '微休息' : '已暂停'}` : null
   const focusToggle = currentFocus?.phase === 'RUNNING' ? { label: '暂停', disabled: focus.busy || focus.unverified, onClick: () => { void focus.transition('PAUSE') } }
     : currentFocus?.phase === 'PAUSED' ? { label: '继续', disabled: focus.busy || focus.unverified, onClick: () => { void focus.transition('RESUME') } } : null
   const breakOverlayVisible = currentFocus?.phase === 'MICRO_BREAK' && !focus.unverified

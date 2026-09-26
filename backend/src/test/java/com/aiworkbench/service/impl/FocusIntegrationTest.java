@@ -137,7 +137,7 @@ class FocusIntegrationTest {
     @Test void exactTwentyFiveThirtyAndIdempotentSettlement(){
         Session current=service.start(new Start(UUID.randomUUID(),"写方案",null,null,25,10));
         while(!current.phase().equals("ENDED")){
-            clock.advance(Duration.ofSeconds(15));current=service.checkpoint(current.id(),new Checkpoint(current.version(),null,null));
+            clock.advance(Duration.ofSeconds(15));current=visibleCheckpoint(current);
         }
         assertThat(current.focusMs()).isEqualTo(1_500_000);
         assertThat(current.breakMs()).isEqualTo(30_000);
@@ -147,13 +147,12 @@ class FocusIntegrationTest {
         var record=records.list(LocalDate.of(2052,4,9)).stream().filter(r->r.sessionId()!=null).findFirst().orElseThrow();
         assertThat(record.focusMs()).isEqualTo(1_500_000);
     }
-    @Test void gapRequiresExplicitConfirmationAndRejectedGapDoesNotCount(){
+    @Test void backgroundGapContinuesFocusWithoutConfirmation(){
         Session s=service.start(new Start(UUID.randomUUID(),"分析",null,null,25,10));
         clock.advance(Duration.ofSeconds(61));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
-        assertThat(s.phase()).isEqualTo("RECOVERY_REQUIRED");assertThat(s.focusMs()).isZero();
-        s=service.recover(s.id(),new Recover(s.version(),false));assertThat(s.focusMs()).isZero();
+        assertThat(s.phase()).isEqualTo("RUNNING");assertThat(s.focusMs()).isEqualTo(61_000);
         clock.advance(Duration.ofSeconds(20));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
-        assertThat(s.focusMs()).isEqualTo(20_000);
+        assertThat(s.focusMs()).isEqualTo(81_000);
     }
     @Test void crossingMidnightSplitsNetTimeAndReportTreatsFocusAsProgress(){
         clock.value=Instant.parse("2052-04-09T15:59:50Z");
@@ -177,19 +176,17 @@ class FocusIntegrationTest {
                 List.of(new AiReportResult.Bullet("投入调查",List.of(sources.get(0).id()))))));
         assertThat(reports.validate(valid,sources)).containsKey(com.aiworkbench.enums.ReportSectionType.PROGRESS);
     }
-    @Test void targetWinsOverPauseTransitionAndRecoveryKeepsTrueEndInstant(){
+    @Test void targetWinsOverPauseAndSleepKeepsTrueEndInstant(){
         Session a=service.start(new Start(UUID.randomUUID(),"目标优先",null,null,1,10));
         clock.advance(Duration.ofSeconds(60));
         a=service.transition(a.id(),new Transition(a.version(),Action.PAUSE));
         assertThat(a.phase()).isEqualTo("ENDED");
         assertThat(a.endedAt()).isEqualTo(clock.instant());
 
-        Session b=service.start(new Start(UUID.randomUUID(),"恢复目标",null,null,1,10));
+        Session b=service.start(new Start(UUID.randomUUID(),"睡眠目标",null,null,1,10));
         Instant expected=b.startedAt().plusSeconds(60);
         clock.advance(Duration.ofSeconds(61));
         b=service.checkpoint(b.id(),new Checkpoint(b.version(),null,null));
-        clock.advance(Duration.ofMinutes(1));
-        b=service.recover(b.id(),new Recover(b.version(),true));
         assertThat(b.phase()).isEqualTo("ENDED");
         assertThat(b.endedAt()).isEqualTo(expected);
         assertThat(b.focusMs()).isEqualTo(60_000);
@@ -216,21 +213,21 @@ class FocusIntegrationTest {
         OwnerTestContext.use(OwnerTestContext.USER_ID);
         assertThat(service.get(s.id()).id()).isEqualTo(s.id());
     }
-    @Test void intervalThresholdIsInclusiveAtSixtySeconds(){
+    @Test void elapsedBeyondSixtySecondsStillAccrues(){
         Session a=service.start(new Start(UUID.randomUUID(),"阈值",null,null,25,10));
         clock.advance(Duration.ofSeconds(60));
         a=service.checkpoint(a.id(),new Checkpoint(a.version(),null,null));
         assertThat(a.phase()).isEqualTo("RUNNING");assertThat(a.focusMs()).isEqualTo(60_000);
         clock.advance(Duration.ofMillis(60_001));
         a=service.checkpoint(a.id(),new Checkpoint(a.version(),null,null));
-        assertThat(a.phase()).isEqualTo("RECOVERY_REQUIRED");
-        assertThat(a.focusMs()).isEqualTo(60_000);
+        assertThat(a.phase()).isEqualTo("RUNNING");
+        assertThat(a.focusMs()).isEqualTo(120_001);
     }
     @Test void exactCrossDayTwentyFiveThirtyConservesDailyNetAndBreaks(){
         clock.value=Instant.parse("2052-04-09T15:50:00Z");
         Session s=service.start(new Start(UUID.randomUUID(),"跨夜方案",null,null,25,10));
         while(!s.phase().equals("ENDED")){
-            clock.advance(Duration.ofSeconds(15));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
+            clock.advance(Duration.ofSeconds(15));s=visibleCheckpoint(s);
         }
         var days=jdbc.queryForList("SELECT business_date,focus_ms,break_ms FROM work_records WHERE focus_session_id=? ORDER BY business_date",s.id());
         assertThat(days).hasSize(2);
@@ -245,6 +242,8 @@ class FocusIntegrationTest {
         for(int i=0;i<10;i++){
             clock.advance(Duration.ofSeconds(60));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
         }
+        assertThat(s.phase()).isEqualTo("RUNNING");
+        s=service.transition(s.id(),new Transition(s.version(),Action.BREAK_DUE));
         assertThat(s.phase()).isEqualTo("MICRO_BREAK");
         clock.advance(Duration.ofSeconds(5));s=service.transition(s.id(),new Transition(s.version(),Action.PAUSE));
         assertThat(s.breakRemainingMs()).isEqualTo(10_000);assertThat(s.breakMs()).isEqualTo(5_000);
@@ -258,23 +257,31 @@ class FocusIntegrationTest {
         clock.advance(Duration.ofSeconds(60));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
         assertThat(s.phase()).isEqualTo("RUNNING");assertThat(s.remindersDismissed()).isTrue();
     }
-    @Test void confirmingLongGapDoesNotInventBreakOrReplayReminder(){
-        Session s=service.start(new Start(UUID.randomUUID(),"失联恢复",null,null,25,10));
-        clock.advance(Duration.ofSeconds(615));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
-        clock.advance(Duration.ofMinutes(1));s=service.recover(s.id(),new Recover(s.version(),true));
-        assertThat(s.focusMs()).isEqualTo(615_000);
+    @Test void hiddenLongGapAccruesFocusAndOneVisibleBreakWithoutReplay(){
+        Session s=service.start(new Start(UUID.randomUUID(),"切出后工作",null,null,25,10));
+        clock.advance(Duration.ofMinutes(21));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
+        assertThat(s.focusMs()).isEqualTo(1_260_000);
         assertThat(s.breakMs()).isZero();assertThat(s.reminderOrdinal()).isZero();
-        assertThat(s.phase()).isEqualTo("RUNNING");assertThat(s.nextBreakAtMs()).isEqualTo(1_200_000);
-        service.end(s.id(),new Version(s.version()));
-        Session rest=service.start(new Start(UUID.randomUUID(),"休息失联",null,null,25,10));
-        for(int i=0;i<10;i++){
-            clock.advance(Duration.ofSeconds(60));rest=service.checkpoint(rest.id(),new Checkpoint(rest.version(),null,null));
-        }
-        assertThat(rest.phase()).isEqualTo("MICRO_BREAK");
-        clock.advance(Duration.ofSeconds(61));rest=service.checkpoint(rest.id(),new Checkpoint(rest.version(),null,null));
-        rest=service.recover(rest.id(),new Recover(rest.version(),true));
-        assertThat(rest.phase()).isEqualTo("MICRO_BREAK");
-        assertThat(rest.breakRemainingMs()).isEqualTo(15_000);assertThat(rest.breakMs()).isZero();
+        assertThat(s.phase()).isEqualTo("RUNNING");assertThat(s.nextBreakAtMs()).isEqualTo(600_000);
+        s=service.transition(s.id(),new Transition(s.version(),Action.BREAK_DUE));
+        assertThat(s.phase()).isEqualTo("MICRO_BREAK");assertThat(s.reminderOrdinal()).isEqualTo(1);
+        clock.advance(Duration.ofSeconds(15));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
+        assertThat(s.phase()).isEqualTo("RUNNING");assertThat(s.breakMs()).isEqualTo(15_000);
+        assertThat(s.nextBreakAtMs()).isEqualTo(1_800_000);
+        // A hidden gap that reaches the target ends without a late reminder.
+        clock.advance(Duration.ofMinutes(5));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
+        assertThat(s.phase()).isEqualTo("ENDED");assertThat(s.focusMs()).isEqualTo(1_500_000);
+        assertThat(s.reminderOrdinal()).isEqualTo(1);
+    }
+    @Test void sleepingThroughStartedBreakCountsOnlyFifteenSecondsThenFocus(){
+        Session s=service.start(new Start(UUID.randomUUID(),"休息后睡眠",null,null,25,10));
+        clock.advance(Duration.ofMinutes(10));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
+        s=service.transition(s.id(),new Transition(s.version(),Action.BREAK_DUE));
+        clock.advance(Duration.ofMinutes(2));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
+        assertThat(s.phase()).isEqualTo("RUNNING");
+        assertThat(s.breakMs()).isEqualTo(15_000);
+        assertThat(s.focusMs()).isEqualTo(705_000);
+        assertThat(s.nextBreakAtMs()).isEqualTo(1_200_000);
     }
     @Test void serverClockRollbackKeepsAnchorAndDoesNotDoubleCount(){
         Session s=service.start(new Start(UUID.randomUUID(),"时钟回拨",null,null,25,10));
@@ -295,9 +302,11 @@ class FocusIntegrationTest {
         }
         clock.advance(Duration.ofSeconds(50));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
         clock.advance(Duration.ofSeconds(30));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
-        assertThat(s.phase()).isEqualTo("MICRO_BREAK");
+        assertThat(s.phase()).isEqualTo("RUNNING");
         assertThat(s.focusMs()).isEqualTo(620_000);
-        assertThat(s.breakMs()).isZero();assertThat(s.breakRemainingMs()).isEqualTo(15_000);
+        assertThat(s.breakMs()).isZero();assertThat(s.reminderOrdinal()).isZero();
+        s=service.transition(s.id(),new Transition(s.version(),Action.BREAK_DUE));
+        assertThat(s.phase()).isEqualTo("MICRO_BREAK");assertThat(s.breakRemainingMs()).isEqualTo(15_000);
     }
     @Test void settlementFailureRollsBackSessionAndRecordsAtomically(){
         Session s=service.start(new Start(UUID.randomUUID(),"故障回滚",null,null,25,10));
@@ -316,6 +325,14 @@ class FocusIntegrationTest {
         jdbc.execute("ROLLBACK TO SAVEPOINT before_focus_end");
         assertThat(service.get(s.id()).phase()).isEqualTo("RUNNING");
         assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE focus_session_id=?",Integer.class,s.id())).isZero();
+    }
+    private Session visibleCheckpoint(Session session){
+        Session current=service.checkpoint(session.id(),new Checkpoint(session.version(),null,null));
+        if(current.phase().equals("RUNNING")&&!current.remindersDismissed()
+                &&current.focusMs()>=current.nextBreakAtMs()&&current.focusMs()<current.targetMs()){
+            return service.transition(current.id(),new Transition(current.version(),Action.BREAK_DUE));
+        }
+        return current;
     }
     static final class MutableClock extends Clock {
         private Instant value;MutableClock(Instant value){this.value=value;}

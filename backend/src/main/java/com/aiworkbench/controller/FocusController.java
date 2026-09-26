@@ -33,8 +33,6 @@ public class FocusController {
     public Session checkpoint(@PathVariable UUID id,@Valid @RequestBody Checkpoint request) { return service.checkpoint(id,request); }
     @PostMapping("/sessions/{id}/transition")
     public Session transition(@PathVariable UUID id,@Valid @RequestBody Transition request) { return service.transition(id,request); }
-    @PostMapping("/sessions/{id}/recover")
-    public Session recover(@PathVariable UUID id,@Valid @RequestBody Recover request) { return service.recover(id,request); }
     @PostMapping("/sessions/{id}/end")
     public Session end(@PathVariable UUID id,@Valid @RequestBody Version request) { return service.end(id,request); }
     @PutMapping("/sessions/{id}/progress")

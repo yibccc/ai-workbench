@@ -46,3 +46,17 @@
 - 用户随后将新临时专注的默认净时长改为 45 分钟，输入框点击展示 15/25/45/60 四项快捷选择，删除下方 45 分钟按钮。独立审查 `FocusPage`、CSS 和浏览器断言：规则默认 25、普通待办带入 25、规则实例带入 30 均继续优先于新临时默认；输入仍可填 1～480 自定义值。下拉选项按钮均为 `type=button`，Escape/Tab/Enter 与焦点恢复均有代码和测试路径。
 - 窄屏浏览器用例在 320×520、390×520、760×700、1440×900 实际打开下拉、滚动选项进入视口并点击，断言页面无横向溢出或额外文档纵向溢出；实施者定向 E2E 4/4 退出码 0。审查者在实施稳定后执行最终完整隔离 `frontend` 目录 `npm run e2e -- --retries=0`，显式使用 `d9_e2e`、独立 Redis 26379、`FOCUS_WRITE_ENABLED=true`，Chromium `140.0.7339.186`：**52/52 passed，退出码 0，无重试，4.2 分钟**。本批覆盖新时长、跨页声音提示及原四页/账号/报告回归；仍不证明人耳可听或真实设备睡眠。此前因用户中途改需求而主动中止的旧界面全量批次不计为最终证据。
 - 最终 E2E 后独立重跑 `frontend` 目录 `npm run lint`、`npm run build`（含 `tsc -b`），均退出码 0；`git diff --check` 对本轮前端文件无空白错误。
+
+## 2026-09-27 连续计时语义独立审查
+
+- 用户直接取消原 60 秒失联/睡眠确认，原 TC-008 已被 TC-008R 替代。V16 是新迁移，未改 V15：旧 `RECOVERY_REQUIRED` 行恢复到原 RUNNING/MICRO_BREAK/PAUSED 阶段，将旧 `pending_start` 设为连续计时锚点，删除旧待确认列与阶段约束；旧 `PENDING` 区间仍为未确认审计行，结算查询只读已确认 `FOCUS/BREAK`。
+- `FocusServiceImpl` 的 RUNNING 长空档直接按服务端时间累计至目标并在目标瞬间结束；PAUSED 只累计暂停，MICRO_BREAK 只处理已经开始的休息。检查点不再自动生成微休息；只有前端在 `document.visibilityState === 'visible'` 且净时长已到阈值时发 `BREAK_DUE`。后台检查点不带声音控制租约；隐藏时清理待播提醒，回前台才同步并最多触发当前一次提醒，目标已到则优先结束。`/recover`、恢复请求 DTO、前端确认 UI/API 已移除。
+- 原 V16 测试只看升级后字段，缺少新服务继续入账证据。审查者在 `FocusUpgradeIntegrationTest` 新增真实隔离 schema 链：V15 旧 RUNNING/PAUSED/MICRO_BREAK 待确认行与已确认/PENDING 区间 → V16 → 使用该 schema 的 `FocusStore` 和新 `FocusServiceImpl` 执行 checkpoint/end。RUNNING 从旧起点追到 10 分钟上限并跨日分片 60/540 秒；PAUSED gap 仅加 360 秒暂停、净时长保持 600 秒；已显示开始的微休息补足剩余 10 秒后继续，净时长 890 秒、休息 15 秒；旧 PENDING 行不重复计入任何记录。未发现生产状态机缺陷。
+- 定向 `FocusUpgradeIntegrationTest` 退出码 0；在隔离 `d9_focus_tests_20260926` / `d9_live_acceptance` 与 Redis 26379 上执行 `backend` 目录 `mvn -s maven-settings-aliyun.xml -q '-DforkCount=0' clean verify` 退出码 0，Surefire **31 suites、165 tests、0 failures/errors/skipped**。本次仅新增迁移后续账测试，未改产品代码。前端实施者先前定向 8/8 与真实隐藏 62 秒浏览器测试通过，最终全量 E2E 正由其运行，尚不在本审查中宣称完成。
+- 文案核对：专注主页面已明确写“切换页面或设备睡眠时仍会计时；停工时请手动暂停或结束”，显示“会话净时长”，不声称检测用户是否工作。工作记录及报告来源仍含“专注投入/净投入”旧标签，可能让自动累计的睡眠时间被理解为实做工时；已报主会话，前端实施者正在统一展示文案。现有自动化与模拟睡眠不证明设备在真实睡眠状态下按时发声，亦不应如此宣称。
+
+## 主会话追加验收（2026-09-27）
+
+- 前端实施者随后把工作记录及日报/周报来源展示改为“会话计时/会话净时长”，并提示系统不检测实际工作、停工需主动暂停或结束；后端旧记录内容与已冻结报告快照未改写。
+- 最新隔离 `d9_e2e` / Redis 26379 / Chromium `140.0.7339.186` 全量 `npm run e2e -- --retries=0` **56/56 passed**、退出码 0；相关文案定向 4/4、lint/build 均退出码 0。审查者未亲自重跑该批 E2E，其执行证据由主会话见 `research/acceptance-audit.md`。
+- V16 JAR SHA256 `061C40F7B96BE646E86D8C5998E72CBC65D32F3402D952C5314FC6E05E42B1CF` 已在独立 `d9_focus_rollout_20260926` 重演关写→启写→关写、同会话记录保留；人工实例 `d9_focus_manual_20260926` 已自动升级 V16 并恢复服务。用户取消睡眠失联确认后，物理睡眠不再是“待确认功能”的验收门禁；真实可听与入口矩阵仍不能由自动化代替。

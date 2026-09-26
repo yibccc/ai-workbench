@@ -33,14 +33,13 @@ public final class FocusModels {
     public record Checkpoint(@NotNull @PositiveOrZero Long version, UUID controllerId, Long controllerGeneration) {}
     public record Transition(@NotNull @PositiveOrZero Long version, @NotNull Action action) {}
     public enum Action { PAUSE, RESUME, BREAK_DUE, BREAK_DONE, SKIP_BREAK, DISMISS_REMINDERS }
-    public record Recover(@NotNull @PositiveOrZero Long version, boolean confirm) {}
     public record Progress(@NotNull @PositiveOrZero Long version,
                            @NotNull @Size(max=4000) String progress) {}
     public record Session(UUID id, UUID requestId, String title, UUID taskId, UUID projectId,
                           Long targetMs, Long intervalMs, String zoneId, String phase, Long version,
                           Instant startedAt, Instant anchorAt, Instant endedAt, Long focusMs,
-                          Long breakMs, Long pauseMs, Instant pendingStart, Instant pendingEnd,
-                          String resumePhase, Long breakRemainingMs, Long nextBreakAtMs,
+                          Long breakMs, Long pauseMs, String resumePhase,
+                          Long breakRemainingMs, Long nextBreakAtMs,
                           Boolean remindersDismissed, Integer reminderOrdinal, UUID controllerId,
                           Long controllerGeneration, Instant controllerExpiresAt, String progress) {}
     public record Today(LocalDate date, long focusMs, long breakMs, long sessionCount,

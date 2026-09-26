@@ -16,7 +16,6 @@ public interface FocusService {
     Session start(Start request);
     Session checkpoint(UUID id, Checkpoint request);
     Session transition(UUID id, Transition request);
-    Session recover(UUID id, Recover request);
     Session end(UUID id, Version request);
     Session progress(UUID id, Progress request);
     Today today();

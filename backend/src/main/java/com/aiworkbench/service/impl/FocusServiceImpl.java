@@ -22,7 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class FocusServiceImpl implements FocusService {
     private static final long BREAK_MS=15_000;
-    private static final long RECOVERY_GAP_MS=60_000;
     private final FocusStore store;
     private final TaskMapper tasks;
     private final ProjectService projects;
@@ -126,14 +125,14 @@ public class FocusServiceImpl implements FocusService {
 
     private static final class State {
         final Session source;String phase,resumePhase;long focus,rest,pause,next,breakRemaining,controllerGeneration;
-        int ordinal;boolean dismissed;Instant anchor,ended,pendingStart,pendingEnd,controllerExpires;UUID controllerId;
+        int ordinal;boolean dismissed;Instant anchor,ended,controllerExpires;UUID controllerId;
         State(Session s){source=s;phase=s.phase();resumePhase=s.resumePhase();focus=s.focusMs();rest=s.breakMs();pause=s.pauseMs();
             next=s.nextBreakAtMs();breakRemaining=s.breakRemainingMs();ordinal=s.reminderOrdinal();dismissed=s.remindersDismissed();
-            anchor=s.anchorAt();ended=s.endedAt();pendingStart=s.pendingStart();pendingEnd=s.pendingEnd();
+            anchor=s.anchorAt();ended=s.endedAt();
             controllerId=s.controllerId();controllerGeneration=s.controllerGeneration();controllerExpires=s.controllerExpiresAt();}
         Session snapshot(){return new Session(source.id(),source.requestId(),source.title(),source.taskId(),source.projectId(),
                 source.targetMs(),source.intervalMs(),source.zoneId(),phase,source.version(),source.startedAt(),anchor,ended,
-                focus,rest,pause,pendingStart,pendingEnd,resumePhase,breakRemaining,next,dismissed,ordinal,
+                focus,rest,pause,resumePhase,breakRemaining,next,dismissed,ordinal,
                 controllerId,controllerGeneration,controllerExpires,source.progress());}
     }
     private void save(State x,Instant t){
@@ -152,25 +151,24 @@ public class FocusServiceImpl implements FocusService {
                 if(ms<=0)break;
                 Instant end=cursor.plusMillis(ms);store.insertInterval(owner(),x.source.id(),"FOCUS",cursor,end,true);x.focus+=ms;cursor=end;
                 if(x.focus>=x.source.targetMs()){x.phase="ENDED";x.ended=cursor;break;}
-                if(!x.dismissed&&x.focus>=x.next){x.phase="MICRO_BREAK";x.breakRemaining=BREAK_MS;x.ordinal++;}
             } else if("MICRO_BREAK".equals(x.phase)){
                 long ms=Math.min(Duration.between(cursor,to).toMillis(),x.breakRemaining);
                 if(ms<=0)break;
                 Instant end=cursor.plusMillis(ms);store.insertInterval(owner(),x.source.id(),"BREAK",cursor,end,true);x.rest+=ms;
                 x.breakRemaining-=ms;cursor=end;
-                if(x.breakRemaining==0){x.phase="RUNNING";x.next+=x.source.intervalMs();}
+                if(x.breakRemaining==0){x.phase="RUNNING";advanceNextBreak(x);}
             } else if("PAUSED".equals(x.phase)){
                 store.insertInterval(owner(),x.source.id(),"PAUSE",cursor,to,true);x.pause+=Duration.between(cursor,to).toMillis();cursor=to;
             } else break;
         }
         x.anchor=to;
     }
+    private void advanceNextBreak(State x){
+        while(x.next<=x.focus)x.next+=x.source.intervalMs();
+    }
     private boolean advance(State x,Instant t){
-        if("ENDED".equals(x.phase)||"RECOVERY_REQUIRED".equals(x.phase))return false;
+        if("ENDED".equals(x.phase))return false;
         if(!t.isAfter(x.anchor))return false;
-        long gap=Duration.between(x.anchor,t).toMillis();
-        if(gap>RECOVERY_GAP_MS){x.pendingStart=x.anchor;x.pendingEnd=t;x.resumePhase=x.phase;
-            x.phase="RECOVERY_REQUIRED";store.insertInterval(owner(),x.source.id(),"PENDING",x.anchor,t,false);x.anchor=t;return true;}
         credit(x,x.anchor,t);return true;
     }
     private void lease(State x,Checkpoint request,Instant t){
@@ -189,45 +187,32 @@ public class FocusServiceImpl implements FocusService {
     @Override @Transactional public Session transition(UUID id,Transition request){
         Session s=requireSession(id,true);version(s.version(),request.version());State x=new State(s);Instant t=logicalNow(x);
         if("ENDED".equals(x.phase))return s;
-        if(advance(x,t)&&"RECOVERY_REQUIRED".equals(x.phase)){save(x,t);return requireSession(id,false);}
+        advance(x,t);
         if("ENDED".equals(x.phase)){save(x,t);settle(x);return requireSession(id,false);}
-        if("RECOVERY_REQUIRED".equals(x.phase))throw conflict("请先确认恢复区间");
         switch(request.action()){
             case PAUSE -> {if(!x.phase.equals("RUNNING")&&!x.phase.equals("MICRO_BREAK"))throw conflict("当前不能暂停");
                 x.resumePhase=x.phase;x.phase="PAUSED";}
             case RESUME -> {if(!x.phase.equals("PAUSED"))throw conflict("当前未暂停");x.phase=x.resumePhase;x.resumePhase=null;}
-            case BREAK_DUE -> {if(!x.phase.equals("MICRO_BREAK"))throw conflict("休息尚未到期");}
-            case BREAK_DONE -> {if(x.phase.equals("MICRO_BREAK"))throw conflict("休息尚未结束");
-                if(!x.phase.equals("RUNNING"))throw conflict("当前不是休息阶段");}
-            case SKIP_BREAK -> {if(!x.phase.equals("MICRO_BREAK"))throw conflict("当前不是休息阶段");
-                x.phase="RUNNING";x.breakRemaining=0;x.next+=s.intervalMs();}
-            case DISMISS_REMINDERS -> {x.dismissed=true;if(x.phase.equals("MICRO_BREAK")){x.phase="RUNNING";x.breakRemaining=0;}}
+            case BREAK_DUE -> {
+                if(!x.phase.equals("RUNNING")||x.dismissed||x.focus<x.next||x.focus>=s.targetMs())
+                    throw conflict("休息尚未到期");
+                x.phase="MICRO_BREAK";x.breakRemaining=BREAK_MS;x.ordinal++;
+            }
+            case BREAK_DONE -> {
+                if(!s.phase().equals("MICRO_BREAK")||!x.phase.equals("RUNNING"))throw conflict("休息尚未结束");
+            }
+            case SKIP_BREAK -> {
+                if(!s.phase().equals("MICRO_BREAK"))throw conflict("当前不是休息阶段");
+                if(x.phase.equals("MICRO_BREAK")){x.phase="RUNNING";x.breakRemaining=0;advanceNextBreak(x);}
+            }
+            case DISMISS_REMINDERS -> {x.dismissed=true;if(x.phase.equals("MICRO_BREAK")){x.phase="RUNNING";x.breakRemaining=0;advanceNextBreak(x);}}
         }
         x.anchor=t;save(x,t);return requireSession(id,false);
     }
-    @Override @Transactional public Session recover(UUID id,Recover request){
-        Session s=requireSession(id,true);version(s.version(),request.version());if(!s.phase().equals("RECOVERY_REQUIRED"))throw conflict("没有待确认区间");
-        State x=new State(s);Instant t=logicalNow(x);x.phase=x.resumePhase;x.resumePhase=null;
-        if(request.confirm() && x.phase.equals("RUNNING")){
-            long duration=Duration.between(x.pendingStart,x.pendingEnd).toMillis();
-            long credited=Math.min(duration,s.targetMs()-x.focus);
-            if(credited>0){
-                Instant creditedEnd=x.pendingStart.plusMillis(credited);
-                store.insertInterval(owner(),s.id(),"FOCUS",x.pendingStart,creditedEnd,true);
-                x.focus+=credited;
-                if(x.focus>=s.targetMs()){x.phase="ENDED";x.ended=creditedEnd;}
-                else if(!x.dismissed){
-                    while(x.next<=x.focus)x.next+=s.intervalMs();
-                }
-            }
-        }
-        x.pendingStart=null;x.pendingEnd=null;x.anchor=t;
-        save(x,t);if(x.phase.equals("ENDED"))settle(x);return requireSession(id,false);
-    }
     @Override @Transactional public Session end(UUID id,Version request){
         Session s=requireSession(id,true);if(s.phase().equals("ENDED"))return s;version(s.version(),request.version());
-        State x=new State(s);Instant t=logicalNow(x);if(x.phase.equals("RECOVERY_REQUIRED"))throw conflict("请先确认恢复区间");
-        advance(x,t);if(x.phase.equals("RECOVERY_REQUIRED")){save(x,t);return requireSession(id,false);}
+        State x=new State(s);Instant t=logicalNow(x);
+        advance(x,t);
         if(!x.phase.equals("ENDED")){x.phase="ENDED";x.ended=t;x.anchor=t;}
         save(x,t);settle(x);return requireSession(id,false);
     }

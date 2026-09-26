@@ -13,7 +13,7 @@ export interface FocusRoutine {
   updatedAt: string
 }
 
-export type FocusPhase = 'RUNNING' | 'MICRO_BREAK' | 'PAUSED' | 'RECOVERY_REQUIRED' | 'ENDED'
+export type FocusPhase = 'RUNNING' | 'MICRO_BREAK' | 'PAUSED' | 'ENDED'
 export type FocusAction = 'PAUSE' | 'RESUME' | 'BREAK_DUE' | 'BREAK_DONE' | 'SKIP_BREAK' | 'DISMISS_REMINDERS'
 
 export interface FocusSession {
@@ -33,8 +33,6 @@ export interface FocusSession {
   focusMs: number
   breakMs: number
   pauseMs: number
-  pendingStart: string | null
-  pendingEnd: string | null
   resumePhase: FocusPhase | null
   breakRemainingMs: number
   nextBreakAtMs: number
@@ -71,9 +69,8 @@ export const fillToday = () => request<{ date: string; created: unknown[]; block
 export const fetchCurrentFocus = () => request<FocusSession | null>('/api/focus/current')
 export const fetchFocusSession = (id: string) => request<FocusSession>(`/api/focus/sessions/${id}`)
 export const startFocus = (input: { requestId: string; title: string; taskId: string | null; projectId: string | null; targetMinutes: number; intervalMinutes: number }) => request<FocusSession>('/api/focus/sessions', { method: 'POST', body: JSON.stringify(input) })
-export const checkpointFocus = (session: FocusSession, controllerId: string) => request<FocusSession>(`/api/focus/sessions/${session.id}/checkpoint`, { method: 'POST', body: JSON.stringify({ version: session.version, controllerId, controllerGeneration: session.controllerGeneration }) })
+export const checkpointFocus = (session: FocusSession, controllerId: string | null) => request<FocusSession>(`/api/focus/sessions/${session.id}/checkpoint`, { method: 'POST', body: JSON.stringify({ version: session.version, controllerId, controllerGeneration: controllerId ? session.controllerGeneration : null }) })
 export const transitionFocus = (session: FocusSession, action: FocusAction) => request<FocusSession>(`/api/focus/sessions/${session.id}/transition`, { method: 'POST', body: JSON.stringify({ version: session.version, action }) })
-export const recoverFocus = (session: FocusSession, confirm: boolean) => request<FocusSession>(`/api/focus/sessions/${session.id}/recover`, { method: 'POST', body: JSON.stringify({ version: session.version, confirm }) })
 export const endFocus = (session: FocusSession) => request<FocusSession>(`/api/focus/sessions/${session.id}/end`, { method: 'POST', body: JSON.stringify({ version: session.version }) })
 export const saveFocusProgress = (session: FocusSession, progress: string) => request<FocusSession>(`/api/focus/sessions/${session.id}/progress`, { method: 'PUT', body: JSON.stringify({ version: session.version, progress }) })
 export const fetchFocusToday = () => request<FocusToday>('/api/focus/today')
