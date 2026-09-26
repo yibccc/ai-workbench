@@ -180,8 +180,8 @@ test('专注独立页从待办带入但不自动开工，跨页可暂停并保�
 
 test('专注五项导航及规则和汇总在窄屏保持可达', async ({ page }) => {
   await openWorkbench(page)
-  for (const width of [320, 390, 760, 1440]) {
-    await page.setViewportSize({ width, height: 700 })
+  for (const [width, height, choice] of [[320, 520, 15], [390, 520, 25], [760, 700, 45], [1440, 900, 60]]) {
+    await page.setViewportSize({ width, height })
     await navigate(page, '专注')
     await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(5)
     await expect(page.getByTestId('focus-page').getByRole('heading', { name: '专注', exact: true })).toBeVisible()
@@ -189,9 +189,135 @@ test('专注五项导航及规则和汇总在窄屏保持可达', async ({ page 
     await expect(page.getByRole('heading', { name: '每日重复任务' })).toBeVisible()
     await page.getByRole('tab', { name: '今日汇总' }).click()
     await expect(page.getByRole('heading', { name: '今日专注汇总' })).toBeVisible()
+    await page.getByRole('tab', { name: '计时' }).click()
+    const duration = page.getByLabel('目标净时长（分钟）')
+    await duration.click()
+    const option = page.getByRole('listbox', { name: '快捷时长' }).getByRole('option', { name: `${choice} 分钟` })
+    await option.scrollIntoViewIfNeeded()
+    await expect(option).toBeInViewport({ ratio: 0.9 })
+    await option.click()
+    await expect(duration).toHaveValue(String(choice))
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true)
   }
+})
+
+test('默认 45 分钟与输入框快捷下拉，开始手势启用声音且刷新可试听', async ({ page, request }) => {
+  await page.addInitScript(() => {
+    const state = { resumes: 0, tones: 0 }
+    Object.assign(window, { __focusSound: state })
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
+      state = 'running'; currentTime = 0; destination = {}
+      resume() { state.resumes++; return Promise.resolve() }
+      close() { return Promise.resolve() }
+      createOscillator() { return { frequency: { value: 0 }, connect: (next: unknown) => next, start: () => { state.tones++ }, stop: () => undefined } }
+      createGain() { return { gain: { value: 0 }, connect: () => this.destination } }
+    } })
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await expect(page.getByRole('heading', { name: '声音与提示' })).toHaveCount(0)
+  await expect(page.locator('.focus-timer-grid .focus-side')).toHaveCount(0)
+  const duration = page.getByLabel('目标净时长（分钟）')
+  await expect(duration).toHaveValue('45')
+  await expect(page.locator('.focus-form > .focus-actions').getByRole('button', { name: '45 分钟' })).toHaveCount(0)
+  for (const minutes of [15, 25, 45, 60]) {
+    await duration.click()
+    await expect(page.getByRole('listbox', { name: '快捷时长' }).getByRole('option')).toHaveCount(4)
+    await page.getByRole('listbox', { name: '快捷时长' }).getByRole('option', { name: `${minutes} 分钟` }).click()
+    await expect(duration).toHaveValue(String(minutes))
+  }
+  await duration.fill('37')
+  await duration.press('Escape')
+  await expect(duration).toHaveValue('37')
+  await expect(duration).toHaveAttribute('min', '1')
+  await expect(duration).toHaveAttribute('max', '480')
+  await duration.press('ArrowDown')
+  await expect(page.getByRole('listbox', { name: '快捷时长' })).toBeVisible()
+  await duration.press('Escape')
+  await expect(page.getByRole('listbox', { name: '快捷时长' })).toHaveCount(0)
+  await duration.click()
+  await duration.press('Tab')
+  await expect(page.getByRole('option', { name: '15 分钟' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(duration).toHaveValue('15')
+  await duration.click()
+  await page.getByRole('option', { name: '45 分钟' }).click()
+  await expect(duration).toHaveValue('45')
+  await page.getByLabel('目标', { exact: true }).fill('试听与快捷时长')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '试听与快捷时长' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => (window as Window & { __focusSound?: { resumes: number; tones: number } }).__focusSound?.resumes)).toBeGreaterThanOrEqual(1)
+  await expect.poll(() => page.evaluate(() => (window as Window & { __focusSound?: { resumes: number; tones: number } }).__focusSound?.tones)).toBeGreaterThanOrEqual(1)
+  await expect(page.getByText('声音已启用')).toBeVisible()
+  const session = await (await request.get(`${apiBase}/api/focus/current`)).json() as { id: string; targetMs: number }
+  expect(session.targetMs).toBe(45 * 60_000)
+  await page.reload()
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '试听与快捷时长' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '启用并试听声音' })).toBeVisible()
+  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await expect(page.getByText('声音已启用')).toBeVisible()
+  await expect.poll(() => page.evaluate(() => (window as Window & { __focusSound?: { resumes: number; tones: number } }).__focusSound?.tones)).toBeGreaterThanOrEqual(1)
+  expect((await (await request.get(`${apiBase}/api/focus/current`)).json()).id).toBe(session.id)
+})
+
+test('开始时声音被拒仍保留会话与主面板视觉反馈', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'AudioContext', { configurable: true, value: class { constructor() { throw new Error('audio denied') } } }) })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('声音拒绝降级')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '声音拒绝降级' })).toBeVisible()
+  await expect(page.locator('.focus-main').getByRole('alert')).toContainText('声音未启用')
+  await expect(page.getByRole('button', { name: '启用并试听声音' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '声音与提示' })).toHaveCount(0)
+})
+
+test('跨页声音失败可见且微休息时嵌入引导，重试后清除', async ({ page, request }) => {
+  await page.addInitScript(() => {
+    Object.assign(window, { __focusSoundBlocked: true })
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
+      state = 'running'; currentTime = 0; destination = {}
+      constructor() { if ((window as Window & { __focusSoundBlocked?: boolean }).__focusSoundBlocked) throw new Error('audio denied') }
+      resume() { return Promise.resolve() }
+      close() { return Promise.resolve() }
+      createOscillator() { return { frequency: { value: 0 }, connect: (next: unknown) => next, start: () => undefined, stop: () => undefined } }
+      createGain() { return { gain: { value: 0 }, connect: () => this.destination } }
+    } })
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('跨页声音失败')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.locator('.focus-main').getByRole('alert')).toContainText('声音未启用')
+  await navigate(page, '工作汇报')
+  const alert = page.getByTestId('focus-sound-alert')
+  await expect(alert).toBeVisible()
+  await expect(alert.getByRole('link', { name: '返回专注' })).toHaveAttribute('href', '#focus')
+  await page.setViewportSize({ width: 320, height: 700 })
+  await expect(alert).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+  const current = await (await request.get(`${apiBase}/api/focus/current`)).json() as ReturnType<typeof mockFocusSession>
+  await page.route('**/api/focus/sessions/*/checkpoint', route => route.fulfill({ json: {
+    ...current, phase: 'MICRO_BREAK', version: current.version + 1, anchorAt: new Date().toISOString(),
+    focusMs: 600_000, breakRemainingMs: 15_000, reminderOrdinal: 1,
+  } }))
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  const guidance = page.getByRole('dialog', { name: '微休息引导' })
+  await expect(guidance).toBeVisible()
+  await expect(guidance.getByTestId('focus-sound-alert')).toBeVisible()
+  await expect(page.getByTestId('focus-sound-alert')).toHaveCount(1)
+  const cardBounds = await guidance.locator('.focus-break-card').boundingBox()
+  const alertBounds = await guidance.getByTestId('focus-sound-alert').boundingBox()
+  expect(cardBounds && alertBounds && alertBounds.y >= cardBounds.y
+    && alertBounds.y + alertBounds.height <= cardBounds.y + cardBounds.height).toBeTruthy()
+  await guidance.getByRole('link', { name: '返回专注' }).click()
+  await expect(page.getByTestId('focus-page')).toBeVisible()
+  await expect(guidance.getByTestId('focus-sound-alert')).toBeVisible()
+  await page.evaluate(() => Object.assign(window, { __focusSoundBlocked: false }))
+  await guidance.getByRole('button', { name: '重新启声' }).click()
+  await expect(page.getByTestId('focus-sound-alert')).toHaveCount(0)
+  await expect(guidance).toBeVisible()
 })
 
 test('专注新写入关闭时不补造今天，旧会话仍可暂停收尾', async ({ page }) => {
@@ -226,6 +352,10 @@ test('重复规则显式补齐今天且修改后不替换已生成待办', async
   await expect(page.locator('.focus-routine').filter({ hasText: '每天整理计划' })).toBeVisible()
   await page.getByRole('button', { name: '检查并补齐今天' }).click()
   await expect.poll(async () => (await (await request.get(`${apiBase}/api/tasks`)).json() as Array<{ title: string }>).filter(task => task.title === '每天整理计划').length).toBe(1)
+  await navigate(page, '待办任务')
+  await page.getByTestId('task-item').filter({ hasText: '每天整理计划' }).getByRole('button', { name: '带入专注' }).click()
+  await expect(page.getByLabel('目标净时长（分钟）')).toHaveValue('30')
+  await page.getByRole('tab', { name: '重复规则' }).click()
   await page.locator('.focus-routine').filter({ hasText: '每天整理计划' }).getByRole('button', { name: '编辑' }).click()
   await page.getByRole('region', { name: '专注内容' }).getByLabel('名称').fill('以后整理计划')
   await page.getByRole('button', { name: '保存规则' }).click()
@@ -236,6 +366,22 @@ test('重复规则显式补齐今天且修改后不替换已生成待办', async
   expect(tasks.find(task => task.title === '每天整理计划')?.defaultFocusDurationMinutes).toBe(30)
   await page.locator('.focus-routine').filter({ hasText: '以后整理计划' }).getByRole('button', { name: '停用' }).click()
   await expect(page.locator('.focus-routine').filter({ hasText: '以后整理计划' })).toContainText('已停用')
+})
+
+test('带入待办时长优先，新建无关联专注恢复默认 45 分钟', async ({ page, request }) => {
+  expect((await request.post(`${apiBase}/api/tasks`, { data: { title: '自带待办时长', notes: '', priority: 'MEDIUM' } })).ok()).toBeTruthy()
+  await openWorkbench(page)
+  await navigate(page, '待办任务')
+  await page.getByTestId('task-item').filter({ hasText: '自带待办时长' }).getByRole('button', { name: '带入专注' }).click()
+  await expect(page.getByLabel('目标净时长（分钟）')).toHaveValue('25')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeEnabled()
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  await expect(page.getByRole('heading', { name: '本次投入已保存' })).toBeVisible()
+  await page.getByRole('button', { name: '开始新专注' }).click()
+  await expect(page.getByLabel('目标净时长（分钟）')).toHaveValue('45')
+  await expect(page.getByLabel('目标', { exact: true })).toHaveValue('')
+  await expect(page.getByText('已关联待办')).toHaveCount(0)
 })
 
 test('切换账号会清除旧专注状态与顶栏控制', async ({ page, request }) => {
