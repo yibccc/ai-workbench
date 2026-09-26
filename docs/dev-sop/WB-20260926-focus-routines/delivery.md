@@ -3,8 +3,8 @@
 handoff_id / revision：`WB-20260926-focus-routines` / `2`
 Trellis 任务：`.trellis/tasks/09-26-focus-routines`（`in_progress`）
 状态：本地实现与自动化验收完成，人工设备验收待确认；未推送
-业务 commit：`dc56cf07589212ff0b4acfe6acec0a49c6c851be`
-review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa0639141a3c24b5` / `dc56cf07589212ff0b4acfe6acec0a49c6c851be` / Git tree `c94f8c2077f74b83efaed300b94f6a98ac642604`
+业务 commit：初版 `dc56cf07589212ff0b4acfe6acec0a49c6c851be`；试用迭代 `57191ecf749f9eb6feb7e5a09f8e0bea1296ddf4`
+review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa0639141a3c24b5` / `57191ecf749f9eb6feb7e5a09f8e0bea1296ddf4` / Git tree `723c9611ef2241ae533fc9984e28ced27f87b5dc`
 验证记录：`.trellis/tasks/09-26-focus-routines/research/acceptance-audit.md`、`rollout-drill-result.json`
 审查记录：`.trellis/tasks/09-26-focus-routines/research/quality-check.md`
 后续归档/日志 commit：未生成；任务仍需人工设备验收后收尾。
