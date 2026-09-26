@@ -98,3 +98,8 @@
 
 - 新增真实隔离登录/专注会话的 Playwright 用例：20 秒被动 checkpoint 至少一次，期间 `/api/auth/activity` 请求数为 0；经过活动节流窗口后明确点击暂停，活动请求变为 1。定向 1/1 退出码 0。浏览器后退/前进用例核对同 sessionId 和记录草稿不丢。
 - `frontend` 目录 `npm run lint` 退出码 0；`npm run e2e -- --retries=0` 在 `d9_e2e`、Redis 26379、`FOCUS_WRITE_ENABLED=true` 与 Chromium `140.0.7339.186` 下退出码 0，48/48 passed，3.7 分钟。HTML 报告 `frontend/playwright-report/index.html`。本批只改前端测试，无产品代码变化。
+
+### 2026-09-26 实际安装的 Chrome/Edge 自动烟测
+
+- 独立人工实例 `http://127.0.0.1:15174`、合成账号与 `d9_focus_manual_20260926` schema 已启动，后端 health UP、前端 HTTP 200、`focus.writeEnabled=true`。
+- [manual-browser-smoke.cjs](manual-browser-smoke.cjs) 在 headless Chrome `153.0.8010.53` 与 Edge `153.0.4234.48` 登录并进入专注页，各见五个导航入口；命令退出码 0。浏览器版本和页可达性已证实，实际扬声器可听、前台提示 ≤3 秒及设备睡眠仍待人测。

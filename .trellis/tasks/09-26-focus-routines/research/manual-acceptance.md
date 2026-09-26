@@ -2,6 +2,8 @@
 
 本轮已在 Windows 本机启动独立测试实例：`http://127.0.0.1:15174`。后端 `127.0.0.1:18083`、PostgreSQL `focus_routines_test.d9_focus_manual_20260926`、Redis `127.0.0.1:26379`，与日常 `ai-workbench` 数据卷隔离。启动检查结果：前端 HTTP 200、后端 health UP、合成管理员登录成功，`/api/focus/capabilities.writeEnabled=true`。运行 PID 和路径只保存在本机 `%TEMP%/focus-manual-runtime.json`，仓库未保存密码。启动脚本为 [start-manual-acceptance.ps1](start-manual-acceptance.ps1)；验收后可由 [stop-manual-acceptance.ps1](stop-manual-acceptance.ps1) 按 PID 与命令行双重核对后关闭这两个专属进程。
 
+已用 [manual-browser-smoke.cjs](manual-browser-smoke.cjs) 在实际安装的 Chrome `153.0.8010.53` 和 Edge `153.0.4234.48` 的 headless 模式登录并进入独立专注页，两个浏览器均显示五个导航入口；命令退出码 0。此结果只证明登录与 DOM 导航，不证明可听声音、前台时延或睡眠恢复。
+
 ## 待人工记录
 
 | 场景 | 操作与应记事实 | 当前结果 |
