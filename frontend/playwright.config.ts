@@ -6,9 +6,8 @@ const database = databaseUrl ? new URL(databaseUrl.replace(/^jdbc:/, '')) : null
 if (!database || !['127.0.0.1', 'localhost'].includes(database.hostname)
     || !database.port || database.port === '5432'
     || database.pathname === '/ai_workbench' || database.searchParams.get('currentSchema') !== 'd9_e2e'
-    || !redisPort || redisPort === '6379' || !process.env.POSTGRES_USER || !process.env.POSTGRES_PASSWORD
-    || process.env.FOCUS_WRITE_ENABLED !== 'true') {
-  throw new Error('E2E requires explicit isolated PostgreSQL/Redis resources and FOCUS_WRITE_ENABLED=true; never use existing ai-workbench volumes.')
+    || !redisPort || redisPort === '6379' || !process.env.POSTGRES_USER || !process.env.POSTGRES_PASSWORD) {
+  throw new Error('E2E requires explicit isolated PostgreSQL/Redis resources; never use existing ai-workbench volumes.')
 }
 
 export default defineConfig({
@@ -42,7 +41,6 @@ export default defineConfig({
         POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
         REDIS_HOST: '127.0.0.1',
         REDIS_PORT: redisPort,
-        FOCUS_WRITE_ENABLED: 'true',
         WORKBENCH_BOOTSTRAP_USERNAME: 'e2e_admin',
         WORKBENCH_BOOTSTRAP_PASSWORD: 'E2eOnly-Synthetic-9384!',
       },

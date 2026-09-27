@@ -7,6 +7,3 @@ spring:
     schemas: ${WORKBENCH_TEST_SCHEMA:d9_backend_tests}
     default-schema: ${WORKBENCH_TEST_SCHEMA:d9_backend_tests}
     create-schemas: true
-workbench:
-  focus:
-    write-enabled: true

@@ -60,3 +60,9 @@ review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa06391
 
 - 分支 `feat/focus-routines-r2` 已推送，初始基于 `docs/wb-auth-isolation-delivery` 的 `3d1293095a3370403f27e051fa0639141a3c24b5`。[功能 PR #5](https://github.com/yibccc/ai-workbench/pull/5) 在归档/日志提交推送前已被外部操作合并到该目标分支，随后该目标分支经 PR #6 合入 `master` 并删除；我没有执行合并。余下交付链接、归档与日志提交已另提面向 `master` 的 [PR #7](https://github.com/yibccc/ai-workbench/pull/7)，当前待审。用户 2026-09-27 明确要求此时停服收尾并提交 MR；AC-003 与实际外部入口未实测的事实留在 PR 中，未部署。
 - V16 隔离 JAR 对 `focus_routines_test.d9_focus_rollout_20260926` 已重演默认关写→启写→再关写：新会话 409 / 可写并形成单条记录 / 关写后原记录仍可读。V14→V15→V16 合成旧数据升级、V15 校验和不变及旧恢复三态后续结算由独立迁移测试验证。写入新来源后不能直接回退到只识别旧来源的二进制；用兼容读取版本关闭新写，保留表和历史记录。
+
+## 2026-09-27 后续修正：移除未经批准的发布门禁
+
+用户指出页面“新专注和重复规则写入尚未开放”不是需求。上文的默认关写、能力查询与关写→启写→关写演练仅记录当时版本的历史实现，不再代表当前产品行为。本次修正分支 `fix/focus-available-default` 删除 `FOCUS_WRITE_ENABLED`、`/api/focus/capabilities`、后端拒绝新规则/会话的判断，以及前端禁用状态和该提示。登录后仍按原需求补齐今日重复待办，已登录用户可直接创建规则并开始专注；所有权、CSRF、字段校验和会话版本保护继续有效。
+
+修正后在不设置专注发布开关的隔离环境中，后端 `clean verify` 为 30 suites / 164 tests 全通过；前端 lint/build 与 Chromium E2E 56/56 全通过，其中浏览器实际创建规则和会话，且未请求已删除的能力接口。`AGENTS.md` 与 `.cursor/rules/no-unsolicited-compatibility.mdc` 按用户明确指令新增持久规则：兼容旧行为、旧版本或旧数据必须由用户明确要求或批准具体方案后才实施。

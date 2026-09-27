@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 public class FocusController {
     private final FocusService service;
     public FocusController(FocusService service) { this.service=service; }
-    @GetMapping("/capabilities") public Capabilities capabilities() { return service.capabilities(); }
     @GetMapping("/routines") public List<Routine> routines() { return service.routines(); }
     @PostMapping("/routines") @ResponseStatus(HttpStatus.CREATED)
     public Routine createRoutine(@Valid @RequestBody SaveRoutine request) { return service.createRoutine(request); }

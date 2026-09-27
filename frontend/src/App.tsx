@@ -11,7 +11,7 @@ import { TasksPanel, type TaskEditRequest } from './features/tasks/TasksPanel'
 import type { TaskItem } from './api/tasks'
 import { FocusPage, type FocusDraft } from './features/focus/FocusPage'
 import { formatDuration, projectedBreakMs, projectedFocusMs, useFocusController } from './features/focus/useFocusController'
-import { fetchFocusCapabilities, fillToday } from './api/focus'
+import { fillToday } from './api/focus'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { ProjectsPanel } from './features/projects/ProjectsPanel'
 import { ToastProvider } from './components/ToastProvider'
@@ -138,8 +138,6 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [focusDraft, setFocusDraft] = useState<FocusDraft | null>(null)
   const [focusFillError, setFocusFillError] = useState<string | null>(null)
-  const [focusWriteEnabled, setFocusWriteEnabled] = useState(false)
-  const [focusCapabilityError, setFocusCapabilityError] = useState<string | null>(null)
   const firstNavigation = useRef(true)
   const refreshProjects = useCallback(async () => {
     const items = await fetchProjects(true)
@@ -170,19 +168,11 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
   const focus = useFocusController(account.id, onFocusSettled)
   const prepareFocus = useCallback(async () => {
     try {
-      const capability = await fetchFocusCapabilities()
-      setFocusWriteEnabled(capability.writeEnabled); setFocusCapabilityError(null)
-      if (!capability.writeEnabled) { setFocusFillError(null); return }
-      try {
-        const result = await fillToday()
-        setFocusFillError(null)
-        if (result.blocked.length) showToast(`有 ${result.blocked.length} 条重复规则未生成今日待办：${result.blocked.map(item => item.reason).join('；')}`, 'info')
-        void refreshContent()
-      } catch (caught) { setFocusFillError(caught instanceof Error ? caught.message : '今日重复任务检查失败') }
-    } catch (caught) {
-      setFocusWriteEnabled(false)
-      setFocusCapabilityError(caught instanceof Error ? caught.message : '专注功能状态读取失败')
-    }
+      const result = await fillToday()
+      setFocusFillError(null)
+      if (result.blocked.length) showToast(`有 ${result.blocked.length} 条重复规则未生成今日待办：${result.blocked.map(item => item.reason).join('；')}`, 'info')
+      void refreshContent()
+    } catch (caught) { setFocusFillError(caught instanceof Error ? caught.message : '今日重复任务检查失败') }
   }, [refreshContent, showToast])
   useEffect(() => { void Promise.resolve().then(prepareFocus) }, [prepareFocus])
   const focusTask = useCallback((task: TaskItem) => {
@@ -204,12 +194,11 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
   return <><AppShell page={page} hasDirtyReports={dirtyReports} focusStatus={focusStatus} focusToggle={focusToggle} account={account} onPassword={() => setPasswordOpen(true)} onLogout={onLogout}
     onUsers={() => { window.location.hash = 'users'; setPage('users') }}>
     {projectError && <div className="notice error" role="alert"><span>项目列表读取失败：{projectError}</span><button className="text-button" type="button" onClick={() => void refreshProjects().catch((caught: unknown) => setProjectError(caught instanceof Error ? caught.message : '加载失败'))}>重新加载</button></div>}
-    {focusCapabilityError && <div className="notice error" role="alert"><span>专注功能状态读取失败：{focusCapabilityError}</span><button className="text-button" type="button" onClick={() => void prepareFocus()}>重试</button></div>}
     {focusFillError && <div className="notice error" role="alert"><span>今日重复任务检查失败：{focusFillError}</span><button className="text-button" type="button" onClick={() => void fillToday().then(result => { setFocusFillError(null); if (result.blocked.length) showToast(`有 ${result.blocked.length} 条规则未生成：${result.blocked.map(item => item.reason).join('；')}`, 'info'); void refreshContent() }).catch((caught: unknown) => setFocusFillError(caught instanceof Error ? caught.message : '重试失败'))}>重试</button></div>}
     {page !== 'focus' && !breakOverlayVisible && soundAlert}
     <RetainedView active={page === 'records'}><RecordsPage projects={projects} revision={revision} onDataChanged={refreshContent} onEditTask={editTask} /></RetainedView>
     <RetainedView active={page === 'tasks'}><TasksPanel projects={projects} refreshKey={revision} editRequest={taskEdit} onRecordsChanged={refreshContent} onFocusTask={focusTask} /></RetainedView>
-    <RetainedView active={page === 'focus'}><FocusPage projects={projects} draft={focusDraft} control={focus} writeEnabled={focusWriteEnabled} revision={revision} onTasksChanged={() => { void refreshContent() }} /></RetainedView>
+    <RetainedView active={page === 'focus'}><FocusPage projects={projects} draft={focusDraft} control={focus} revision={revision} onTasksChanged={() => { void refreshContent() }} /></RetainedView>
     <RetainedView active={page === 'reports'}><ReportsPage onDirtyChange={setDirtyReports} /></RetainedView>
     <RetainedView active={page === 'projects'}><ProjectsPanel onProjectsChanged={async () => { await refreshProjects(); await refreshContent() }} /></RetainedView>
     {page === 'users' && account.role === 'ADMIN' && <UsersPage currentId={account.id} onSelfRevoked={onSelfRevoked} />}

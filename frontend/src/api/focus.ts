@@ -52,8 +52,6 @@ export interface FocusToday {
   records: WorkRecord[]
 }
 
-export const fetchFocusCapabilities = () => request<{ writeEnabled: boolean }>('/api/focus/capabilities')
-
 export interface RoutineInput {
   title: string
   projectId: string | null

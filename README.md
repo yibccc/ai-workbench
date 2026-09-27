@@ -30,7 +30,7 @@ Compose 启动 PostgreSQL、Redis、Java 后端和 Nginx 前端，构建所需�
 
 从无账号版本升级且旧库已有业务行时，先备份并在隔离环境制定旧数据归属；迁移会拒绝无归属业务行，不能自动分配给首位管理员，也不能用旧应用访问已启用多人归属的新库。
 
-专注功能的 V15/V16 增量迁移随新版后端执行。V16 移除旧版睡眠失联待确认状态，原待确认会话从旧缺口起点按连续计时语义接续；已发布的 V15 脚本保持不变。`FOCUS_WRITE_ENABLED` 默认 `false`，先用兼容新来源的后端确认旧记录与报告可读，再在 `.env` 设置为 `true` 并重启后端开放新规则、今日生成和新会话。回退时先改回 `false` 并重启；已有会话仍可结束，历史专注记录和报告仍可读取。写入过 `FOCUS_SESSION` 后，不要直接回退到只认识旧来源的二进制或删除专注表；保留兼容读取版本和数据。完整备份恢复可能丢失升级后的新数据，须另行决定。
+专注功能的 V15/V16 增量迁移随新版后端执行；启动后可直接创建重复规则和专注会话。V16 移除旧版睡眠失联待确认状态，已发布的 V15 脚本保持不变。数据库迁移会保留原有记录，升级前仍应按现有备份流程保护数据。
 
 默认入口为 <http://127.0.0.1:8088>。首次启动前，在 `.env` 同时设置 `WORKBENCH_BOOTSTRAP_USERNAME` 和 `WORKBENCH_BOOTSTRAP_PASSWORD`，空账号表会创建首位管理员。确认该账号可登录后，从 `.env` 删除引导密码；已有账号时引导配置不会修改任何密码。后续用户由管理员在工作台账号菜单的“用户管理”中创建。应用会话仅由明确用户操作续期，连续 7 天无主动操作后需重新登录。
 
@@ -88,7 +88,6 @@ docker compose up -d --build --wait
 | `REPORT_AI_TIMEOUT` / `REPORT_AI_MAX_TOKENS` | 报告超时与输出长度，默认 `PT6M` / `4096` |
 | `WORKBENCH_BOOTSTRAP_USERNAME` / `WORKBENCH_BOOTSTRAP_PASSWORD` | 仅空账号表首次启动时创建管理员；成功后移除引导密码 |
 | `WORKBENCH_COOKIE_SECURE` | HTTPS 入口设为 `true`；loopback HTTP 开发为 `false` |
-| `FOCUS_WRITE_ENABLED` | 专注新规则、当日生成和新会话的发布开关，默认 `false`；已有会话可继续结算 |
 | `APP_BIND` / `APP_PORT` | Docker 入口绑定地址与端口，默认 `127.0.0.1:8088` |
 | `WORKBENCH_WS_ALLOWED_ORIGINS` | WebSocket 允许的完整入口地址；开发默认 5173/15173，Compose 默认 8088 |
 | `POSTGRES_PORT` / `REDIS_PORT` | 数据库宿主机端口，默认 5432/6379 |
@@ -181,7 +180,7 @@ cd backend
 mvn -s maven-settings-aliyun.xml clean verify
 ```
 
-浏览器回归使用 Playwright、`e2e` Profile、隔离 schema `d9_e2e` 和确定性模型替身。先启动**全新独立 Compose 项目**的 PostgreSQL/Redis 卷和非默认宿主端口，并显式设置 `E2E_DATABASE_URL`（loopback、独立库、`currentSchema=d9_e2e`）、`POSTGRES_USER`、`POSTGRES_PASSWORD`、`REDIS_PORT`（非 6379）和 `FOCUS_WRITE_ENABLED=true`；测试配置缺少这些值会拒绝运行。不要复用日常 `ai-workbench` 持久卷。
+浏览器回归使用 Playwright、`e2e` Profile、隔离 schema `d9_e2e` 和确定性模型替身。先启动**全新独立 Compose 项目**的 PostgreSQL/Redis 卷和非默认宿主端口，并显式设置 `E2E_DATABASE_URL`（loopback、独立库、`currentSchema=d9_e2e`）、`POSTGRES_USER`、`POSTGRES_PASSWORD` 和 `REDIS_PORT`（非 6379）；测试配置缺少这些值会拒绝运行。不要复用日常 `ai-workbench` 持久卷。
 
 ```powershell
 cd frontend

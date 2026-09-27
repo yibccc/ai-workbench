@@ -6,7 +6,7 @@ Use this contract when changing `#focus`, task-to-focus navigation, retained wor
 
 ## 2. Signatures
 
-- `api/focus.ts` exports `FocusSession`, `FocusRoutine`, `fetchFocusCapabilities`, `fetchCurrentFocus`, `startFocus`, `checkpointFocus`, `transitionFocus`, `endFocus`, `saveFocusProgress`, `fetchRoutines`, `fillToday`, and `fetchFocusToday`. The former recovery command and pending fields are removed.
+- `api/focus.ts` exports `FocusSession`, `FocusRoutine`, `fetchCurrentFocus`, `startFocus`, `checkpointFocus`, `transitionFocus`, `endFocus`, `saveFocusProgress`, `fetchRoutines`, `fillToday`, and `fetchFocusToday`. The former recovery command and pending fields are removed.
 - `useFocusController(accountId, onSettled)` owns the current session, approximately 20-second foreground/background checkpoints while the page executes, server lease, BroadcastChannel refresh, audio context, and account cleanup.
 - `FocusPage` owns the visible timer, routine editor, today's totals and optional progress input. `AppShell` owns the compact status/return control outside page bodies. `TasksPanel` only passes task context to `FocusPage`.
 
@@ -21,7 +21,7 @@ Use this contract when changing `#focus`, task-to-focus navigation, retained wor
 - The server lease identifies which tab may play a reminder. A BroadcastChannel speeds refresh but never authorizes sound. Do not replay an old reminder after a refresh or long hidden period. Account logout/401/A→B remount closes audio, timers and channel, and discards the old session; automatic checkpoint/status requests do not signal `/api/auth/activity`.
 - `FocusPage` contains timer, routine settings and today's totals. The records page keeps its original form, date selection, list and pagination, and shows settled focus only as a list source. Session end does not complete a task. The compact control outside records can pause/continue and return to the same session.
 - An unlinked new timer form defaults to 45 net minutes. Clicking or focusing its numeric target input opens a four-option dropdown for 15, 25, 45, and 60 minutes; the user can still type any valid integer from 1 to 480. Escape closes the list, Tab reaches its options, and Enter selects one. The former quick button below the input is absent. Linked tasks and routine occurrences keep their own saved defaults; starting a new unlinked session after settlement resets the form to 45. The timer uses a single main panel without a separate sound/help side card. The explicit Start gesture activates audio before awaiting session creation; a restored active session offers a compact inline enable/preview action and inline failure feedback in the main panel.
-- `GET /api/focus/capabilities` supplies `writeEnabled`. The backend defaults `FOCUS_WRITE_ENABLED=false` during compatible-reader rollout. New routine/occurrence/session creation is closed, while an existing session may still be controlled and settled. Keep historical evidence readable and make unavailable creation clear in the UI; enable E2E writes explicitly in its isolated environment.
+- The focus page exposes routine and session creation as soon as the authenticated workbench loads. Do not fetch a focus capability flag or show an unavailable-write notice; real fill/start failures still show their existing retryable error feedback.
 
 ## 4. Validation & Error Matrix
 
@@ -37,7 +37,6 @@ Use this contract when changing `#focus`, task-to-focus navigation, retained wor
 | Routine fill blocked by archived project | Show specific blocked feedback and keep other generated occurrences |
 | Routine fill network error | Visible retry; do not silently omit today's tasks |
 | 401 or account switch | Unmount old timer/audio/requests and show the correct new identity state |
-| Focus creation gate closed | Show rollout state; do not issue automatic `fill-today` or offer new routine/session creation, but allow an existing session to finish |
 
 ## 5. Good / Base / Bad Cases
 
