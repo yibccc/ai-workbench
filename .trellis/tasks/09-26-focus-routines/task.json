@@ -22,5 +22,8 @@
   "parent": null,
   "relatedFiles": [],
   "notes": "",
-  "meta": {}
+  "meta": {
+    "github_pr_url": "https://github.com/yibccc/ai-workbench/pull/5",
+    "manual_ac003_status": "NOT_RUN"
+  }
 }
