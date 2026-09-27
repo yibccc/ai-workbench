@@ -60,6 +60,7 @@ class DailyReportIntegrationTest {
     private final List<UUID> requestIds = new ArrayList<>();
     private final List<UUID> recordIds = new ArrayList<>();
     private final List<UUID> taskIds = new ArrayList<>();
+    private final List<UUID> focusSessionIds = new ArrayList<>();
 
     @BeforeEach void resetGateway() throws Exception {
         OwnerTestContext.ensureAccounts(jdbc);
@@ -88,6 +89,8 @@ class DailyReportIntegrationTest {
             jdbc.update("DELETE FROM reports WHERE request_id=?", requestId);
         }
         recordIds.forEach(id -> jdbc.update("DELETE FROM work_records WHERE id=?", id));
+        focusSessionIds.forEach(id -> jdbc.update("DELETE FROM focus_intervals WHERE session_id=?",id));
+        focusSessionIds.forEach(id -> jdbc.update("DELETE FROM focus_sessions WHERE id=?",id));
         taskIds.forEach(id -> jdbc.update("DELETE FROM todo_items WHERE id=?", id));
         OwnerTestContext.removeBusinessData(jdbc);
     }
@@ -95,6 +98,73 @@ class DailyReportIntegrationTest {
     private ResultActions perform(MockHttpServletRequestBuilder request) throws Exception {
         try { return mvc.perform(OwnerTestContext.authenticated(request, ownerSession)); }
         finally { OwnerTestContext.use(OwnerTestContext.USER_ID); }
+    }
+
+    @Test
+    void focusInvestmentAndTaskCompletionAreDistinctFrozenFacts() {
+        Instant start=DATE.atStartOfDay(ZONE).toInstant().plusSeconds(60);
+        UUID task=insertTask("完成设计",start.plusSeconds(5),"COMPLETED",null);
+        UUID focusA=insertFocus(task,start,600_000);
+        UUID focusB=insertFocus(task,start.plusSeconds(700),300_000);
+        UUID completion=insertCompletionRecord(task,"完成设计",start.plusSeconds(1200));
+        when(gateway.generate(any(),any(),anyList())).thenAnswer(invocation->{
+            List<ReportSourcePrompt> sources=invocation.getArgument(2);
+            assertThat(sources).filteredOn(s->"FOCUS_SESSION".equals(s.status())).hasSize(2)
+                    .allSatisfy(s->{assertThat(s.taskId()).isEqualTo(task);assertThat(s.sessionId()).isNotNull();assertThat(s.focusMs()).isPositive();});
+            UUID a=sources.stream().filter(s->s.sessionId()!=null&&s.focusMs()==600_000).findFirst().orElseThrow().id();
+            UUID b=sources.stream().filter(s->s.sessionId()!=null&&s.focusMs()==300_000).findFirst().orElseThrow().id();
+            UUID done=sources.stream().filter(s->"TASK_COMPLETION".equals(s.status())).findFirst().orElseThrow().id();
+            return result(bullet(ReportSectionType.ACHIEVEMENTS,"完成设计",done),
+                    new AiReportResult.Section("PROGRESS",List.of(new AiReportResult.Bullet("两段设计投入",List.of(a,b)))));
+        });
+        ReportResponse report=await(create());
+        assertThat(report.status()).isEqualTo(ReportStatus.SUCCEEDED);
+        assertThat(report.sources()).extracting(ReportResponse.Source::entityId).containsExactlyInAnyOrder(focusA,focusB,completion);
+        assertThat(report.content()).contains("完成设计", "专注投入：设计，净投入 600000 毫秒", "净投入 300000 毫秒");
+        assertThat(report.content()).contains("[来源 1、2]");
+        assertThat(report.content()).doesNotContain("两段设计投入");
+        assertThat(report.content().split("完成设计",-1)).hasSize(2);
+        jdbc.update("UPDATE work_records SET progress='后来更改' WHERE id=?",focusA);
+        ReportResponse frozen=service.get(report.id());
+        assertThat(frozen.sources()).filteredOn(s->focusA.equals(s.entityId())).singleElement()
+                .satisfies(s->{assertThat(s.progress()).isEqualTo("分析阶段");assertThat(s.focusMs()).isEqualTo(600_000);});
+    }
+
+    @Test
+    void focusOnlyProgressCannotPersistModelCompletionClaim() {
+        Instant start=DATE.atStartOfDay(ZONE).toInstant().plusSeconds(60);
+        UUID focusRecord=insertFocus(null,start,600_000);
+        when(gateway.generate(any(),any(),anyList())).thenAnswer(invocation->{
+            List<ReportSourcePrompt> sources=invocation.getArgument(2);
+            UUID focusSource=sources.stream().filter(source->"FOCUS_SESSION".equals(source.status()))
+                    .findFirst().orElseThrow().id();
+            return result(bullet(ReportSectionType.PROGRESS,"已完成任务并交付最终成果",focusSource));
+        });
+        ReportResponse report=await(create());
+        assertThat(report.status()).isEqualTo(ReportStatus.SUCCEEDED);
+        ReportResponse.Source source=report.sources().stream().filter(item->focusRecord.equals(item.entityId()))
+                .findFirst().orElseThrow();
+        assertThat(report.content()).contains("专注投入：设计，净投入 600000 毫秒", "记录进展：分析阶段",
+                "[来源 " + (report.sources().indexOf(source)+1) + "]");
+        assertThat(report.content()).doesNotContain("已完成任务", "交付最终成果");
+    }
+
+    @Test
+    void progressWithRealCompletionSourceKeepsSupportedModelText() {
+        Instant start=DATE.atStartOfDay(ZONE).toInstant().plusSeconds(60);
+        UUID task=insertTask("设计任务",start.plusSeconds(5),"COMPLETED",null);
+        insertFocus(task,start,600_000);
+        insertCompletionRecord(task,"完成设计任务",start.plusSeconds(700));
+        when(gateway.generate(any(),any(),anyList())).thenAnswer(invocation->{
+            List<ReportSourcePrompt> sources=invocation.getArgument(2);
+            UUID focus=sources.stream().filter(source->"FOCUS_SESSION".equals(source.status())).findFirst().orElseThrow().id();
+            UUID completion=sources.stream().filter(source->"TASK_COMPLETION".equals(source.status())).findFirst().orElseThrow().id();
+            return result(new AiReportResult.Section("PROGRESS",List.of(
+                    new AiReportResult.Bullet("有完成事实支持的进展",List.of(focus,completion)))));
+        });
+        ReportResponse report=await(create());
+        assertThat(report.status()).isEqualTo(ReportStatus.SUCCEEDED);
+        assertThat(report.content()).contains("有完成事实支持的进展", "[来源 1、2]");
     }
 
     @Test
@@ -322,6 +392,23 @@ class DailyReportIntegrationTest {
                 INSERT INTO work_records(id,user_id,content,source,todo_id,completion_result,occurred_at,is_active)
                 VALUES (?,?,?,'TASK_COMPLETION',?,'',?,true)
                 """, id, OwnerTestContext.USER_ID, content, taskId, Timestamp.from(occurredAt));
+        return id;
+    }
+
+    private UUID insertFocus(UUID taskId,Instant occurredAt,long focusMs){
+        UUID sessionId=UUID.randomUUID(),id=UUID.randomUUID();focusSessionIds.add(sessionId);recordIds.add(id);
+        jdbc.update("""
+                INSERT INTO focus_sessions(id,user_id,request_id,task_id,title,target_ms,interval_ms,zone_id,phase,
+                    started_at,anchor_at,ended_at,focus_ms,next_break_at_ms,progress)
+                VALUES (?,?,?,?,?,1500000,600000,'Asia/Shanghai','ENDED',?,?,?,?,600000,'分析阶段')
+                """,sessionId,OwnerTestContext.USER_ID,UUID.randomUUID(),taskId,"设计",Timestamp.from(occurredAt),
+                Timestamp.from(occurredAt.plusMillis(focusMs)),Timestamp.from(occurredAt.plusMillis(focusMs)),focusMs);
+        jdbc.update("""
+                INSERT INTO work_records(id,user_id,content,source,todo_id,focus_session_id,business_date,focus_ms,
+                    break_ms,segment_start,segment_end,occurred_at,is_active,progress)
+                VALUES (?,?,?,'FOCUS_SESSION',?,?,?, ?,0,?,?,?,true,'分析阶段')
+                """,id,OwnerTestContext.USER_ID,"专注投入：设计",taskId,sessionId,DATE,focusMs,
+                Timestamp.from(occurredAt),Timestamp.from(occurredAt.plusMillis(focusMs)),Timestamp.from(occurredAt));
         return id;
     }
 

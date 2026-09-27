@@ -87,11 +87,11 @@ public class E2eDeterministicAiGateway implements WorkbenchAiGateway, ReportAiGa
     private AiReportResult report(List<ReportSourcePrompt> sources, boolean weekly) {
         List<AiReportResult.Section> sections = new ArrayList<>();
         addSection(sections, ReportSectionType.ACHIEVEMENTS, sources.stream().filter(source -> weekly
-                ? source.role() == ReportSourceRole.WEEK_RECORD
-                : source.type().name().equals("RECORD")).findFirst().orElse(null));
+                ? source.role() == ReportSourceRole.WEEK_RECORD && !"FOCUS_SESSION".equals(source.status())
+                : source.type().name().equals("RECORD") && !"FOCUS_SESSION".equals(source.status())).findFirst().orElse(null));
         addSection(sections, ReportSectionType.PROGRESS, sources.stream().filter(source -> weekly
-                ? source.role() == ReportSourceRole.CURRENT_TASK
-                : false).findFirst().orElse(null));
+                ? source.role() == ReportSourceRole.CURRENT_TASK || "FOCUS_SESSION".equals(source.status())
+                : "FOCUS_SESSION".equals(source.status())).findFirst().orElse(null));
         addSection(sections, ReportSectionType.PLANS, sources.stream().filter(source -> weekly
                 ? source.role() == ReportSourceRole.NEXT_WEEK_TASK
                 : source.type().name().equals("TASK")).findFirst().orElse(null));

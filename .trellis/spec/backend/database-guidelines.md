@@ -209,7 +209,7 @@ Use this contract for task completion, reopen, deletion, completion-result edits
 - `PUT /api/tasks/{id}/completion-result { version, result } -> TaskResponse`
 - `GET /api/tasks/{id}/events -> TaskEventResponse[]`, including soft-deleted tasks
 - `DELETE /api/tasks/{id}?version=<non-negative> -> 204` performs a soft delete
-- `WorkRecordSource = MANUAL | TASK_COMPLETION`
+- `WorkRecordSource = MANUAL | TASK_COMPLETION | FOCUS_SESSION`; this scenario governs only `TASK_COMPLETION` transitions. The focus source follows [Focus Routines](focus-routines.md).
 
 ### 3. Contracts
 
@@ -224,6 +224,7 @@ Use this contract for task completion, reopen, deletion, completion-result edits
 - Task deletion sets `deleted_at`, invalidates any active automatic completion record, and adds a `DELETED` event. Normal task queries exclude deleted rows; event history remains available.
 - `task_events.todo_id` and `work_records.todo_id` use `ON DELETE RESTRICT`. Do not reintroduce cascade deletion.
 - Automatic completion records cannot be edited or deleted by general work-record endpoints.
+- Focus investment records remain active when a linked task is reopened or deleted; the general record PUT/DELETE endpoints still accept only `MANUAL`. Focus progress uses its dedicated versioned session command.
 - Reports and daily summaries must consume only `is_active=true` automatic records for current completion facts, while history views may include inactive records.
 
 ### 4. Validation & Error Matrix
@@ -618,3 +619,22 @@ LIMIT 1;
 ```
 
 Serialize creation per owner/week and connect the new version to that owner's actual unreferenced chain tail.
+
+## Pooled connection isolation in migration tests
+
+Migration tests that temporarily use `SET search_path` must restore the borrowed connection's original schema in `finally`, before Hikari can return that connection to another test. `SingleConnectionDataSource(connection, true)` closes only the wrapper; it does not reset PostgreSQL session state. Without restoration, later owner-scoped tests may read a dropped temporary schema and report missing tables or fail `current_schema()` guards depending on test order.
+
+```java
+try (Connection connection = dataSource.getConnection();
+     Statement statement = connection.createStatement()) {
+    String originalSchema = connection.getSchema();
+    statement.execute("SET search_path TO " + temporarySchema);
+    try {
+        runMigrationAssertions(new JdbcTemplate(new SingleConnectionDataSource(connection, true)));
+    } finally {
+        connection.setSchema(originalSchema);
+    }
+}
+```
+
+Run the entire `clean verify` suite after changing a pooled-connection migration helper; a targeted migration test alone cannot reveal cross-test contamination.

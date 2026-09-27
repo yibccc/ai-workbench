@@ -53,6 +53,7 @@ class WeeklyReportIntegrationTest {
     private final List<UUID> recordIds = new ArrayList<>();
     private final List<UUID> taskIds = new ArrayList<>();
     private final List<UUID> projectIds = new ArrayList<>();
+    private final List<UUID> focusSessionIds = new ArrayList<>();
 
     @BeforeEach void resetGateway() {
         OwnerTestContext.ensureAccounts(jdbc);
@@ -69,9 +70,61 @@ class WeeklyReportIntegrationTest {
                 "DELETE FROM report_sources WHERE report_id IN (SELECT id FROM reports WHERE request_id=?)", id));
         requestIds.forEach(id -> jdbc.update("DELETE FROM reports WHERE request_id=?", id));
         recordIds.forEach(id -> jdbc.update("DELETE FROM work_records WHERE id=?", id));
+        focusSessionIds.forEach(id -> jdbc.update("DELETE FROM focus_intervals WHERE session_id=?",id));
+        focusSessionIds.forEach(id -> jdbc.update("DELETE FROM focus_sessions WHERE id=?",id));
         taskIds.forEach(id -> jdbc.update("DELETE FROM todo_items WHERE id=?", id));
         projectIds.forEach(id -> jdbc.update("DELETE FROM projects WHERE id=?", id));
         OwnerTestContext.removeBusinessData(jdbc);
+    }
+
+    @Test
+    void weeklyFocusAndCompletionRemainDistinctFrozenSources(){
+        Instant start=at(MONDAY).plusSeconds(60);
+        UUID task=insertTask("周内设计",null,start,start);
+        UUID first=insertFocus(task,start,600_000);
+        UUID second=insertFocus(task,start.plusSeconds(900),300_000);
+        jdbc.update("UPDATE todo_items SET status='COMPLETED',completed_at=? WHERE id=?",Timestamp.from(start.plusSeconds(1300)),task);
+        UUID completion=UUID.randomUUID();recordIds.add(completion);
+        jdbc.update("INSERT INTO work_records(id,user_id,todo_id,content,source,occurred_at) " +
+                "VALUES (?,?,?,'完成周内设计','TASK_COMPLETION',?)",completion,OwnerTestContext.USER_ID,task,
+                Timestamp.from(start.plusSeconds(1300)));
+        when(gateway.generateWeekly(any(),any(),any(),anyList())).thenAnswer(invocation->{
+            List<ReportSourcePrompt> sources=invocation.getArgument(3);
+            var focus=sources.stream().filter(item->"FOCUS_SESSION".equals(item.status())).toList();
+            assertThat(focus).hasSize(2).allSatisfy(item->{assertThat(item.role()).isEqualTo(ReportSourceRole.WEEK_RECORD);
+                assertThat(item.taskId()).isEqualTo(task);assertThat(item.focusMs()).isPositive();});
+            UUID done=sources.stream().filter(item->"TASK_COMPLETION".equals(item.status())).findFirst().orElseThrow().id();
+            return result(section(ReportSectionType.ACHIEVEMENTS,"完成周内设计",done),
+                    section(ReportSectionType.PROGRESS,"两段周内投入",focus.get(0).id(),focus.get(1).id()));
+        });
+        ReportResponse report=await(create(MONDAY.plusDays(3)));
+        assertThat(report.status()).isEqualTo(ReportStatus.SUCCEEDED);
+        assertThat(report.sources()).extracting(ReportResponse.Source::entityId).contains(first,second,completion);
+        assertThat(report.content()).contains("完成周内设计", "专注投入：周内设计，净投入 600000 毫秒", "净投入 300000 毫秒");
+        assertThat(report.content()).contains("[来源 1、2]");
+        assertThat(report.content()).doesNotContain("两段周内投入");
+        jdbc.update("UPDATE work_records SET progress='后来修改' WHERE id=?",first);
+        assertThat(service.get(report.id()).sources()).filteredOn(item->item.entityId().equals(first)).singleElement()
+                .satisfies(item->{assertThat(item.progress()).isEqualTo("设计阶段");assertThat(item.focusMs()).isEqualTo(600_000);});
+    }
+
+    @Test
+    void focusOnlyWeeklyProgressCannotPersistModelCompletionClaim(){
+        Instant start=at(MONDAY).plusSeconds(60);
+        UUID focusRecord=insertFocus(null,start,600_000);
+        when(gateway.generateWeekly(any(),any(),any(),anyList())).thenAnswer(invocation->{
+            List<ReportSourcePrompt> sources=invocation.getArgument(3);
+            UUID focusSource=sources.stream().filter(source->"FOCUS_SESSION".equals(source.status()))
+                    .findFirst().orElseThrow().id();
+            return result(section(ReportSectionType.PROGRESS,"已完成任务并交付最终成果",focusSource));
+        });
+        ReportResponse report=await(create(MONDAY.plusDays(3)));
+        assertThat(report.status()).isEqualTo(ReportStatus.SUCCEEDED);
+        ReportResponse.Source source=report.sources().stream().filter(item->focusRecord.equals(item.entityId()))
+                .findFirst().orElseThrow();
+        assertThat(report.content()).contains("专注投入：周内设计，净投入 600000 毫秒", "记录进展：设计阶段",
+                "[来源 " + (report.sources().indexOf(source)+1) + "]");
+        assertThat(report.content()).doesNotContain("已完成任务", "交付最终成果");
     }
 
     @Test
@@ -259,6 +312,24 @@ class WeeklyReportIntegrationTest {
                 """, id, OwnerTestContext.USER_ID, title, dueAt == null ? null : Timestamp.from(dueAt),
                 Timestamp.from(createdAt), Timestamp.from(updatedAt));
         return id;
+    }
+
+    private UUID insertFocus(UUID taskId,Instant occurredAt,long focusMs){
+        UUID sessionId=UUID.randomUUID(),recordId=UUID.randomUUID();focusSessionIds.add(sessionId);recordIds.add(recordId);
+        jdbc.update("""
+                INSERT INTO focus_sessions(id,user_id,request_id,task_id,title,target_ms,interval_ms,zone_id,phase,
+                    started_at,anchor_at,ended_at,focus_ms,next_break_at_ms,progress)
+                VALUES (?,?,?,?,?,1500000,600000,'Asia/Shanghai','ENDED',?,?,?,?,600000,'设计阶段')
+                """,sessionId,OwnerTestContext.USER_ID,UUID.randomUUID(),taskId,"周内设计",Timestamp.from(occurredAt),
+                Timestamp.from(occurredAt.plusMillis(focusMs)),Timestamp.from(occurredAt.plusMillis(focusMs)),focusMs);
+        jdbc.update("""
+                INSERT INTO work_records(id,user_id,content,source,todo_id,focus_session_id,business_date,focus_ms,
+                    break_ms,segment_start,segment_end,occurred_at,progress)
+                VALUES (?,?,?,'FOCUS_SESSION',?,?,?, ?,0,?,?,?,'设计阶段')
+                """,recordId,OwnerTestContext.USER_ID,"专注投入：周内设计",taskId,sessionId,
+                occurredAt.atZone(ZONE).toLocalDate(),focusMs,Timestamp.from(occurredAt),
+                Timestamp.from(occurredAt.plusMillis(focusMs)),Timestamp.from(occurredAt));
+        return recordId;
     }
 
     private UUID source(List<ReportSourcePrompt> sources, ReportSourceRole role, UUID entityId) {

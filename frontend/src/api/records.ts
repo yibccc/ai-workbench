@@ -6,8 +6,15 @@ export interface WorkRecord {
   id: string
   project: Pick<Project, 'id' | 'name' | 'status'> | null
   content: string
-  source: 'MANUAL' | 'TASK_COMPLETION'
+  source: 'MANUAL' | 'TASK_COMPLETION' | 'FOCUS_SESSION'
   taskId: string | null
+  sessionId?: string | null
+  businessDate?: string | null
+  focusMs?: number | null
+  breakMs?: number | null
+  segmentStart?: string | null
+  segmentEnd?: string | null
+  progress?: string | null
   active: boolean
   completionResult: string
   occurredAt: string

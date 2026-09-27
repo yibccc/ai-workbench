@@ -47,6 +47,8 @@ management:
       show-details: always
 
 workbench:
+  focus:
+    write-enabled: ${FOCUS_WRITE_ENABLED:false}
   auth:
     bootstrap-username: ${WORKBENCH_BOOTSTRAP_USERNAME:}
     bootstrap-password: ${WORKBENCH_BOOTSTRAP_PASSWORD:}

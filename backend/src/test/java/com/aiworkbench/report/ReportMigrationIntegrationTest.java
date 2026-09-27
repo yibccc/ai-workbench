@@ -131,8 +131,10 @@ class ReportMigrationIntegrationTest {
 
     private void inSchema(String schema, SqlAction action) throws Exception {
         try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+            String originalSchema = connection.getSchema();
             statement.execute("SET search_path TO " + schema);
-            action.run(new JdbcTemplate(new SingleConnectionDataSource(connection, true)));
+            try { action.run(new JdbcTemplate(new SingleConnectionDataSource(connection, true))); }
+            finally { connection.setSchema(originalSchema); }
         }
     }
 

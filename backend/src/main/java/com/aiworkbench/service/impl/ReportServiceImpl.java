@@ -134,7 +134,8 @@ public class ReportServiceImpl implements ReportService {
             else {
                 List<ReportSourcePrompt> promptSources = sources.stream().map(source -> new ReportSourcePrompt(
                         source.id(), source.sourceType(), source.sourceRole(), source.content(), source.projectName(),
-                        source.sourceStatus(), source.sourceTime())).toList();
+                        source.sourceStatus(), source.sourceTime(),source.taskId(),source.sessionId(),
+                        source.businessDate(),source.focusMs(),source.breakMs(),source.progress())).toList();
                 AiReportResult generated = reportType.equals("WEEKLY")
                         ? aiGateway.generateWeekly(periodStart, periodEnd, zoneId, promptSources)
                         : aiGateway.generate(periodStart, zoneId, promptSources);
@@ -206,17 +207,24 @@ public class ReportServiceImpl implements ReportService {
     String render(Map<ReportSectionType, List<ValidatedBullet>> sections, List<ReportSourceRow> sources,
                   String reportType) {
         Map<UUID, Integer> sourceNumbers = new java.util.HashMap<>();
-        for (int index = 0; index < sources.size(); index++) sourceNumbers.put(sources.get(index).id(), index + 1);
+        Map<UUID, ReportSourceRow> sourcesById = new java.util.HashMap<>();
+        for (int index = 0; index < sources.size(); index++) {
+            ReportSourceRow source = sources.get(index);
+            sourceNumbers.put(source.id(), index + 1);
+            sourcesById.put(source.id(), source);
+        }
         boolean weekly = reportType.equals("WEEKLY");
         return renderSection(weekly ? "本周完成" : "明确成果", sections.get(ReportSectionType.ACHIEVEMENTS),
-                weekly ? "本周暂无有效完成记录" : "暂无记录", sourceNumbers) + "\n\n"
+                weekly ? "本周暂无有效完成记录" : "暂无记录", sourceNumbers, sourcesById, ReportSectionType.ACHIEVEMENTS) + "\n\n"
                 + renderSection(weekly ? "进行中与阻碍" : "工作进展", sections.get(ReportSectionType.PROGRESS),
-                weekly ? "暂无有依据的进行中事项或阻碍" : "暂无记录", sourceNumbers) + "\n\n"
+                weekly ? "暂无有依据的进行中事项或阻碍" : "暂无记录", sourceNumbers, sourcesById, ReportSectionType.PROGRESS) + "\n\n"
                 + renderSection(weekly ? "下周计划" : "计划", sections.get(ReportSectionType.PLANS),
-                weekly ? "暂无明确安排到下周的计划" : "暂无已安排计划", sourceNumbers);
+                weekly ? "暂无明确安排到下周的计划" : "暂无已安排计划", sourceNumbers, sourcesById, ReportSectionType.PLANS);
     }
 
     private boolean roleAllowed(String reportType, ReportSectionType section, ReportSourceRow source) {
+        if (section == ReportSectionType.ACHIEVEMENTS && source.sourceType() == ReportSourceType.RECORD
+                && "FOCUS_SESSION".equals(source.sourceStatus())) return false;
         if (!reportType.equals("WEEKLY")) {
             boolean expectedTask = section == ReportSectionType.PLANS;
             return (source.sourceType() == ReportSourceType.TASK) == expectedTask;
@@ -230,13 +238,37 @@ public class ReportServiceImpl implements ReportService {
     }
 
     private String renderSection(String title, List<ValidatedBullet> bullets, String empty,
-                                 Map<UUID, Integer> sourceNumbers) {
+                                 Map<UUID, Integer> sourceNumbers, Map<UUID, ReportSourceRow> sourcesById,
+                                 ReportSectionType section) {
         if (bullets == null || bullets.isEmpty()) return "## " + title + "\n- " + empty;
         return "## " + title + "\n" + bullets.stream().map(bullet -> {
             String references = bullet.sourceIds().stream().map(sourceNumbers::get).map(String::valueOf)
                     .collect(java.util.stream.Collectors.joining("、"));
-            return "- " + bullet.text() + " [来源 " + references + "]";
+            return "- " + safeBulletText(section, bullet, sourcesById) + " [来源 " + references + "]";
         }).collect(java.util.stream.Collectors.joining("\n"));
+    }
+
+    private String safeBulletText(ReportSectionType section, ValidatedBullet bullet,
+                                  Map<UUID, ReportSourceRow> sourcesById) {
+        if (section != ReportSectionType.PROGRESS) return bullet.text();
+        List<ReportSourceRow> cited = bullet.sourceIds().stream().map(sourcesById::get).toList();
+        List<ReportSourceRow> focus = cited.stream().filter(source -> "FOCUS_SESSION".equals(source.sourceStatus())).toList();
+        if (focus.isEmpty() || cited.stream().anyMatch(source -> "TASK_COMPLETION".equals(source.sourceStatus()))) {
+            return bullet.text();
+        }
+        // The model cannot promote mere invested time into a completed-task claim.
+        // These values come only from the frozen report sources, not the live records.
+        return focus.stream().map(source -> {
+            Long duration = source.focusMs();
+            if (duration == null || duration <= 0) throw failure(ReportGenerationException.Code.INVALID_BULLET,
+                    "RENDER", "专注来源缺少有效净时长");
+            String content = source.content();
+            int suffix = content.lastIndexOf("\n净投入：");
+            String title = (suffix >= 0 ? content.substring(0, suffix) : content).replaceAll("[\\r\\n]+", " ").trim();
+            String progress = source.progress();
+            return title + "，净投入 " + duration + " 毫秒"
+                    + (progress == null || progress.isBlank() ? "" : "，记录进展：" + progress.replaceAll("[\\r\\n]+", " ").trim());
+        }).collect(java.util.stream.Collectors.joining("；"));
     }
 
     private ReportGenerationException failure(ReportGenerationException.Code code, String stage, String detail) {
@@ -287,7 +319,8 @@ public class ReportServiceImpl implements ReportService {
 
     private ReportResponse.Source toSource(ReportSourceRow source) {
         return new ReportResponse.Source(source.id(), source.sourceType(), source.sourceRole(), source.entityId(),
-                source.content(), source.projectId(), source.projectName(), source.sourceStatus(), source.sourceTime());
+                source.content(), source.projectId(), source.projectName(), source.sourceStatus(), source.sourceTime(),
+                source.taskId(),source.sessionId(),source.businessDate(),source.focusMs(),source.breakMs(),source.progress());
     }
 
     record ValidatedBullet(String text, List<UUID> sourceIds) {}

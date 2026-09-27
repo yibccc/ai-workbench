@@ -8,7 +8,9 @@
 - 项目管理、历史日期补记、待办筛选与完成结果记录。
 - 手动选择日期生成日报，按周一至周日生成自然周周报。
 - 报告保留历史版本和来源快照，支持编辑、人工补充与复制。日报可删除指定版本，原工作记录保留。
-- 工作记录、待办任务、工作汇报、项目管理四个工作区；列表分页、项目搜索和按需编辑抽屉。
+- 工作记录、待办任务、专注、工作汇报、项目管理五个工作区；列表分页、项目搜索和按需编辑抽屉。
+- 专注页支持每日重复待办、净计时与 15 秒微休息；结束后按业务日期保存投入并接入日报和周报来源，不自动完成待办。
+- 专注会话从明确开始到暂停、结束或净目标到期持续按服务器时间计时；切换页面、关闭页面或设备睡眠不会自动暂停。停工时需手动暂停或结束，微休息只在可见页面实际触发时计入。
 - 受邀账号登录，每名用户独立拥有业务数据；管理员可创建、启停账号、重置密码和修改角色。
 
 工作记录是默认入口，可切换 AI 快记与手工记录。待办以列表为主，新建和编辑在右侧抽屉中完成；手机上抽屉全屏展示。已访问的工作区保留草稿与筛选状态。工作汇报集中管理日报和周报，桌面并列展示正文与来源，窄屏将来源放在正文之后。
@@ -27,6 +29,8 @@ docker compose up -d --build --wait
 Compose 启动 PostgreSQL、Redis、Java 后端和 Nginx 前端，构建所需的 Java、Node 均由镜像提供。后端镜像构建使用 [阿里云 Maven 公共镜像](https://developer.aliyun.com/mirror/maven)，配置在 `backend/maven-settings-aliyun.xml`；本机 Maven 构建慢时可在 `backend/` 运行 `mvn -s maven-settings-aliyun.xml clean verify`。首次构建还需要访问 Docker 镜像源和 npm。
 
 从无账号版本升级且旧库已有业务行时，先备份并在隔离环境制定旧数据归属；迁移会拒绝无归属业务行，不能自动分配给首位管理员，也不能用旧应用访问已启用多人归属的新库。
+
+专注功能的 V15/V16 增量迁移随新版后端执行。V16 移除旧版睡眠失联待确认状态，原待确认会话从旧缺口起点按连续计时语义接续；已发布的 V15 脚本保持不变。`FOCUS_WRITE_ENABLED` 默认 `false`，先用兼容新来源的后端确认旧记录与报告可读，再在 `.env` 设置为 `true` 并重启后端开放新规则、今日生成和新会话。回退时先改回 `false` 并重启；已有会话仍可结束，历史专注记录和报告仍可读取。写入过 `FOCUS_SESSION` 后，不要直接回退到只认识旧来源的二进制或删除专注表；保留兼容读取版本和数据。完整备份恢复可能丢失升级后的新数据，须另行决定。
 
 默认入口为 <http://127.0.0.1:8088>。首次启动前，在 `.env` 同时设置 `WORKBENCH_BOOTSTRAP_USERNAME` 和 `WORKBENCH_BOOTSTRAP_PASSWORD`，空账号表会创建首位管理员。确认该账号可登录后，从 `.env` 删除引导密码；已有账号时引导配置不会修改任何密码。后续用户由管理员在工作台账号菜单的“用户管理”中创建。应用会话仅由明确用户操作续期，连续 7 天无主动操作后需重新登录。
 
@@ -84,6 +88,7 @@ docker compose up -d --build --wait
 | `REPORT_AI_TIMEOUT` / `REPORT_AI_MAX_TOKENS` | 报告超时与输出长度，默认 `PT6M` / `4096` |
 | `WORKBENCH_BOOTSTRAP_USERNAME` / `WORKBENCH_BOOTSTRAP_PASSWORD` | 仅空账号表首次启动时创建管理员；成功后移除引导密码 |
 | `WORKBENCH_COOKIE_SECURE` | HTTPS 入口设为 `true`；loopback HTTP 开发为 `false` |
+| `FOCUS_WRITE_ENABLED` | 专注新规则、当日生成和新会话的发布开关，默认 `false`；已有会话可继续结算 |
 | `APP_BIND` / `APP_PORT` | Docker 入口绑定地址与端口，默认 `127.0.0.1:8088` |
 | `WORKBENCH_WS_ALLOWED_ORIGINS` | WebSocket 允许的完整入口地址；开发默认 5173/15173，Compose 默认 8088 |
 | `POSTGRES_PORT` / `REDIS_PORT` | 数据库宿主机端口，默认 5432/6379 |
@@ -161,6 +166,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/backup.ps1 -Re
 - [后端目录结构](.trellis/spec/backend/directory-structure.md)
 - [前端目录结构](.trellis/spec/frontend/directory-structure.md)
 - [数据库与接口合同](.trellis/spec/backend/database-guidelines.md)
+- [专注规则、计时与报告来源合同](.trellis/spec/backend/focus-routines.md)
+- [专注页面与账号级控制合同](.trellis/spec/frontend/focus-page.md)
 - [日报版本删除接口](.trellis/spec/backend/report-deletion.md)
 - [分页约定](.trellis/spec/backend/pagination.md)
 - [一页架构说明](.trellis/tasks/archive/2026-09/09-15-d10-local-delivery/research/architecture.md)
@@ -174,7 +181,7 @@ cd backend
 mvn -s maven-settings-aliyun.xml clean verify
 ```
 
-浏览器回归使用 Playwright、`e2e` Profile、隔离 schema `d9_e2e` 和确定性模型替身。先启动**全新独立 Compose 项目**的 PostgreSQL/Redis 卷和非默认宿主端口，并显式设置 `E2E_DATABASE_URL`（loopback、独立库、`currentSchema=d9_e2e`）、`POSTGRES_USER`、`POSTGRES_PASSWORD` 和 `REDIS_PORT`（非 6379）；测试配置缺少这些值会拒绝运行。不要复用日常 `ai-workbench` 持久卷。
+浏览器回归使用 Playwright、`e2e` Profile、隔离 schema `d9_e2e` 和确定性模型替身。先启动**全新独立 Compose 项目**的 PostgreSQL/Redis 卷和非默认宿主端口，并显式设置 `E2E_DATABASE_URL`（loopback、独立库、`currentSchema=d9_e2e`）、`POSTGRES_USER`、`POSTGRES_PASSWORD`、`REDIS_PORT`（非 6379）和 `FOCUS_WRITE_ENABLED=true`；测试配置缺少这些值会拒绝运行。不要复用日常 `ai-workbench` 持久卷。
 
 ```powershell
 cd frontend

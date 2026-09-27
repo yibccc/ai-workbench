@@ -18,13 +18,17 @@
             <arg column="version" javaType="long"/>
             <arg column="created_at" javaType="java.time.Instant"/>
             <arg column="updated_at" javaType="java.time.Instant"/>
+            <arg column="routine_id" javaType="java.util.UUID"/>
+            <arg column="occurrence_date" javaType="java.time.LocalDate"/>
+            <arg column="default_focus_duration_minutes" javaType="java.lang.Integer"/>
         </constructor>
     </resultMap>
     <sql id="columns">
         t.id, t.project_id, p.name AS project_name, p.status AS project_status,
         t.title, t.notes, t.priority, t.status, t.due_at, t.completed_at,
         wr.id AS completion_record_id, wr.completion_result,
-        t.version, t.created_at, t.updated_at
+        t.version, t.created_at, t.updated_at,
+        t.routine_id, t.occurrence_date, t.default_focus_duration_minutes
     </sql>
     <insert id="insert">
         INSERT INTO todo_items (user_id, id, project_id, title, notes, due_at, priority)

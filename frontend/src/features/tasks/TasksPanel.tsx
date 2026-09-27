@@ -16,9 +16,9 @@ const ignoreListError = () => undefined
 
 export type TaskEditRequest = { id: string; request: number }
 const priorityLabel: Record<TaskPriority, string> = { HIGH: '高优先级', MEDIUM: '中优先级', LOW: '低优先级' }
-export function TasksPanel({ projects, onRecordsChanged, onSummaryChange, refreshKey = 0, editRequest }: {
+export function TasksPanel({ projects, onRecordsChanged, onSummaryChange, refreshKey = 0, editRequest, onFocusTask }: {
   projects: Project[]; onRecordsChanged: () => Promise<void>; onSummaryChange?: (summary: string) => void
-  refreshKey?: number; editRequest?: TaskEditRequest | null
+  refreshKey?: number; editRequest?: TaskEditRequest | null; onFocusTask?: (task: TaskItem) => void
 }) {
   const showDialog = useDialog()
   const { notify, toastRef } = useToast<HTMLDivElement>()
@@ -93,7 +93,7 @@ export function TasksPanel({ projects, onRecordsChanged, onSummaryChange, refres
             return <article id={`task-${task.id}`} data-testid="task-item" className={`task task-${task.priority.toLowerCase()} ${task.status === 'COMPLETED' ? 'task-completed' : ''}`} key={task.id}>
               <button className="task-check" type="button" disabled={!!workingId} aria-label={`${task.status === 'PENDING' ? '完成任务' : '重开任务'}：${task.title}`} title={task.status === 'PENDING' ? '完成并记录成果' : '重新打开任务'} onClick={() => changeStatus(task)}>{task.status === 'COMPLETED' && <Icon name="check" size={14} />}</button>
               <div className="task-copy"><strong>{task.title}</strong>{task.notes && <p>{task.notes}</p>}<div className="task-meta"><span className={`priority-badge priority-${task.priority.toLowerCase()}`}>{priorityLabel[task.priority]}</span><span className={task.project?.status === 'ARCHIVED' ? 'archived' : ''}><Icon name="folder" size={12} />{task.project ? `${task.project.name}${task.project.status === 'ARCHIVED' ? '（已归档）' : ''}` : '未归属项目'}</span>{task.dueAt && <span className={overdue ? 'overdue' : ''}><Icon name="clock" size={12} />{overdue ? '已逾期 · ' : '截止 '}{new Date(task.dueAt).toLocaleString('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}</div>{task.completionResult && <p className="completion-result">完成结果：{task.completionResult}</p>}</div>
-              <div className="record-actions task-actions">{task.status === 'COMPLETED' && <button className="text-button" type="button" onClick={() => setCompletionTask(task)}>{task.completionResult ? '修改结果' : '补充结果'}</button>}<button className="text-button" type="button" disabled={!!workingId} onClick={() => setEditor({ task })}>编辑</button><button className="text-button danger" type="button" disabled={!!workingId} onClick={() => void showDialog({ title: '删除待办？', description: `删除“${task.title}”后，自动完成记录将转为历史。`, confirmLabel: '确认删除', danger: true, onConfirm: async () => { await deleteTask(task.id, task.version); notify('待办已删除', 'success'); void refreshViews() } })}>删除</button></div>
+              <div className="record-actions task-actions">{task.status === 'PENDING' && <button className="text-button" type="button" onClick={() => onFocusTask?.(task)}>带入专注</button>}{task.status === 'COMPLETED' && <button className="text-button" type="button" onClick={() => setCompletionTask(task)}>{task.completionResult ? '修改结果' : '补充结果'}</button>}<button className="text-button" type="button" disabled={!!workingId} onClick={() => setEditor({ task })}>编辑</button><button className="text-button danger" type="button" disabled={!!workingId} onClick={() => void showDialog({ title: '删除待办？', description: `删除“${task.title}”后，自动完成记录将转为历史。`, confirmLabel: '确认删除', danger: true, onConfirm: async () => { await deleteTask(task.id, task.version); notify('待办已删除', 'success'); void refreshViews() } })}>删除</button></div>
             </article>
           })}
         <p className="page-footnote"><Icon name="check" size={14} />完成任务时可填写成果，系统会生成对应工作记录。</p>
