@@ -34,10 +34,10 @@ class FocusHttpIntegrationTest {
     private MockHttpServletRequestBuilder auth(MockHttpServletRequestBuilder request){
         return OwnerTestContext.authenticated(request,cookie);
     }
-    @Test void authenticationCsrfAndCapabilityAreEnforced() throws Exception {
-        mvc.perform(get("/api/focus/capabilities")).andExpect(status().isUnauthorized());
-        mvc.perform(auth(get("/api/focus/capabilities"))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.writeEnabled").value(true));
+    @Test void authenticationAndCsrfAreEnforcedWhileFocusWritesAreAvailable() throws Exception {
+        mvc.perform(get("/api/focus/routines")).andExpect(status().isUnauthorized());
+        mvc.perform(auth(get("/api/focus/routines"))).andExpect(status().isOk());
+        mvc.perform(auth(get("/api/focus/capabilities"))).andExpect(status().isNotFound());
         mvc.perform(auth(post("/api/focus/routines/fill-today")).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
         mvc.perform(auth(post("/api/focus/routines/fill-today")).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}"))

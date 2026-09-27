@@ -29,21 +29,16 @@ public class FocusServiceImpl implements FocusService {
     private final WorkbenchEventHub events;
     private final ZoneId zone;
     private final Clock clock;
-    private final boolean writeEnabled;
 
     @Autowired
     public FocusServiceImpl(FocusStore store,TaskMapper tasks,ProjectService projects,WorkRecordService records,WorkbenchEventHub events,
-                            @Value("${workbench.zone-id:Asia/Shanghai}") String zone,
-                            @Value("${workbench.focus.write-enabled:false}") boolean writeEnabled) {
-        this(store,tasks,projects,records,events,ZoneId.of(zone),Clock.systemUTC(),writeEnabled);
+                            @Value("${workbench.zone-id:Asia/Shanghai}") String zone) {
+        this(store,tasks,projects,records,events,ZoneId.of(zone),Clock.systemUTC());
     }
     FocusServiceImpl(FocusStore store,TaskMapper tasks,ProjectService projects,WorkRecordService records,WorkbenchEventHub events,
-                     ZoneId zone,Clock clock,boolean writeEnabled) {
+                     ZoneId zone,Clock clock) {
         this.store=store;this.tasks=tasks;this.projects=projects;this.records=records;this.events=events;this.zone=zone;this.clock=clock;
-        this.writeEnabled=writeEnabled;
     }
-    @Override public Capabilities capabilities(){return new Capabilities(writeEnabled);}
-    private void requireWritable(){if(!writeEnabled)throw conflict("专注写入尚未开放");}
     private void changed(String kind,UUID id,String state){events.publishAfterCommit(owner(),kind,id,state);}
     private UUID owner() { return CurrentUser.requireId(); }
     private Instant now() { return clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MILLIS); }
@@ -63,7 +58,6 @@ public class FocusServiceImpl implements FocusService {
     }
     @Override @Transactional(readOnly=true) public List<Routine> routines(){return store.routines(owner()).stream().map(FocusStore.RoutineRow::toResponse).toList();}
     @Override @Transactional public Routine createRoutine(SaveRoutine request){
-        requireWritable();
         if(request.projectId()!=null)projects.requireActive(request.projectId());
         UUID id=UUID.randomUUID();
         store.insertRoutine(owner(),id,request.title().trim(),request.projectId(),weekdays(request.weekdays()),request.defaultDurationMinutes());
@@ -71,7 +65,6 @@ public class FocusServiceImpl implements FocusService {
         return requireRoutine(id);
     }
     @Override @Transactional public Routine updateRoutine(UUID id,SaveRoutine request){
-        requireWritable();
         Routine old=requireRoutine(id);version(old.version(),request.version());
         if(request.projectId()!=null&&!request.projectId().equals(old.projectId()))projects.requireActive(request.projectId());
         int n=store.updateRoutine(owner(),id,request.title().trim(),request.projectId(),weekdays(request.weekdays()),
@@ -79,13 +72,11 @@ public class FocusServiceImpl implements FocusService {
         if(n!=1)throw conflict("重复规则已更新");changed("FOCUS_ROUTINE",id,"UPDATED");return requireRoutine(id);
     }
     @Override @Transactional public Routine enableRoutine(UUID id,Version request,boolean enabled){
-        requireWritable();
         Routine old=requireRoutine(id);version(old.version(),request.version());
         int n=store.toggleRoutine(owner(),id,enabled,now(),request.version());
         if(n!=1)throw conflict("重复规则已更新");changed("FOCUS_ROUTINE",id,enabled?"ENABLED":"DISABLED");return requireRoutine(id);
     }
     @Override @Transactional public FillToday fillToday(){
-        requireWritable();
         UUID user=owner();LocalDate date=LocalDate.now(clock.withZone(zone));
         List<TaskResponse> created=new ArrayList<>();List<Blocked> blocked=new ArrayList<>();
         for(Routine r:store.routines(user).stream().map(FocusStore.RoutineRow::toResponse).toList()){
@@ -103,7 +94,6 @@ public class FocusServiceImpl implements FocusService {
     @Override @Transactional(readOnly=true) public Session current(){return store.current(owner());}
     @Override @Transactional(readOnly=true) public Session get(UUID id){return requireSession(id,false);}
     @Override @Transactional public Session start(Start request){
-        requireWritable();
         UUID user=owner();Session prior=store.byRequest(user,request.requestId());if(prior!=null)return prior;
         if(store.current(user)!=null)throw conflict("已有未结束的专注会话");
         UUID projectId=request.projectId();

@@ -44,5 +44,4 @@ public final class FocusModels {
                           Long controllerGeneration, Instant controllerExpiresAt, String progress) {}
     public record Today(LocalDate date, long focusMs, long breakMs, long sessionCount,
                         List<WorkRecordResponse> records) {}
-    public record Capabilities(boolean writeEnabled) {}
 }

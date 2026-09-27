@@ -43,7 +43,7 @@ class FocusIntegrationTest {
     @BeforeEach void setup(){
         OwnerTestContext.ensureAccounts(jdbc);OwnerTestContext.use(OwnerTestContext.USER_ID);
         clock=new MutableClock(Instant.parse("2052-04-09T04:00:00Z"));
-        service=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock,true);
+        service=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
     }
     @Test void routineIsIdempotentEvenAfterSoftDeleteAndWeekdaysAreCanonical(){
         int weekday=clock.instant().atZone(ZoneId.of("Asia/Shanghai")).getDayOfWeek().getValue();

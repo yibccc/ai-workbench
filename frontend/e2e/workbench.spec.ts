@@ -319,26 +319,28 @@ test('跨页声音失败可见且微休息时嵌入引导，重试后清除', as
   await expect(guidance).toBeVisible()
 })
 
-test('专注新写入关闭时不补造今天，旧会话仍可暂停收尾', async ({ page }) => {
-  let session = mockFocusSession('RUNNING')
+test('专注写入无需发布开关即可创建规则和会话', async ({ page }) => {
+  let capabilityCalls = 0
   let fillCalls = 0
-  await page.route('**/api/focus/capabilities', route => route.fulfill({ json: { writeEnabled: false } }))
-  await page.route('**/api/focus/routines/fill-today', async route => { fillCalls++; await route.fulfill({ status: 409, json: { detail: '专注写入尚未开放' } }) })
-  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
-  await page.route('**/api/focus/sessions/*/checkpoint', route => route.fulfill({ json: session }))
-  await page.route('**/api/focus/sessions/*/transition', async route => {
-    session = { ...session, version: session.version + 1, phase: 'PAUSED' }
-    await route.fulfill({ json: session })
+  page.on('request', request => {
+    const path = new URL(request.url()).pathname
+    if (path === '/api/focus/capabilities') capabilityCalls++
+    if (path === '/api/focus/routines/fill-today') fillCalls++
   })
   await openWorkbench(page)
+  await expect.poll(() => fillCalls).toBeGreaterThan(0)
   await navigate(page, '专注')
-  await expect(page.getByText(/新专注和重复规则写入尚未开放/)).toBeVisible()
-  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
-  await page.getByRole('button', { name: '暂停', exact: true }).click()
-  await expect(page.getByText('已暂停')).toBeVisible()
+  await expect(page.getByText(/新专注和重复规则写入尚未开放/)).toHaveCount(0)
   await page.getByRole('tab', { name: '重复规则' }).click()
-  await expect(page.getByRole('button', { name: '保存规则' })).toBeDisabled()
-  expect(fillCalls).toBe(0)
+  const rules = page.getByRole('region', { name: '专注内容' })
+  await rules.getByLabel('名称').fill('无需开关的每日规则')
+  await rules.getByRole('button', { name: '保存规则' }).click()
+  await expect(page.locator('.focus-routine').filter({ hasText: '无需开关的每日规则' })).toBeVisible()
+  await page.getByRole('tab', { name: '计时' }).click()
+  await page.getByLabel('目标', { exact: true }).fill('无需开关的专注')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByTestId('focus-page').getByRole('heading', { name: '无需开关的专注' })).toBeVisible()
+  expect(capabilityCalls).toBe(0)
 })
 
 test('重复规则显式补齐今天且修改后不替换已生成待办', async ({ page, request }) => {

@@ -158,7 +158,7 @@ class FocusConcurrencyIntegrationTest {
     }
     @Test void secondDayInsertFailureRollsBackFirstDaySliceAndSessionEnd() {
         var clock=new FocusIntegrationTest.MutableClock(Instant.parse("2052-04-09T15:59:50Z"));
-        var focus=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock,true);
+        var focus=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
         var tx=new TransactionTemplate(transactionManager);
         Session started=tx.execute(status->focus.start(new Start(UUID.randomUUID(),"跨日结算回滚",null,null,25,10)));
         clock.advance(Duration.ofSeconds(20));

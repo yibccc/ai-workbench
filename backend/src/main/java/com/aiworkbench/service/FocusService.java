@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface FocusService {
-    Capabilities capabilities();
     List<Routine> routines();
     Routine createRoutine(SaveRoutine request);
     Routine updateRoutine(UUID id, SaveRoutine request);
