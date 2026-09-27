@@ -24,6 +24,7 @@
   "notes": "",
   "meta": {
     "github_pr_url": "https://github.com/yibccc/ai-workbench/pull/5",
-    "manual_ac003_status": "NOT_RUN"
+    "manual_ac003_status": "NOT_RUN",
+    "followup_pr_url": "https://github.com/yibccc/ai-workbench/pull/7"
   }
 }
