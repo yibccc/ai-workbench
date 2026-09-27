@@ -2,12 +2,12 @@
 
 handoff_id / revision：`WB-20260926-focus-routines` / `2`
 Trellis 任务：`.trellis/tasks/09-26-focus-routines`（`in_progress`）
-状态：本地实现与自动化验收完成，人工声音和实际外部入口仍待核对；未推送
+状态：本地实现与自动化验收完成，隔离服务已停止；人工声音和实际外部入口仍待核对，准备提交草稿 MR
 业务 commit：初版 `dc56cf07589212ff0b4acfe6acec0a49c6c851be`；试用迭代 `57191ecf749f9eb6feb7e5a09f8e0bea1296ddf4`；连续计时 V16 `41a05bc8b604095d1d2ac53efc0fca2b233640db`
 review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa0639141a3c24b5` / `41a05bc8b604095d1d2ac53efc0fca2b233640db` / Git tree `c7a7c447f1a4732f1d7f520ce577121ffa50f481`
 验证记录：`.trellis/tasks/09-26-focus-routines/research/acceptance-audit.md`、`rollout-drill-result.json`
 审查记录：`.trellis/tasks/09-26-focus-routines/research/quality-check.md`
-后续归档/日志 commit：未生成；任务仍需人工设备验收后收尾。
+后续归档/日志 commit：待本轮 Trellis 收尾脚本生成；人工音频缺口保留在本报告，不标记 PASS。
 
 ## 实际交付
 
@@ -51,10 +51,10 @@ review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa06391
 
 - 本地无法以 API/DOM 证明人耳可听。需要在实际 Windows Chrome/Edge 前台分别核对微休息开始/结束声音、拒绝时可见降级、双标签只响一次与 ≤3 秒提示，记录浏览器版本、入口 URL、设备/声音状态及结果。未测前 AC-003 不判 PASS。真实设备睡眠后是否继续计时可作为补充体验观察，但用户已取消其恢复确认要求。
 - 新 UI 的默认 45/四项下拉/自定义、声音启用与跨页拒绝降级，以及 V16 后台连续计时，已由 headless E2E 的 API/DOM 与真实服务端隐藏 62 秒场景复测，完整浏览器门禁 56/56 通过；仍需用户在新版本前台听验微休息开始/结束声音。
-- 独立人工验收实例已按 V16 JAR 在 `http://127.0.0.1:15174` 重启，合成账号与运行边界见 `.trellis/tasks/09-26-focus-routines/research/manual-acceptance.md`；本地登录和功能开关已核实。
+- 独立人工验收实例曾按 V16 JAR 在 `http://127.0.0.1:15174` 重启，本地登录和功能开关已核实；按用户 2026-09-27 的停服指令，该实例及隔离 PostgreSQL/Redis 已停止，URL 暂不可访问。重启步骤和合成账号边界见 `.trellis/tasks/09-26-focus-routines/research/manual-acceptance.md`。
 - 实际安装的 Windows Chrome `153.0.8010.53`、Edge `153.0.4234.48` 在 V16 重启后再次 headless 登录并进入专注页（均见五导航）；这不作为可听声音的人工 PASS 证据。
 - 现有本机仅验证 loopback HTTP。若交付环境提供直接 IP HTTP 与 HTTPS 入口，应分别跑相同的登录、声音/CSRF/WebSocket 与回退检查；未配置入口不宣称通过。
-- 隔离测试环境保留在独立 Compose 项目 `focus-routines-20260926`，未使用或改动日常 `ai-workbench` 卷。结束人工验收后可按明确项目名停止该测试环境。
+- 隔离测试环境的 Compose 项目 `focus-routines-20260926` 已停止，两个独立数据卷保留；未使用或改动日常 `ai-workbench` 卷。用户明确要求此时收尾并提交 MR，人工音频结果仍列作后续验收项。
 
 ## 发布与恢复
 

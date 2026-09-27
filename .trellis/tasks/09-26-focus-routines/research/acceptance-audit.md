@@ -130,3 +130,8 @@
 - 后端隔离 `mvn -s maven-settings-aliyun.xml -q -DforkCount=0 clean verify` 退出码 0，Surefire 31 suites、165 tests、0 failures/errors/skipped；V16 新行为含精确前台 25:30、长空档追时、目标优先、暂停和旧行升级续账。
 - 前端第一轮 V16 全量隔离 E2E 56/56、lint/build 退出码均为 0；另有真实服务端经过 62 秒的隐藏标签用例，后台 checkpoint 发生且未调用 `/api/auth/activity`、会话仍 RUNNING/无虚构休息，回前台只触发一次 BREAK_DUE，无恢复弹层。展示文案进一步改为“会话计时/会话净时长”，提示不检测实际工作、停工需主动暂停或结束；最终文案版相关定向 4/4、全量 E2E **56/56**、lint/build 均退出码 0，Chromium `140.0.7339.186`，隔离 `d9_e2e` / Redis 26379 / `FOCUS_WRITE_ENABLED=true`，HTML 报告 `frontend/playwright-report/index.html`。
 - V16 JAR SHA256 `061C40F7B96BE646E86D8C5998E72CBC65D32F3402D952C5314FC6E05E42B1CF` 在隔离 `d9_focus_rollout_20260926` 重演关写→启写→关写：新会话 409 / 启写形成 2071 ms 单条记录 / 再关写仍可读 2071 ms 且新会话 409，脚本退出码 0，证据见 [rollout-drill-result.json](rollout-drill-result.json)。V16 JAR 同时在 `d9_focus_manual_20260926` 自动迁移后恢复本地人工实例 `http://127.0.0.1:15174`；登录与开关读均成功，实际安装 Chrome/Edge headless 五导航烟测退出码 0。
+
+### 2026-09-27 按用户要求停服与提交
+
+- 用户明确要求停服务、收尾、提交并提 MR。专属前后端用 [stop-manual-acceptance.ps1](stop-manual-acceptance.ps1) 按记录 PID 与命令行核对后停止；独立 `focus-routines-20260926` Compose postgres/redis 执行 `stop` 后 `ps -a` 均为 `Exited (0)`，两个测试数据卷保留。URL `127.0.0.1:15174` 暂不可访问。
+- AC-003 的新版本前台真实可听、双标签唯一发声及 ≤3 秒时延仍无完整人工证据，保持 `NOT_RUN`。本轮收尾及草稿 MR 以此为公开残余项，不把既有“声音能够听见”的笼统反馈扩写成全部声音阶段通过。

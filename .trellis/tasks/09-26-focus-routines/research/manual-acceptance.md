@@ -1,6 +1,6 @@
 # 人工设备验收入口（2026-09-26）
 
-本轮独立测试实例正在 `http://127.0.0.1:15174` 运行，后端 `127.0.0.1:18083`、PostgreSQL `focus_routines_test.d9_focus_manual_20260926`、Redis `127.0.0.1:26379`，与日常 `ai-workbench` 数据卷隔离。2026-09-27 用户取消睡眠失联功能后，已先按进程归属停止旧实例，再用 V16 JAR 重启并自动迁移同一隔离 schema；重启检查时前端 HTTP 200、后端 health UP、合成管理员登录成功，`/api/focus/capabilities.writeEnabled=true`，当时无活动会话。旧版可听记录不能代替新版本验收。运行 PID 和路径只保存在本机 `%TEMP%/focus-manual-runtime.json`，仓库未保存密码。启动脚本为 [start-manual-acceptance.ps1](start-manual-acceptance.ps1)；验收后可由 [stop-manual-acceptance.ps1](stop-manual-acceptance.ps1) 按 PID 与命令行双重核对后关闭这两个专属进程。
+本轮独立测试实例曾在 `http://127.0.0.1:15174` 运行，后端 `127.0.0.1:18083`、PostgreSQL `focus_routines_test.d9_focus_manual_20260926`、Redis `127.0.0.1:26379`，与日常 `ai-workbench` 数据卷隔离。2026-09-27 V16 JAR 已自动迁移该 schema；重启检查时前端 HTTP 200、后端 health UP、合成管理员登录成功，`/api/focus/capabilities.writeEnabled=true`。同日用户明确要求停服收尾后，已用 [stop-manual-acceptance.ps1](stop-manual-acceptance.ps1) 按 PID 与命令行核对后关闭专属前后端进程，并停止 `focus-routines-20260926` Compose 的 PostgreSQL/Redis；测试数据卷保留，当前 URL 不再可访问。需要复验时先启动同名隔离 Compose 项目，再按 [start-manual-acceptance.ps1](start-manual-acceptance.ps1) 启动实例；仓库未保存密码。
 
 已用 [manual-browser-smoke.cjs](manual-browser-smoke.cjs) 在实际安装的 Chrome `153.0.8010.53` 和 Edge `153.0.4234.48` 的 headless 模式登录并进入独立专注页，两个浏览器均显示五个导航入口；命令退出码 0。此结果只证明登录与 DOM 导航，不证明可听声音、前台时延或睡眠恢复。
 
