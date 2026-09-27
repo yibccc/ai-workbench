@@ -18,5 +18,8 @@ public record TaskResponse(
         String completionResult,
         long version,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        UUID routineId,
+        java.time.LocalDate occurrenceDate,
+        Integer defaultFocusDurationMinutes) {
 }

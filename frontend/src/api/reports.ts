@@ -25,7 +25,7 @@ export interface DailyReport {
   errorCode: string | null
   errorStage: string | null
   sourceCount: number
-  sources: Array<{ id: string; type: 'RECORD' | 'TASK'; role: ReportSourceRole; entityId: string; content: string; projectId: string | null; projectName: string | null; status: string; sourceTime: string }>
+  sources: Array<{ id: string; type: 'RECORD' | 'TASK'; role: ReportSourceRole; entityId: string; content: string; projectId: string | null; projectName: string | null; status: string; sourceTime: string; sessionId?: string | null; taskId?: string | null; businessDate?: string | null; focusMs?: number | null; breakMs?: number | null; progress?: string | null }>
 }
 
 export const createDailyReport = (date: string, requestId: string, signal?: AbortSignal) => request<DailyReport>('/api/reports', { method: 'POST', body: JSON.stringify({ reportType: 'DAILY', date, requestId }), signal })

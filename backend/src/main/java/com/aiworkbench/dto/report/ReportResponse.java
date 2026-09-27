@@ -15,5 +15,7 @@ public record ReportResponse(
         Instant createdAt, Instant updatedAt, String errorCode, String errorStage, int sourceCount,
         List<Source> sources) {
     public record Source(UUID id, ReportSourceType type, ReportSourceRole role, UUID entityId, String content,
-                         UUID projectId, String projectName, String status, Instant sourceTime) {}
+                         UUID projectId, String projectName, String status, Instant sourceTime,
+                         UUID taskId, UUID sessionId, LocalDate businessDate, Long focusMs, Long breakMs,
+                         String progress) {}
 }

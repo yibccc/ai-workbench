@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "检查迁移 时区 任务与记录约束"}
+{"file": ".trellis/spec/backend/identity-isolation.md", "reason": "检查 owner CSRF 会话失效"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "检查错误语义和安全详情"}
+{"file": ".trellis/spec/backend/pagination.md", "reason": "检查分页兼容与回归"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "检查页面状态和草稿保留"}
+{"file": ".trellis/spec/frontend/identity-session.md", "reason": "检查账号边界与自动续期"}
+{"file": ".trellis/spec/frontend/viewport-layout.md", "reason": "检查窄屏滚动焦点"}
+{"file": ".trellis/tasks/09-26-focus-routines/research/handoff-check.md", "reason": "对照已核实事实与验收映射"}

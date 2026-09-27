@@ -1,0 +1,11 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "后端分层规范入口"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Controller Service Mapper 与事务边界"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "迁移 日期 任务与记录数据库合同"}
+{"file": ".trellis/spec/backend/identity-isolation.md", "reason": "同 owner CSRF 与显式活动合同"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "安全 ProblemDetail 与状态码"}
+{"file": ".trellis/spec/backend/pagination.md", "reason": "列表与来源分页合同"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端规范入口"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "RetainedView 页面和草稿边界"}
+{"file": ".trellis/spec/frontend/identity-session.md", "reason": "账号换号 音频清理及活动边界"}
+{"file": ".trellis/spec/frontend/viewport-layout.md", "reason": "五入口窄屏与滚动焦点约束"}
+{"file": ".trellis/tasks/09-26-focus-routines/research/handoff-check.md", "reason": "交接指纹 差异与 FR AC TC 映射"}

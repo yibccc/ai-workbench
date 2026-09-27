@@ -15,12 +15,20 @@
             <arg column="occurred_at" javaType="java.time.Instant"/>
             <arg column="created_at" javaType="java.time.Instant"/>
             <arg column="updated_at" javaType="java.time.Instant"/>
+            <arg column="focus_session_id" javaType="java.util.UUID"/>
+            <arg column="business_date" javaType="java.time.LocalDate"/>
+            <arg column="focus_ms" javaType="java.lang.Long"/>
+            <arg column="break_ms" javaType="java.lang.Long"/>
+            <arg column="segment_start" javaType="java.time.Instant"/>
+            <arg column="segment_end" javaType="java.time.Instant"/>
+            <arg column="progress" javaType="java.lang.String"/>
         </constructor>
     </resultMap>
     <sql id="joinedColumns">
         wr.id, wr.project_id, p.name AS project_name, p.status AS project_status,
         wr.content, wr.source, wr.todo_id, wr.is_active, wr.completion_result,
-        wr.occurred_at, wr.created_at, wr.updated_at
+        wr.occurred_at, wr.created_at, wr.updated_at,
+        wr.focus_session_id, wr.business_date, wr.focus_ms, wr.break_ms, wr.segment_start, wr.segment_end, wr.progress
     </sql>
     <insert id="insert">
         INSERT INTO work_records (user_id, id, project_id, content, occurred_at)

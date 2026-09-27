@@ -17,13 +17,21 @@ public record WorkRecordRow(
         String completionResult,
         Instant occurredAt,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        UUID sessionId,
+        java.time.LocalDate businessDate,
+        Long focusMs,
+        Long breakMs,
+        Instant segmentStart,
+        Instant segmentEnd,
+        String progress) {
 
     public WorkRecordResponse toResponse() {
         WorkRecordResponse.ProjectSummary project = projectId == null
                 ? null
                 : new WorkRecordResponse.ProjectSummary(projectId, projectName, projectStatus);
         return new WorkRecordResponse(id, project, content, source, todoId, active,
-                completionResult == null ? "" : completionResult, occurredAt, createdAt, updatedAt);
+                completionResult == null ? "" : completionResult, occurredAt, createdAt, updatedAt,
+                sessionId, businessDate, focusMs, breakMs, segmentStart, segmentEnd, progress);
     }
 }

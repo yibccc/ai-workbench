@@ -22,12 +22,15 @@ public record TaskRow(
         String completionResult,
         Long version,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        UUID routineId,
+        java.time.LocalDate occurrenceDate,
+        Integer defaultFocusDurationMinutes) {
     public TaskResponse toResponse() {
         TaskProjectResponse project = projectId == null ? null
                 : new TaskProjectResponse(projectId, projectName, projectStatus);
         return new TaskResponse(id, project, title, notes, priority, status, dueAt, completedAt,
                 completionRecordId, completionResult == null ? "" : completionResult,
-                version, createdAt, updatedAt);
+                version, createdAt, updatedAt, routineId, occurrenceDate, defaultFocusDurationMinutes);
     }
 }
