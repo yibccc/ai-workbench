@@ -1,13 +1,13 @@
 # 交付回流：专注与每日重复任务
 
 handoff_id / revision：`WB-20260926-focus-routines` / `2`
-Trellis 任务：`.trellis/tasks/09-26-focus-routines`（`in_progress`）
-状态：本地实现与自动化验收完成，隔离服务已停止；人工声音和实际外部入口仍待核对，准备提交草稿 MR
-业务 commit：初版 `dc56cf07589212ff0b4acfe6acec0a49c6c851be`；试用迭代 `57191ecf749f9eb6feb7e5a09f8e0bea1296ddf4`；连续计时 V16 `41a05bc8b604095d1d2ac53efc0fca2b233640db`
+Trellis 任务归档目标：`.trellis/tasks/archive/2026-09/09-26-focus-routines`（由本轮 `task.py archive` 生成）
+状态：本地实现与自动化验收完成，隔离服务已停止；[功能 PR #5](https://github.com/yibccc/ai-workbench/pull/5) 已合并，收尾文件见待审的 [PR #7](https://github.com/yibccc/ai-workbench/pull/7)；人工声音和实际外部入口仍待核对
+业务 commit：初版 `dc56cf07589212ff0b4acfe6acec0a49c6c851be`；试用迭代 `57191ecf749f9eb6feb7e5a09f8e0bea1296ddf4`；连续计时 V16 `41a05bc8b604095d1d2ac53efc0fca2b233640db`；停服与残余验收记录 `3bd9d865cf17a852f9d0fc4021f354b1dc000781`
 review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa0639141a3c24b5` / `41a05bc8b604095d1d2ac53efc0fca2b233640db` / Git tree `c7a7c447f1a4732f1d7f520ce577121ffa50f481`
 验证记录：`.trellis/tasks/09-26-focus-routines/research/acceptance-audit.md`、`rollout-drill-result.json`
 审查记录：`.trellis/tasks/09-26-focus-routines/research/quality-check.md`
-后续归档/日志 commit：待本轮 Trellis 收尾脚本生成；人工音频缺口保留在本报告，不标记 PASS。
+后续归档/日志 commit：`89e53e291b2ab08c932c8ec02eeb740e50b6235c` / `c505b4c7c4e2b19a7940acd532b9354972b81658`；人工音频缺口保留在本报告与 PR，不标记 PASS。
 
 ## 实际交付
 
@@ -58,5 +58,5 @@ review base / reviewed HEAD / 工作区指纹：`3d1293095a3370403f27e051fa06391
 
 ## 发布与恢复
 
-- 本地分支 `feat/focus-routines-r2`，基于 `docs/wb-auth-isolation-delivery` 的 `3d1293095a3370403f27e051fa0639141a3c24b5`；未推送、未建 PR、未合并、未部署。
+- 分支 `feat/focus-routines-r2` 已推送，初始基于 `docs/wb-auth-isolation-delivery` 的 `3d1293095a3370403f27e051fa0639141a3c24b5`。[功能 PR #5](https://github.com/yibccc/ai-workbench/pull/5) 在归档/日志提交推送前已被外部操作合并到该目标分支，随后该目标分支经 PR #6 合入 `master` 并删除；我没有执行合并。余下交付链接、归档与日志提交已另提面向 `master` 的 [PR #7](https://github.com/yibccc/ai-workbench/pull/7)，当前待审。用户 2026-09-27 明确要求此时停服收尾并提交 MR；AC-003 与实际外部入口未实测的事实留在 PR 中，未部署。
 - V16 隔离 JAR 对 `focus_routines_test.d9_focus_rollout_20260926` 已重演默认关写→启写→再关写：新会话 409 / 可写并形成单条记录 / 关写后原记录仍可读。V14→V15→V16 合成旧数据升级、V15 校验和不变及旧恢复三态后续结算由独立迁移测试验证。写入新来源后不能直接回退到只识别旧来源的二进制；用兼容读取版本关闭新写，保留表和历史记录。

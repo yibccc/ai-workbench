@@ -293,3 +293,48 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 13: 专注与每日重复任务 r2 交付收尾
+<!-- trellis-session: v=2 fp=1d902f25ad41caee -->
+
+**Date**: 2026-09-27
+**Task**: 专注与每日重复任务 r2 交付收尾
+**Branch**: `feat/focus-routines-r2`
+
+### Summary
+
+实现 V15/V16 专注会话、重复规则与报告来源；隔离测试通过，停服并创建草稿 PR #5。
+
+### Main Changes
+
+- 完成独立专注页、后台连续计时与仅前台触发微休息
+- 更新交接回流并归档 09-26-focus-routines
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dc56cf0` | feat(focus): add routines and focus session ledger |
+| `bcb3251` | docs(handoff): record focus routines validation status |
+| `8625b32` | test(focus): prepare isolated manual acceptance instance |
+| `7dbb1ac` | test(focus): smoke test installed Chrome and Edge |
+| `57191ec` | feat(focus): add duration presets and simplify sound controls |
+| `a88d4e2` | docs(handoff): identify reviewed focus UI revision |
+| `4496d19` | docs(focus): clarify sleep recovery threshold |
+| `41a05bc` | feat(focus): keep sessions running in background |
+| `1da7173` | docs(handoff): record continuous focus acceptance |
+| `3bd9d86` | docs(focus): record service shutdown and residual audio check |
+| `1948338` | docs(handoff): link draft focus pull request |
+
+### Testing
+
+- [OK] 后端 clean verify 165/165；Chromium E2E 56/56；V16 升级和发布开关演练通过
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 草稿 PR #5 待审；AC-003 真实音频与外部入口未实测，报告保留 NOT_RUN
