@@ -338,3 +338,34 @@
 ### Next Steps
 
 - 草稿 PR #5 待审；AC-003 真实音频与外部入口未实测，报告保留 NOT_RUN
+
+
+## Session 14: 专注达标持续响铃
+<!-- trellis-session: v=2 fp=7657b382d5e4b9b5 -->
+
+**Date**: 2026-09-30
+**Task**: 专注达标持续响铃
+**Branch**: `feat/focus-completion-alarm`
+
+### Summary
+
+达标自动结算后持续响铃，跨页结束止铃；更新专注规范与浏览器用例。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b8b1206` | feat(focus): ring until completion alert is dismissed |
+
+### Testing
+
+- [OK] frontend npm run lint 与 npm run build 通过
+- [OK] Chromium 模拟 API 冒烟：跨页持续发声、点击结束即停止、无二次 /end
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 推送 feat/focus-completion-alarm 并创建 PR；隔离 E2E 环境补跑 Playwright

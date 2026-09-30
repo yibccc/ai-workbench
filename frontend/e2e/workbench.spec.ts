@@ -1,4 +1,5 @@
 import { expect, test as base, type APIRequestContext, type Locator, type Page } from '@playwright/test'
+import type { FocusSession } from '../src/api/focus'
 
 const apiBase = 'http://127.0.0.1:18080'
 const e2eUsername = 'e2e_admin'
@@ -135,6 +136,88 @@ async function assertPinnedPager(rows: Locator, pager: Locator, lastRow?: Locato
 }
 
 test.beforeEach(async ({ request }) => reset(request))
+
+test('达标铃声跨页面持续至点击结束，提前结束不会响铃', async ({ page }) => {
+  await page.addInitScript(() => {
+    const state = { tones: 0 }
+    Object.assign(window, { __completionSound: state })
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
+      state = 'running'; currentTime = 0; destination = {}
+      resume() { return Promise.resolve() }
+      close() { return Promise.resolve() }
+      createOscillator() { return { frequency: { value: 0 }, onended: null, connect() { return this }, disconnect() {}, start() { state.tones++ }, stop() {} } }
+      createGain() { return { gain: { value: 0 }, connect() { return this }, disconnect() {} } }
+    } })
+  })
+  let session: FocusSession = mockFocusSession('RUNNING') as FocusSession
+  let endCalls = 0
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', route => {
+    const controllerId = (route.request().postDataJSON() as { controllerId: string }).controllerId
+    session = { ...session, controllerId, controllerExpiresAt: new Date(Date.now() + 60_000).toISOString() }
+    return route.fulfill({ json: session })
+  })
+  await page.route('**/api/focus/sessions/*/transition', route => {
+    session = { ...session, phase: 'ENDED' as const, focusMs: session.targetMs, endedAt: new Date().toISOString(), version: session.version + 1 }
+    return route.fulfill({ json: session })
+  })
+  await page.route('**/api/focus/sessions/*/end', route => {
+    endCalls++
+    session = { ...session, phase: 'ENDED' as const, endedAt: new Date().toISOString(), version: session.version + 1 }
+    return route.fulfill({ json: session })
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
+  await navigate(page, '工作记录')
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  const alarm = page.getByTestId('focus-completion-alarm')
+  await expect(alarm).toBeVisible()
+  await expect(alarm).toContainText('专注已达标并保存')
+  const firstTones = await page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)
+  await expect.poll(() => page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)).toBeGreaterThanOrEqual(firstTones + 2)
+  await alarm.getByRole('button', { name: '结束', exact: true }).click()
+  await expect(alarm).toHaveCount(0)
+  const stoppedTones = await page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)
+  await page.waitForTimeout(900)
+  expect(await page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)).toBe(stoppedTones)
+  expect(endCalls).toBe(0)
+
+  session = { ...mockFocusSession('RUNNING'), id: 'd9500000-0000-4000-8000-000000000003' } as FocusSession
+  await navigate(page, '专注')
+  await page.reload()
+  await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeEnabled()
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  await expect(page.getByTestId('focus-completion-alarm')).toHaveCount(0)
+  expect(endCalls).toBe(1)
+})
+
+test('达标声音被拒绝时仍可在其他页面结束视觉提醒', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'AudioContext', { configurable: true, value: class { constructor() { throw new Error('audio denied') } } }) })
+  let session: FocusSession = mockFocusSession('RUNNING') as FocusSession
+  await page.route('**/api/focus/current', route => route.fulfill({ json: session }))
+  await page.route('**/api/focus/sessions/*/checkpoint', route => {
+    const controllerId = (route.request().postDataJSON() as { controllerId: string }).controllerId
+    session = { ...session, controllerId, controllerExpiresAt: new Date(Date.now() + 60_000).toISOString() }
+    return route.fulfill({ json: session })
+  })
+  await page.route('**/api/focus/sessions/*/transition', route => {
+    session = { ...session, phase: 'ENDED', focusMs: session.targetMs, endedAt: new Date().toISOString(), version: session.version + 1 }
+    return route.fulfill({ json: session })
+  })
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
+  await navigate(page, '工作记录')
+  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  const alarm = page.getByTestId('focus-completion-alarm')
+  await expect(alarm).toContainText('专注已达标')
+  await expect(alarm).toContainText('未能发声')
+  await alarm.getByRole('button', { name: '结束', exact: true }).click()
+  await expect(alarm).toHaveCount(0)
+})
 
 test('专注独立页从待办带入但不自动开工，跨页可暂停并保留记录草稿', async ({ page, request }) => {
   const created = await request.post(`${apiBase}/api/tasks`, { data: { title: '整理专注验收材料', notes: '', priority: 'MEDIUM' } })

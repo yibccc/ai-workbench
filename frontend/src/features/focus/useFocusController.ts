@@ -46,10 +46,65 @@ export function useFocusController(accountId: string, onSettled: () => void) {
   const busyRef = useRef(false)
   const channelRef = useRef<BroadcastChannel | null>(null)
   const audioRef = useRef<AudioContext | null>(null)
+  const soundEnabledRef = useRef(false)
+  const alarmTimerRef = useRef<number | null>(null)
+  const alarmOscillatorRef = useRef<OscillatorNode | null>(null)
+  const alarmActiveRef = useRef(false)
+  const alarmCanPlayRef = useRef(false)
+  const [alarmActive, setAlarmActive] = useState(false)
   const previousReminder = useRef<{ id: string; ordinal: number; phase: FocusSession['phase'] } | null>(null)
   const initialized = useRef(false)
   const endedRef = useRef<FocusSession | null>(null)
   const lastTick = useRef<{ wall: number; mono: number } | null>(null)
+
+  const stopAlarm = useCallback(() => {
+    alarmActiveRef.current = false
+    alarmCanPlayRef.current = false
+    setAlarmActive(false)
+    setSoundError(null)
+    if (alarmTimerRef.current !== null) window.clearInterval(alarmTimerRef.current)
+    alarmTimerRef.current = null
+    try { alarmOscillatorRef.current?.stop() } catch { /* The current pulse may have already ended. */ }
+    alarmOscillatorRef.current = null
+  }, [])
+
+  const playAlarmPulse = useCallback(() => {
+    if (!alarmActiveRef.current || !alarmCanPlayRef.current || !soundEnabledRef.current) return
+    const context = audioRef.current
+    if (!context || context.state !== 'running') {
+      soundEnabledRef.current = false; setSoundEnabled(false)
+      setSoundError('达标铃声被浏览器暂停。请点击“重新启声”，或点击“结束”关闭提醒。')
+      if (alarmTimerRef.current !== null) window.clearInterval(alarmTimerRef.current)
+      alarmTimerRef.current = null
+      return
+    }
+    try {
+      const oscillator = context.createOscillator(); const gain = context.createGain()
+      oscillator.frequency.value = 880
+      gain.gain.value = 0.09
+      oscillator.connect(gain).connect(context.destination)
+      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); if (alarmOscillatorRef.current === oscillator) alarmOscillatorRef.current = null }
+      alarmOscillatorRef.current = oscillator
+      oscillator.start(); oscillator.stop(context.currentTime + 0.25)
+    } catch {
+      soundEnabledRef.current = false; setSoundEnabled(false)
+      setSoundError('达标铃声播放失败。请点击“重新启声”，或点击“结束”关闭提醒。')
+      if (alarmTimerRef.current !== null) window.clearInterval(alarmTimerRef.current)
+      alarmTimerRef.current = null
+    }
+  }, [])
+
+  const startCompletionAlarm = useCallback((next: FocusSession) => {
+    if (alarmActiveRef.current) return
+    alarmActiveRef.current = true
+    alarmCanPlayRef.current = next.controllerId === tabId && !!next.controllerExpiresAt && Date.parse(next.controllerExpiresAt) > Date.now()
+    setAlarmActive(true)
+    setSoundError(null)
+    if (!alarmCanPlayRef.current) setSoundError('专注已达标；本页未取得声音播放权。请点击“结束”关闭提醒。')
+    else if (!soundEnabledRef.current) setSoundError('达标提醒未能发声。可重新启声，或点击“结束”关闭提醒。')
+    playAlarmPulse()
+    if (alarmCanPlayRef.current && soundEnabledRef.current) alarmTimerRef.current = window.setInterval(playAlarmPulse, 700)
+  }, [playAlarmPulse])
 
   const adopt = useCallback((next: FocusSession | null) => {
     const key = pendingKey(accountId)
@@ -81,7 +136,10 @@ export function useFocusController(accountId: string, onSettled: () => void) {
     try {
       const next = await operation(current)
       adopt(next)
-      if (next.phase === 'ENDED') onSettled()
+      if (next.phase === 'ENDED') {
+        if (!recoverSettlement && next.focusMs >= next.targetMs) startCompletionAlarm(next)
+        onSettled()
+      }
       return next
     } catch (caught) {
       if (recoverSettlement) {
@@ -103,12 +161,16 @@ export function useFocusController(accountId: string, onSettled: () => void) {
         try {
           const latest = await fetchFocusSession(current.id)
           adopt(latest)
+          if (latest.phase === 'ENDED') {
+            if (latest.focusMs >= latest.targetMs) startCompletionAlarm(latest)
+            onSettled()
+          }
           if (quietConflict) return latest
         } catch { await refresh().catch(() => undefined) }
       }
       if (!quietConflict) setError(caught instanceof Error ? caught.message : '操作失败，请重试')
     } finally { busyRef.current = false; setBusy(false) }
-  }, [adopt, onSettled, refresh])
+  }, [adopt, onSettled, refresh, startCompletionAlarm])
 
   const start = useCallback(async (input: { title: string; taskId: string | null; projectId: string | null; targetMinutes: number; intervalMinutes: number }) => {
     if (busyRef.current || sessionRef.current) return
@@ -148,17 +210,21 @@ export function useFocusController(accountId: string, onSettled: () => void) {
       audioRef.current = context
       await context.resume()
       if (context.state !== 'running') throw new Error('浏览器未允许声音播放')
-      setSoundEnabled(true); setSoundError(null)
+      soundEnabledRef.current = true; setSoundEnabled(true); setSoundError(null)
       const oscillator = context.createOscillator()
       const gain = context.createGain()
       oscillator.frequency.value = 660
       gain.gain.value = 0.08
       oscillator.connect(gain).connect(context.destination)
       oscillator.start(); oscillator.stop(context.currentTime + 0.12)
+      if (alarmActiveRef.current && alarmCanPlayRef.current && alarmTimerRef.current === null) {
+        alarmTimerRef.current = window.setInterval(playAlarmPulse, 700)
+      }
+      if (alarmActiveRef.current && !alarmCanPlayRef.current) setSoundError('专注已达标；本页未取得声音播放权。请点击“结束”关闭提醒。')
     } catch {
-      setSoundEnabled(false); setSoundError('声音未启用。请检查浏览器声音权限；视觉提示仍可使用。')
+      soundEnabledRef.current = false; setSoundEnabled(false); setSoundError('声音未启用。请检查浏览器声音权限；视觉提示仍可使用。')
     }
-  }, [])
+  }, [playAlarmPulse])
 
   useEffect(() => {
     let live = true
@@ -184,9 +250,9 @@ export function useFocusController(accountId: string, onSettled: () => void) {
     return () => {
       live = false; window.clearInterval(sync); document.removeEventListener('visibilitychange', visible)
       channel?.removeEventListener('message', onMessage); channel?.close(); channelRef.current = null
-      void audioRef.current?.close(); audioRef.current = null
+      stopAlarm(); void audioRef.current?.close(); audioRef.current = null
     }
-  }, [accountId, checkpointNow, refresh])
+  }, [accountId, checkpointNow, refresh, stopAlarm])
 
   useEffect(() => {
     const tick = () => {
@@ -255,5 +321,5 @@ export function useFocusController(accountId: string, onSettled: () => void) {
     }
   }, [checkpointNow, now, session, transition, unverified])
 
-  return { session, loading, busy, unverified, error, soundEnabled, soundError, reminderNotice, now: unverified && session ? Date.parse(session.anchorAt) : now, refresh, start, transition, end, clearEnded, enableSound, adopt }
+  return { session, loading, busy, unverified, error, soundEnabled, soundError, reminderNotice, alarmActive, stopAlarm, now: unverified && session ? Date.parse(session.anchorAt) : now, refresh, start, transition, end, clearEnded, enableSound, adopt }
 }

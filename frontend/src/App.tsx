@@ -195,7 +195,7 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     onUsers={() => { window.location.hash = 'users'; setPage('users') }}>
     {projectError && <div className="notice error" role="alert"><span>项目列表读取失败：{projectError}</span><button className="text-button" type="button" onClick={() => void refreshProjects().catch((caught: unknown) => setProjectError(caught instanceof Error ? caught.message : '加载失败'))}>重新加载</button></div>}
     {focusFillError && <div className="notice error" role="alert"><span>今日重复任务检查失败：{focusFillError}</span><button className="text-button" type="button" onClick={() => void fillToday().then(result => { setFocusFillError(null); if (result.blocked.length) showToast(`有 ${result.blocked.length} 条规则未生成：${result.blocked.map(item => item.reason).join('；')}`, 'info'); void refreshContent() }).catch((caught: unknown) => setFocusFillError(caught instanceof Error ? caught.message : '重试失败'))}>重试</button></div>}
-    {page !== 'focus' && !breakOverlayVisible && soundAlert}
+    {page !== 'focus' && !breakOverlayVisible && !focus.alarmActive && soundAlert}
     <RetainedView active={page === 'records'}><RecordsPage projects={projects} revision={revision} onDataChanged={refreshContent} onEditTask={editTask} /></RetainedView>
     <RetainedView active={page === 'tasks'}><TasksPanel projects={projects} refreshKey={revision} editRequest={taskEdit} onRecordsChanged={refreshContent} onFocusTask={focusTask} /></RetainedView>
     <RetainedView active={page === 'focus'}><FocusPage projects={projects} draft={focusDraft} control={focus} revision={revision} onTasksChanged={() => { void refreshContent() }} /></RetainedView>
@@ -203,6 +203,10 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     <RetainedView active={page === 'projects'}><ProjectsPanel onProjectsChanged={async () => { await refreshProjects(); await refreshContent() }} /></RetainedView>
     {page === 'users' && account.role === 'ADMIN' && <UsersPage currentId={account.id} onSelfRevoked={onSelfRevoked} />}
   </AppShell>
+    {focus.alarmActive && <div className="focus-completion-alarm" role="alert" data-testid="focus-completion-alarm">
+      <div><strong>专注已达标并保存</strong><p>{focus.soundError ?? '达标铃声正在响起，请点击“结束”停止。'}</p></div>
+      <div className="focus-completion-actions">{focus.soundError && <button type="button" className="secondary" onClick={() => void focus.enableSound()}>重新启声</button>}<button type="button" onClick={focus.stopAlarm}>结束</button></div>
+    </div>}
     {focus.reminderNotice && currentFocus?.phase !== 'MICRO_BREAK' && <div className="focus-reminder-notice" role="status">{focus.reminderNotice}</div>}
     {breakOverlayVisible && currentFocus && <div className="focus-break-overlay" role="dialog" aria-label="微休息引导" aria-modal="false"><div className="focus-break-card"><p className="page-eyebrow">微休息</p><h2>闭眼放松 15 秒</h2><p className="focus-break-time">{formatDuration(Math.max(0, currentFocus.breakRemainingMs - (projectedBreakMs(currentFocus, focus.now) - currentFocus.breakMs)))}</p><p className="muted">这是休息引导，不检测您的状态。可随时跳过或关闭本段后续提醒。</p>{soundAlert}<div className="focus-actions"><button type="button" disabled={focus.busy} onClick={() => void focus.transition('SKIP_BREAK')}>跳过本次</button><button type="button" className="secondary" disabled={focus.busy} onClick={() => void focus.transition('DISMISS_REMINDERS')}>关闭本段提醒</button><a className="secondary focus-break-link" href="#focus">查看专注</a></div></div></div>}
     {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} onChanged={() => showToast('密码已修改，其他设备上的会话已失效', 'success')} />}
