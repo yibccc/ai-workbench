@@ -188,6 +188,11 @@ p { line-height: 1.7; }
 .focus-break-time { margin: 10px 0; color: var(--primary); font-size: 62px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .focus-break-link { display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 8px 14px; border-radius: 8px; font-size: 14px; }
 .focus-reminder-notice { position: fixed; z-index: 40; right: 20px; bottom: 20px; max-width: min(380px, calc(100vw - 40px)); padding: 14px 18px; border: 1px solid #d7cef7; border-radius: 9px; background: #fff; box-shadow: 0 12px 30px #17162c30; color: var(--primary); font-weight: 600; }
+.focus-completion-alarm { position: fixed; z-index: 50; top: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: space-between; gap: 16px; width: min(540px, calc(100vw - 32px)); padding: 14px 16px; border: 2px solid var(--primary); border-radius: 10px; background: #fff; box-shadow: 0 14px 40px #17162c40; }
+.focus-completion-alarm strong { color: var(--primary); }
+.focus-completion-alarm p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.focus-completion-actions { display: flex; flex-shrink: 0; gap: 8px; }
+@media (max-width: 480px) { .focus-completion-alarm { align-items: stretch; flex-direction: column; } .focus-completion-actions button { flex: 1; } }
 .focus-sound-alert { flex: none; flex-wrap: wrap; margin-top: 0; }
 .focus-sound-alert-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; }
 .focus-sound-alert-actions a { color: var(--danger); font-weight: 600; }
