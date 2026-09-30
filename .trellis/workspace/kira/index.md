@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 13
-- **Last Active**: 2026-09-27
+- **Total Sessions**: 14
+- **Last Active**: 2026-09-30
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~340 | Active |
+| `journal-1.md` | ~371 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 14 | 2026-09-30 | 专注达标持续响铃 | `b8b1206` | `feat/focus-completion-alarm` |
 | 13 | 2026-09-27 | 专注与每日重复任务 r2 交付收尾 | `dc56cf0`, `bcb3251`, `8625b32`, `7dbb1ac`, `57191ec`, `a88d4e2`, `4496d19`, `41a05bc`, `1da7173`, `3bd9d86`, `1948338` | `feat/focus-routines-r2` |
 | 12 | 2026-09-26 | 账号隔离与本机启用验收 | `475749a`, `ff00a0f`, `01ccae2` | `feat/auth-isolation` |
 | 11 | 2026-09-24 | 完成单屏工作区与报告布局 | `c1e4908` | `feat/single-screen-workspaces` |
