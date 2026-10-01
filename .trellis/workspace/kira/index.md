@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
+- **Total Sessions**: 16
 - **Last Active**: 2026-10-01
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~393 | Active |
+| `journal-1.md` | ~415 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-10-01 | Focus progress completes linked task | `08f34a5` | `codex/focus-task-completion` |
 | 15 | 2026-10-01 | 修复专注后台提醒与音频恢复 | `351b367` | `codex/focus-background-alarm` |
 | 14 | 2026-09-30 | 专注达标持续响铃 | `b8b1206` | `feat/focus-completion-alarm` |
 | 13 | 2026-09-27 | 专注与每日重复任务 r2 交付收尾 | `dc56cf0`, `bcb3251`, `8625b32`, `7dbb1ac`, `57191ec`, `a88d4e2`, `4496d19`, `41a05bc`, `1da7173`, `3bd9d86`, `1948338` | `feat/focus-routines-r2` |
