@@ -139,14 +139,18 @@ test.beforeEach(async ({ request }) => reset(request))
 
 test('达标铃声跨页面持续至点击结束，提前结束不会响铃', async ({ page }) => {
   await page.addInitScript(() => {
-    const state = { tones: 0 }
+    const state = { tones: 0, loops: 0, active: 0 }
     Object.assign(window, { __completionSound: state })
     Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
-      state = 'running'; currentTime = 0; destination = {}
+      state = 'running'; currentTime = 0; destination = {}; sampleRate = 48000
+      addEventListener() {}
+      removeEventListener() {}
       resume() { return Promise.resolve() }
       close() { return Promise.resolve() }
       createOscillator() { return { frequency: { value: 0 }, onended: null, connect() { return this }, disconnect() {}, start() { state.tones++ }, stop() {} } }
       createGain() { return { gain: { value: 0 }, connect() { return this }, disconnect() {} } }
+      createBuffer(_channels: number, length: number) { return { getChannelData: () => new Float32Array(length) } }
+      createBufferSource() { return { buffer: null, loop: false, onended: null, connect() { return this }, disconnect() {}, start() { state.loops++; state.active++ }, stop(when?: number) { if (when === undefined) state.active-- } } }
     } })
   })
   let session: FocusSession = mockFocusSession('RUNNING') as FocusSession
@@ -171,14 +175,16 @@ test('达标铃声跨页面持续至点击结束，提前结束不会响铃', as
   await page.getByRole('button', { name: '启用并试听声音' }).click()
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
   await navigate(page, '工作记录')
-  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  await page.locator('.focus-compact-toggle').click()
   const alarm = page.getByTestId('focus-completion-alarm')
   await expect(alarm).toBeVisible()
   await expect(alarm).toContainText('专注已达标并保存')
-  const firstTones = await page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)
-  await expect.poll(() => page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)).toBeGreaterThanOrEqual(firstTones + 2)
+  await expect.poll(() => page.evaluate(() => (window as Window & { __completionSound: { loops: number; active: number } }).__completionSound.active)).toBe(1)
+  await page.waitForTimeout(1500)
+  expect(await page.evaluate(() => (window as Window & { __completionSound: { loops: number } }).__completionSound.loops)).toBe(1)
   await alarm.getByRole('button', { name: '结束', exact: true }).click()
   await expect(alarm).toHaveCount(0)
+  expect(await page.evaluate(() => (window as Window & { __completionSound: { active: number } }).__completionSound.active)).toBe(0)
   const stoppedTones = await page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)
   await page.waitForTimeout(900)
   expect(await page.evaluate(() => (window as Window & { __completionSound: { tones: number } }).__completionSound.tones)).toBe(stoppedTones)
@@ -211,7 +217,7 @@ test('达标声音被拒绝时仍可在其他页面结束视觉提醒', async ({
   await page.getByRole('button', { name: '启用并试听声音' }).click()
   await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
   await navigate(page, '工作记录')
-  await page.getByRole('button', { name: '暂停', exact: true }).click()
+  await page.locator('.focus-compact-toggle').click()
   const alarm = page.getByTestId('focus-completion-alarm')
   await expect(alarm).toContainText('专注已达标')
   await expect(alarm).toContainText('未能发声')
@@ -289,8 +295,10 @@ test('默认 45 分钟与输入框快捷下拉，开始手势启用声音且刷�
     const state = { resumes: 0, tones: 0 }
     Object.assign(window, { __focusSound: state })
     Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
-      state = 'running'; currentTime = 0; destination = {}
-      resume() { state.resumes++; return Promise.resolve() }
+      state = 'suspended'; currentTime = 0; destination = {}
+      addEventListener() {}
+      removeEventListener() {}
+      resume() { state.resumes++; this.state = 'running'; return Promise.resolve() }
       close() { return Promise.resolve() }
       createOscillator() { return { frequency: { value: 0 }, connect: (next: unknown) => next, start: () => { state.tones++ }, stop: () => undefined } }
       createGain() { return { gain: { value: 0 }, connect: () => this.destination } }
@@ -360,6 +368,8 @@ test('跨页声音失败可见且微休息时嵌入引导，重试后清除', as
     Object.assign(window, { __focusSoundBlocked: true })
     Object.defineProperty(window, 'AudioContext', { configurable: true, value: class {
       state = 'running'; currentTime = 0; destination = {}
+      addEventListener() {}
+      removeEventListener() {}
       constructor() { if ((window as Window & { __focusSoundBlocked?: boolean }).__focusSoundBlocked) throw new Error('audio denied') }
       resume() { return Promise.resolve() }
       close() { return Promise.resolve() }
@@ -397,7 +407,7 @@ test('跨页声音失败可见且微休息时嵌入引导，重试后清除', as
   await expect(page.getByTestId('focus-page')).toBeVisible()
   await expect(guidance.getByTestId('focus-sound-alert')).toBeVisible()
   await page.evaluate(() => Object.assign(window, { __focusSoundBlocked: false }))
-  await guidance.getByRole('button', { name: '重新启声' }).click()
+  await guidance.getByRole('button', { name: '启用并试听声音' }).click()
   await expect(page.getByTestId('focus-sound-alert')).toHaveCount(0)
   await expect(guidance).toBeVisible()
 })
@@ -576,7 +586,7 @@ test('恢复已有会话时声音拒绝有可见反馈且无需确认失联时�
   await navigate(page, '专注')
   await expect(page.locator('.focus-recovery')).toHaveCount(0)
   await page.getByRole('button', { name: '启用并试听声音' }).click()
-  await expect(page.getByText('声音未启用。请检查浏览器声音权限；视觉提示仍可使用。')).toBeVisible()
+  await expect(page.getByText('声音未启用，请点击启用并试听声音；视觉提示仍可使用。')).toBeVisible()
   await page.reload()
   await expect(page.getByTestId('focus-page').getByRole('heading', { name: '模拟专注' })).toBeVisible()
   await expect(page.locator('.focus-recovery')).toHaveCount(0)

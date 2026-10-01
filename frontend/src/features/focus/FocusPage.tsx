@@ -7,7 +7,7 @@ import { formatDuration, projectedFocusMs, projectedBreakMs } from './useFocusCo
 
 export interface FocusDraft { taskId: string; title: string; projectId: string | null; targetMinutes: number; nonce: number }
 export interface FocusControl {
-  session: FocusSession | null; loading: boolean; busy: boolean; unverified: boolean; error: string | null; soundEnabled: boolean; soundError: string | null; reminderNotice: string | null; now: number
+  session: FocusSession | null; loading: boolean; busy: boolean; unverified: boolean; error: string | null; soundEnabled: boolean; soundStatus: string; soundAction: string; soundError: string | null; reminderNotice: string | null; now: number
   refresh: () => Promise<void>
   start: (input: { title: string; taskId: string | null; projectId: string | null; targetMinutes: number; intervalMinutes: number }) => Promise<void>
   transition: (action: 'PAUSE' | 'RESUME' | 'BREAK_DUE' | 'BREAK_DONE' | 'SKIP_BREAK' | 'DISMISS_REMINDERS') => Promise<FocusSession | undefined>
@@ -137,7 +137,7 @@ export function FocusPage({ projects, draft, control, onTasksChanged, revision }
               {!active.remindersDismissed && <button className="secondary" type="button" disabled={control.busy || control.unverified} onClick={() => void control.transition('DISMISS_REMINDERS')}>关闭本段提醒</button>}
               <button className="secondary" type="button" disabled={control.busy || control.unverified} onClick={() => void control.end()}>提前结束并保存投入</button>
             </div>
-            <div className="focus-sound-controls"><button type="button" className="text-button" onClick={() => void control.enableSound()}>{control.soundEnabled ? '试听声音' : '启用并试听声音'}</button>{control.soundEnabled && <span className="field-hint">声音已启用</span>}</div>
+            <div className="focus-sound-controls"><button type="button" className="text-button" onClick={() => void control.enableSound()}>{control.soundAction}</button>{control.soundEnabled && control.soundStatus === 'ready' && <span className="field-hint">声音已启用</span>}</div>
             {control.soundError && <p role="alert" className="inline-notice inline-error">{control.soundError}</p>}
             <p className="field-hint">任务状态不会因结束专注而自动变为完成。</p>
           </> : control.session?.phase === 'ENDED' ? <><h2>本次专注已结束</h2><p className="muted">可在下方补充本次实际进展，或明确开始新的一段。</p></> : <>

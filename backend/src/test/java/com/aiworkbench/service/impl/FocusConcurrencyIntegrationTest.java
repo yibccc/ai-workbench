@@ -132,6 +132,43 @@ class FocusConcurrencyIntegrationTest {
                     OwnerTestContext.USER_ID,started.id())).isEqualTo(a.focusMs());
         }finally{pool.shutdownNow();}
     }
+    @Test void concurrentTargetEndedLeaseTakeoverHasOneWinnerAndKeepsCommittedSettlement() throws Exception {
+        var clock=new FocusIntegrationTest.MutableClock(Instant.parse("2052-04-09T04:00:00Z"));
+        var focus=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
+        var tx=new TransactionTemplate(transactionManager);
+        Session started=tx.execute(status->focus.start(new Start(UUID.randomUUID(),"并发提醒接管",null,null,1,10)));
+        UUID original=UUID.randomUUID(),firstTab=UUID.randomUUID(),secondTab=UUID.randomUUID();
+        clock.advance(Duration.ofSeconds(60));
+        Session ended=tx.execute(status->focus.checkpoint(started.id(),new Checkpoint(started.version(),original,null)));
+        var intervals=jdbc.queryForList("SELECT * FROM focus_intervals WHERE session_id=? ORDER BY ordinal",ended.id());
+        var settlement=jdbc.queryForList("SELECT * FROM work_records WHERE focus_session_id=?",ended.id());
+        clock.advance(FocusServiceImpl.CONTROLLER_LEASE);
+        CountDownLatch ready=new CountDownLatch(2),go=new CountDownLatch(1);
+        ExecutorService pool=Executors.newFixedThreadPool(2);
+        try{
+            java.util.function.Function<UUID,Callable<Object>> claim=tab->OwnerTestContext.as(OwnerTestContext.USER_ID,()->{
+                ready.countDown();go.await(5,TimeUnit.SECONDS);
+                try{return tx.execute(status->focus.checkpoint(ended.id(),new Checkpoint(ended.version(),tab,null)));}
+                catch(org.springframework.web.server.ResponseStatusException ex){return ex;}
+            });
+            Future<Object> first=pool.submit(claim.apply(firstTab)),second=pool.submit(claim.apply(secondTab));
+            assertThat(ready.await(5,TimeUnit.SECONDS)).isTrue();go.countDown();
+            Object a=first.get(10,TimeUnit.SECONDS),b=second.get(10,TimeUnit.SECONDS);
+            assertThat(a instanceof Session ^ b instanceof Session).isTrue();
+            assertThat((org.springframework.web.server.ResponseStatusException)(a instanceof Session?b:a))
+                    .satisfies(ex->assertThat(ex.getStatusCode().value()).isEqualTo(409));
+            Session winner=(Session)(a instanceof Session?a:b);
+            assertThat(winner.controllerId()).isIn(firstTab,secondTab);
+            assertThat(winner.controllerGeneration()).isEqualTo(ended.controllerGeneration()+1);
+            assertThat(winner.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+            assertThat(focus.get(ended.id())).isEqualTo(winner);
+            UUID loser=winner.controllerId().equals(firstTab)?secondTab:firstTab;
+            Session retry=tx.execute(status->focus.checkpoint(winner.id(),new Checkpoint(winner.version(),loser,null)));
+            assertThat(retry).isEqualTo(winner);
+            assertThat(jdbc.queryForList("SELECT * FROM focus_intervals WHERE session_id=? ORDER BY ordinal",ended.id())).isEqualTo(intervals);
+            assertThat(jdbc.queryForList("SELECT * FROM work_records WHERE focus_session_id=?",ended.id())).isEqualTo(settlement);
+        }finally{pool.shutdownNow();}
+    }
     @Test void failedSettlementRollsBackIndependentServiceTransactionAndCanRetry() throws Exception {
         Session started=service.start(new Start(UUID.randomUUID(),"独立事务回滚",null,null,25,10));
         while(System.currentTimeMillis()-started.startedAt().toEpochMilli()<20) Thread.sleep(2);

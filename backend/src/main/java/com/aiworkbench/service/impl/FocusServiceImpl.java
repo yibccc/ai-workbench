@@ -22,6 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class FocusServiceImpl implements FocusService {
     private static final long BREAK_MS=15_000;
+    // Hidden-tab timer checks may be a minute apart; leave time for checkpoint transport too.
+    static final Duration CONTROLLER_LEASE=Duration.ofSeconds(120);
     private final FocusStore store;
     private final TaskMapper tasks;
     private final ProjectService projects;
@@ -161,17 +163,22 @@ public class FocusServiceImpl implements FocusService {
         if(!t.isAfter(x.anchor))return false;
         credit(x,x.anchor,t);return true;
     }
-    private void lease(State x,Checkpoint request,Instant t){
-        if(request.controllerId()==null)return;
+    private boolean lease(State x,Checkpoint request,Instant t){
+        if(request.controllerId()==null)return false;
         if(x.controllerId==null||x.controllerExpires==null||!x.controllerExpires.isAfter(t)){
-            x.controllerId=request.controllerId();x.controllerGeneration++;x.controllerExpires=t.plusSeconds(60);
+            x.controllerId=request.controllerId();x.controllerGeneration++;x.controllerExpires=t.plus(CONTROLLER_LEASE);
+            return true;
         }else if(x.controllerId.equals(request.controllerId())&&Objects.equals(request.controllerGeneration(),x.controllerGeneration)){
-            x.controllerExpires=t.plusSeconds(60);
+            Instant expires=t.plus(CONTROLLER_LEASE);
+            if(expires.isAfter(x.controllerExpires)){x.controllerExpires=expires;return true;}
         }
+        return false;
     }
     @Override @Transactional public Session checkpoint(UUID id,Checkpoint request){
         Session s=requireSession(id,true);version(s.version(),request.version());State x=new State(s);Instant t=logicalNow(x);
         if(!"ENDED".equals(x.phase)){advance(x,t);lease(x,request,t);save(x,t);if("ENDED".equals(x.phase))settle(x);}
+        // A pending target alarm still needs a fenced lease after settlement. Never credit or settle it again.
+        else if(x.focus>=s.targetMs()&&lease(x,request,t))save(x,t);
         return requireSession(id,false);
     }
     @Override @Transactional public Session transition(UUID id,Transition request){

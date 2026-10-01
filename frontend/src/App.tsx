@@ -189,7 +189,7 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     : currentFocus?.phase === 'PAUSED' ? { label: '继续', disabled: focus.busy || focus.unverified, onClick: () => { void focus.transition('RESUME') } } : null
   const breakOverlayVisible = currentFocus?.phase === 'MICRO_BREAK' && !focus.unverified
   const soundAlert = focus.soundError && <div className="notice error focus-sound-alert" role="alert" data-testid="focus-sound-alert">
-    <span>{focus.soundError}</span><div className="focus-sound-alert-actions"><a href="#focus">返回专注</a><button type="button" className="text-button" onClick={() => void focus.enableSound()}>重新启声</button></div>
+    <span>{focus.soundError}</span><div className="focus-sound-alert-actions"><a href="#focus">返回专注</a><button type="button" className="text-button" onClick={() => void focus.enableSound()}>{focus.soundAction}</button></div>
   </div>
   return <><AppShell page={page} hasDirtyReports={dirtyReports} focusStatus={focusStatus} focusToggle={focusToggle} account={account} onPassword={() => setPasswordOpen(true)} onLogout={onLogout}
     onUsers={() => { window.location.hash = 'users'; setPage('users') }}>
@@ -205,7 +205,7 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
   </AppShell>
     {focus.alarmActive && <div className="focus-completion-alarm" role="alert" data-testid="focus-completion-alarm">
       <div><strong>专注已达标并保存</strong><p>{focus.soundError ?? '达标铃声正在响起，请点击“结束”停止。'}</p></div>
-      <div className="focus-completion-actions">{focus.soundError && <button type="button" className="secondary" onClick={() => void focus.enableSound()}>重新启声</button>}<button type="button" onClick={focus.stopAlarm}>结束</button></div>
+      <div className="focus-completion-actions">{focus.soundError && <button type="button" className="secondary" onClick={() => void focus.enableSound()}>{focus.soundAction}</button>}<button type="button" onClick={focus.stopAlarm}>结束</button></div>
     </div>}
     {focus.reminderNotice && currentFocus?.phase !== 'MICRO_BREAK' && <div className="focus-reminder-notice" role="status">{focus.reminderNotice}</div>}
     {breakOverlayVisible && currentFocus && <div className="focus-break-overlay" role="dialog" aria-label="微休息引导" aria-modal="false"><div className="focus-break-card"><p className="page-eyebrow">微休息</p><h2>闭眼放松 15 秒</h2><p className="focus-break-time">{formatDuration(Math.max(0, currentFocus.breakRemainingMs - (projectedBreakMs(currentFocus, focus.now) - currentFocus.breakMs)))}</p><p className="muted">这是休息引导，不检测您的状态。可随时跳过或关闭本段后续提醒。</p>{soundAlert}<div className="focus-actions"><button type="button" disabled={focus.busy} onClick={() => void focus.transition('SKIP_BREAK')}>跳过本次</button><button type="button" className="secondary" disabled={focus.busy} onClick={() => void focus.transition('DISMISS_REMINDERS')}>关闭本段提醒</button><a className="secondary focus-break-link" href="#focus">查看专注</a></div></div></div>}
