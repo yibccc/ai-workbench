@@ -266,6 +266,121 @@ test('专注独立页从待办带入但不自动开工，跨页可暂停并保�
   expect((await (await request.get(`${apiBase}/api/focus/current`)).json()).id).toBe(current.id)
 })
 
+test('待办专注保存进展后完成并回到新表单，空白和失败保留重试', async ({ page, request }) => {
+  const created = await request.post(`${apiBase}/api/tasks`, { data: { title: '专注保存完成结果', priority: 'MEDIUM' } })
+  expect(created.ok()).toBeTruthy()
+  const task = await created.json() as { id: string }
+  await openWorkbench(page)
+  await navigate(page, '待办任务')
+  await page.getByTestId('task-item').filter({ hasText: '专注保存完成结果' }).getByRole('button', { name: '带入专注' }).click()
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeVisible()
+  const current = await (await request.get(`${apiBase}/api/focus/current`)).json() as FocusSession
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  const progress = page.getByLabel('补充进展（待办完成结果）')
+  await expect(progress).toBeVisible()
+  expect((await (await request.get(`${apiBase}/api/tasks/${task.id}`)).json()).status).toBe('PENDING')
+  await progress.fill('   ')
+  await expect(page.getByRole('button', { name: '保存进展', exact: true })).toBeDisabled()
+  await progress.fill('  方案完成并通过评审  ')
+  let releaseSave!: () => void
+  const heldSave = new Promise<void>(resolve => { releaseSave = resolve })
+  let calls = 0
+  await page.route('**/api/focus/sessions/*/progress', async route => {
+    calls++
+    if (calls === 1) { await heldSave; return route.fulfill({ status: 500, json: { detail: '模拟保存失败，请重试' } }) }
+    return route.continue()
+  })
+  await page.getByRole('button', { name: '保存进展', exact: true }).click()
+  await expect.poll(() => calls).toBe(1)
+  await expect(page.getByRole('button', { name: '保存中…' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '开始新专注', exact: true })).toBeDisabled()
+  await expect(progress).toBeDisabled()
+  releaseSave()
+  await expect(page.getByRole('alert')).toContainText('模拟保存失败，请重试')
+  await expect(progress).toHaveValue('  方案完成并通过评审  ')
+  expect((await (await request.get(`${apiBase}/api/tasks/${task.id}`)).json()).status).toBe('PENDING')
+  await page.getByRole('button', { name: '保存进展', exact: true }).click()
+  await expect(page.getByLabel('目标', { exact: true })).toHaveValue('')
+  await expect(page.getByLabel('目标净时长（分钟）')).toHaveValue('45')
+  await expect(page.locator('.focus-task-link')).toHaveCount(0)
+  await expect(progress).toHaveCount(0)
+  const completed = await (await request.get(`${apiBase}/api/tasks/${task.id}`)).json() as { status: string; completionResult: string }
+  expect(completed.status).toBe('COMPLETED')
+  expect(completed.completionResult).toBe('方案完成并通过评审')
+  expect((await (await request.get(`${apiBase}/api/focus/sessions/${current.id}`)).json()).progress).toBe(completed.completionResult)
+  expect((await (await request.get(`${apiBase}/api/tasks/${task.id}/events`)).json()).filter((event: { eventType: string }) => event.eventType === 'COMPLETED')).toHaveLength(1)
+  await navigate(page, '待办任务')
+  await expect(page.getByTestId('task-item').filter({ hasText: '专注保存完成结果' })).toHaveCount(0)
+  await navigate(page, '工作记录')
+  await expect(page.getByTestId('record-list')).toContainText('方案完成并通过评审')
+})
+
+test('保存版本冲突保留进展并刷新重试，保存期间带入下一待办且汇总失败仍返回表单', async ({ page, request }) => {
+  const firstResponse = await request.post(`${apiBase}/api/tasks`, { data: { title: '当前专注待办', priority: 'MEDIUM' } })
+  const nextResponse = await request.post(`${apiBase}/api/tasks`, { data: { title: '排队的下一待办', priority: 'MEDIUM' } })
+  expect(firstResponse.ok() && nextResponse.ok()).toBeTruthy()
+  const first = await firstResponse.json() as { id: string }
+  const next = await nextResponse.json() as { id: string }
+  await openWorkbench(page)
+  await navigate(page, '待办任务')
+  await page.getByTestId('task-item').filter({ hasText: '当前专注待办' }).getByRole('button', { name: '带入专注' }).click()
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeVisible()
+  const current = await (await request.get(`${apiBase}/api/focus/current`)).json() as FocusSession
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  const progress = page.getByLabel('补充进展（待办完成结果）')
+  await expect(progress).toBeVisible()
+  const ended = await (await request.get(`${apiBase}/api/focus/sessions/${current.id}`)).json() as FocusSession
+  expect((await request.put(`${apiBase}/api/focus/sessions/${ended.id}/progress`, { data: { version: ended.version, progress: '其他页面保存的结果' } })).ok()).toBeTruthy()
+  await progress.fill('本次填写的最终结果')
+  await page.getByRole('button', { name: '保存进展', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('状态已更新')
+  await expect(progress).toHaveValue('本次填写的最终结果')
+  await page.route('**/api/focus/today', route => route.fulfill({ status: 503, json: { detail: '汇总读取暂时失败' } }))
+  let releaseSave!: () => void
+  const heldSave = new Promise<void>(resolve => { releaseSave = resolve })
+  let savePending = false
+  await page.route('**/api/focus/sessions/*/progress', async route => {
+    savePending = true
+    await heldSave
+    await route.continue()
+  })
+  await page.getByRole('button', { name: '保存进展', exact: true }).click()
+  await expect.poll(() => savePending).toBe(true)
+  await navigate(page, '待办任务')
+  await page.getByTestId('task-item').filter({ hasText: '排队的下一待办' }).getByRole('button', { name: '带入专注' }).click()
+  await expect(page.getByRole('button', { name: '保存中…' })).toBeDisabled()
+  releaseSave()
+  await expect(page.getByLabel('目标', { exact: true })).toHaveValue('排队的下一待办')
+  await expect(page.locator('.focus-task-link')).toBeVisible()
+  await expect(page.getByRole('button', { name: '开始专注' })).toBeEnabled()
+  await expect(page.getByRole('status')).toContainText('待办已完成')
+  await expect(page.getByTestId('focus-page').getByRole('alert')).toContainText('汇总读取暂时失败')
+  expect((await (await request.get(`${apiBase}/api/tasks/${first.id}`)).json()).completionResult).toBe('本次填写的最终结果')
+  expect((await (await request.get(`${apiBase}/api/tasks/${next.id}`)).json()).status).toBe('PENDING')
+})
+
+test('临时专注可保存空进展并重置表单，不创建待办或遗留进展', async ({ page, request }) => {
+  await openWorkbench(page)
+  await navigate(page, '专注')
+  await page.getByLabel('目标', { exact: true }).fill('临时专注可选进展')
+  await page.getByLabel('目标净时长（分钟）').fill('25')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeVisible()
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  await expect(page.getByLabel('补充进展（可选）')).toBeVisible()
+  await page.getByRole('button', { name: '保存进展', exact: true }).click()
+  await expect(page.getByLabel('目标', { exact: true })).toHaveValue('')
+  await expect(page.getByLabel('目标净时长（分钟）')).toHaveValue('45')
+  expect((await (await request.get(`${apiBase}/api/tasks`)).json()).some((task: { title: string }) => task.title === '临时专注可选进展')).toBe(false)
+  await page.getByLabel('目标', { exact: true }).fill('第二段临时专注')
+  await page.getByRole('button', { name: '开始专注' }).click()
+  await expect(page.getByRole('button', { name: '提前结束并保存投入' })).toBeVisible()
+  await page.getByRole('button', { name: '提前结束并保存投入' }).click()
+  await expect(page.getByLabel('补充进展（可选）')).toHaveValue('')
+})
+
 test('专注五项导航及规则和汇总在窄屏保持可达', async ({ page }) => {
   await openWorkbench(page)
   for (const [width, height, choice] of [[320, 520, 15], [390, 520, 25], [760, 700, 45], [1440, 900, 60]]) {

@@ -25,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Transactional
@@ -43,7 +44,7 @@ class FocusIntegrationTest {
     @BeforeEach void setup(){
         OwnerTestContext.ensureAccounts(jdbc);OwnerTestContext.use(OwnerTestContext.USER_ID);
         clock=new MutableClock(Instant.parse("2052-04-09T04:00:00Z"));
-        service=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
+        service=new FocusServiceImpl(store,tasks,taskService,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
     }
     @Test void routineIsIdempotentEvenAfterSoftDeleteAndWeekdaysAreCanonical(){
         int weekday=clock.instant().atZone(ZoneId.of("Asia/Shanghai")).getDayOfWeek().getValue();
@@ -54,6 +55,51 @@ class FocusIntegrationTest {
         jdbc.update("UPDATE todo_items SET deleted_at=? WHERE id=?",java.sql.Timestamp.from(clock.instant()),taskId);
         assertThat(service.fillToday().created()).isEmpty();
         assertThat(jdbc.queryForObject("SELECT count(*) FROM todo_items WHERE routine_id=?",Integer.class,routine.id())).isEqualTo(1);
+    }
+    @Test void linkedProgressCompletesTaskWithMatchingResultAndNoDuplicateCompletion(){
+        var task=taskService.create(new CreateTaskRequest(null,"保存进展完成待办","",null,TaskPriority.MEDIUM));
+        Session s=service.start(new Start(UUID.randomUUID(),task.title(),task.id(),null,25,10));
+        clock.advance(Duration.ofSeconds(20));s=service.end(s.id(),new Version(s.version()));
+        assertThat(taskService.get(task.id()).status().name()).isEqualTo("PENDING");
+        s=service.progress(s.id(),new Progress(s.version(),"  完成方案并通过评审  "));
+        var completed=taskService.get(task.id());
+        assertThat(completed.status().name()).isEqualTo("COMPLETED");
+        assertThat(completed.completionResult()).isEqualTo("完成方案并通过评审");
+        assertThat(s.progress()).isEqualTo(completed.completionResult());
+        assertThat(jdbc.queryForObject("SELECT progress FROM work_records WHERE focus_session_id=?",String.class,s.id())).isEqualTo(s.progress());
+        service.progress(s.id(),new Progress(s.version(),"完成方案并通过评审"));
+        assertThat(taskService.get(task.id()).version()).isEqualTo(completed.version());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE todo_id=? AND source='TASK_COMPLETION' AND is_active",Integer.class,task.id())).isEqualTo(1);
+        assertThat(taskService.events(task.id())).extracting(event->event.eventType()).containsExactly("COMPLETED");
+    }
+    @Test void linkedProgressSynchronizesTaskCompletedElsewhere(){
+        var task=taskService.create(new CreateTaskRequest(null,"同步其他页面完成结果","",null,TaskPriority.MEDIUM));
+        Session s=service.start(new Start(UUID.randomUUID(),task.title(),task.id(),null,25,10));
+        clock.advance(Duration.ofSeconds(20));s=service.end(s.id(),new Version(s.version()));
+        var completed=taskService.complete(task.id(),new CompleteTaskRequest(task.version(),"其他页面结果"));
+        UUID completionId=completed.completionRecordId();
+        s=service.progress(s.id(),new Progress(s.version(),"  本次专注的完成结果  "));
+        assertThat(taskService.get(task.id()).completionResult()).isEqualTo(s.progress()).isEqualTo("本次专注的完成结果");
+        assertThat(taskService.get(task.id()).completionRecordId()).isEqualTo(completionId);
+        assertThat(taskService.events(task.id())).extracting(event->event.eventType()).containsExactly("COMPLETED","COMPLETION_RESULT_UPDATED");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE todo_id=? AND source='TASK_COMPLETION'",Integer.class,task.id())).isEqualTo(1);
+    }
+    @Test void blankLinkedProgressAndStaleVersionDoNotCompleteTaskButUnlinkedProgressIsOptional(){
+        var task=taskService.create(new CreateTaskRequest(null,"进展必填","",null,TaskPriority.MEDIUM));
+        Session linked=service.start(new Start(UUID.randomUUID(),task.title(),task.id(),null,25,10));
+        linked=service.end(linked.id(),new Version(linked.version()));
+        Session ended=linked;
+        assertThatThrownBy(()->service.progress(ended.id(),new Progress(ended.version(),"  \n  ")))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class).hasMessageContaining("400");
+        assertThatThrownBy(()->service.progress(ended.id(),new Progress(ended.version()-1,"有效进展")))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class).hasMessageContaining("409");
+        assertThat(service.get(ended.id()).version()).isEqualTo(ended.version());
+        assertThat(service.get(ended.id()).progress()).isEmpty();
+        assertThat(taskService.get(task.id()).status().name()).isEqualTo("PENDING");
+        Session unlinked=service.start(new Start(UUID.randomUUID(),"临时专注",null,null,25,10));
+        unlinked=service.end(unlinked.id(),new Version(unlinked.version()));
+        assertThat(service.progress(unlinked.id(),new Progress(unlinked.version(),"  ")).progress()).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM todo_items WHERE user_id=? AND title='临时专注'",Integer.class,OwnerTestContext.USER_ID)).isZero();
     }
     @Test void archivedRoutineProjectIsBlockedButExistingSessionKeepsArchivedAssociation(){
         UUID archived=projects.create(new CreateProjectRequest("已归档模板项目")).id();

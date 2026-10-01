@@ -139,7 +139,7 @@ class FocusUpgradeIntegrationTest {
             withMigratedFocusStore(schema,(store,jdbc)->{
                 var events=mock(WorkbenchEventHub.class);
                 var runningClock=new FocusIntegrationTest.MutableClock(runningEnd);
-                var runningService=new FocusServiceImpl(store,null,null,null,events,ZoneId.of("Asia/Shanghai"),runningClock);
+                var runningService=new FocusServiceImpl(store,null,null,null,null,events,ZoneId.of("Asia/Shanghai"),runningClock);
                 OwnerTestContext.use(runningOwner);
                 var run=runningService.get(running);
                 run=runningService.checkpoint(running,new Checkpoint(run.version(),null,null));
@@ -155,7 +155,7 @@ class FocusUpgradeIntegrationTest {
                         .isEqualTo(1);
 
                 var pausedClock=new FocusIntegrationTest.MutableClock(pausedEnd.plusSeconds(60));
-                var pausedService=new FocusServiceImpl(store,null,null,null,events,ZoneId.of("Asia/Shanghai"),pausedClock);
+                var pausedService=new FocusServiceImpl(store,null,null,null,null,events,ZoneId.of("Asia/Shanghai"),pausedClock);
                 OwnerTestContext.use(pausedOwner);
                 var hold=pausedService.get(paused);
                 hold=pausedService.checkpoint(paused,new Checkpoint(hold.version(),null,null));
@@ -168,7 +168,7 @@ class FocusUpgradeIntegrationTest {
                         .isEqualTo(600_000);
 
                 var breakClock=new FocusIntegrationTest.MutableClock(breakEnd);
-                var breakService=new FocusServiceImpl(store,null,null,null,events,ZoneId.of("Asia/Shanghai"),breakClock);
+                var breakService=new FocusServiceImpl(store,null,null,null,null,events,ZoneId.of("Asia/Shanghai"),breakClock);
                 OwnerTestContext.use(breakOwner);
                 var rest=breakService.get(inBreak);
                 rest=breakService.checkpoint(inBreak,new Checkpoint(rest.version(),null,null));

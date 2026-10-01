@@ -4,11 +4,14 @@ import com.aiworkbench.dto.focus.FocusModels.*;
 import com.aiworkbench.events.WorkbenchEventHub;
 import com.aiworkbench.dto.record.WorkRecordResponse;
 import com.aiworkbench.dto.task.TaskResponse;
+import com.aiworkbench.dto.task.CompleteTaskRequest;
+import com.aiworkbench.dto.task.UpdateCompletionResultRequest;
 import com.aiworkbench.mapper.FocusStore;
 import com.aiworkbench.mapper.TaskMapper;
 import com.aiworkbench.security.CurrentUser;
 import com.aiworkbench.service.FocusService;
 import com.aiworkbench.service.ProjectService;
+import com.aiworkbench.service.TaskService;
 import com.aiworkbench.service.WorkRecordService;
 import java.time.*;
 import java.util.*;
@@ -26,6 +29,7 @@ public class FocusServiceImpl implements FocusService {
     static final Duration CONTROLLER_LEASE=Duration.ofSeconds(120);
     private final FocusStore store;
     private final TaskMapper tasks;
+    private final TaskService taskService;
     private final ProjectService projects;
     private final WorkRecordService records;
     private final WorkbenchEventHub events;
@@ -33,13 +37,13 @@ public class FocusServiceImpl implements FocusService {
     private final Clock clock;
 
     @Autowired
-    public FocusServiceImpl(FocusStore store,TaskMapper tasks,ProjectService projects,WorkRecordService records,WorkbenchEventHub events,
+    public FocusServiceImpl(FocusStore store,TaskMapper tasks,TaskService taskService,ProjectService projects,WorkRecordService records,WorkbenchEventHub events,
                             @Value("${workbench.zone-id:Asia/Shanghai}") String zone) {
-        this(store,tasks,projects,records,events,ZoneId.of(zone),Clock.systemUTC());
+        this(store,tasks,taskService,projects,records,events,ZoneId.of(zone),Clock.systemUTC());
     }
-    FocusServiceImpl(FocusStore store,TaskMapper tasks,ProjectService projects,WorkRecordService records,WorkbenchEventHub events,
+    FocusServiceImpl(FocusStore store,TaskMapper tasks,TaskService taskService,ProjectService projects,WorkRecordService records,WorkbenchEventHub events,
                      ZoneId zone,Clock clock) {
-        this.store=store;this.tasks=tasks;this.projects=projects;this.records=records;this.events=events;this.zone=zone;this.clock=clock;
+        this.store=store;this.tasks=tasks;this.taskService=taskService;this.projects=projects;this.records=records;this.events=events;this.zone=zone;this.clock=clock;
     }
     private void changed(String kind,UUID id,String state){events.publishAfterCommit(owner(),kind,id,state);}
     private UUID owner() { return CurrentUser.requireId(); }
@@ -239,7 +243,15 @@ public class FocusServiceImpl implements FocusService {
     @Override @Transactional public Session progress(UUID id,Progress request){
         Session s=requireSession(id,true);if(!s.phase().equals("ENDED"))throw conflict("结束后才能补充进展");version(s.version(),request.version());
         String value=request.progress().trim();Instant t=now();
+        if(s.taskId()!=null&&value.isBlank())throw bad("请填写进展，作为待办完成结果");
         int n=store.updateProgress(owner(),id,value,t,request.version());if(n!=1)throw conflict("进展已更新");
+        if(s.taskId()!=null){
+            TaskResponse task=taskService.get(s.taskId());
+            TaskResponse completed=taskService.complete(task.id(),new CompleteTaskRequest(task.version(),value));
+            if(!value.equals(completed.completionResult()))
+                taskService.updateCompletionResult(task.id(),new UpdateCompletionResultRequest(completed.version(),value));
+            changed("TASK",task.id(),"COMPLETED");
+        }
         store.updateRecordProgress(owner(),id,value,t);changed("FOCUS_SESSION",id,"PROGRESS_UPDATED");
         return requireSession(id,false);
     }

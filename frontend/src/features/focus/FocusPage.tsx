@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Project } from '../../api/projects'
-import { createRoutine, fetchFocusToday, fetchRoutines, fillToday, saveFocusProgress, toggleRoutine, updateRoutine, type FocusRoutine, type FocusSession, type FocusToday, type RoutineInput } from '../../api/focus'
+import { createRoutine, fetchFocusSession, fetchFocusToday, fetchRoutines, fillToday, saveFocusProgress, toggleRoutine, updateRoutine, type FocusRoutine, type FocusSession, type FocusToday, type RoutineInput } from '../../api/focus'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/toastContext'
 import { formatDuration, projectedFocusMs, projectedBreakMs } from './useFocusController'
@@ -36,6 +36,9 @@ export function FocusPage({ projects, draft, control, onTasksChanged, revision }
   const suppressDurationFocus = useRef(false)
   const [intervalMinutes, setIntervalMinutes] = useState(10)
   const [progress, setProgress] = useState('')
+  const [progressBusy, setProgressBusy] = useState(false)
+  const progressSaving = useRef(false)
+  const latestDraft = useRef({ draft, taskId })
   const [routines, setRoutines] = useState<FocusRoutine[]>([])
   const [today, setToday] = useState<FocusToday | null>(null)
   const [routineEdit, setRoutineEdit] = useState<FocusRoutine | null>(null)
@@ -44,6 +47,8 @@ export function FocusPage({ projects, draft, control, onTasksChanged, revision }
   const [dataError, setDataError] = useState<string | null>(null)
   const [tab, setTab] = useState<'timer' | 'routines' | 'today'>('timer')
   const active = control.session && control.session.phase !== 'ENDED' ? control.session : null
+
+  useEffect(() => { latestDraft.current = { draft, taskId } }, [draft, taskId])
 
   useEffect(() => {
     if (!draft) return
@@ -89,9 +94,25 @@ export function FocusPage({ projects, draft, control, onTasksChanged, revision }
     finally { setRoutineBusy(false) }
   }
   const saveProgress = async () => {
-    if (!control.session || control.session.phase !== 'ENDED') return
-    try { control.adopt(await saveFocusProgress(control.session, progress)); await reload(); notify('进展已保存', 'success') }
-    catch (caught) { notify(caught instanceof Error ? caught.message : '进展保存失败', 'error') }
+    const session = control.session
+    if (!session || session.phase !== 'ENDED' || progressSaving.current || control.busy) return
+    if (session.taskId && !progress.trim()) { notify('请填写进展，作为待办完成结果', 'error'); return }
+    progressSaving.current = true; setProgressBusy(true)
+    try {
+      control.adopt(await saveFocusProgress(session, progress))
+    } catch (caught) {
+      if (caught && typeof caught === 'object' && 'status' in caught && caught.status === 409) {
+        try { control.adopt(await fetchFocusSession(session.id)) } catch { /* Keep the form for a later retry. */ }
+      }
+      notify(caught instanceof Error ? caught.message : '进展保存失败', 'error')
+      progressSaving.current = false; setProgressBusy(false)
+      return
+    }
+    prepareNewFocus()
+    onTasksChanged()
+    notify(session.taskId ? '进展已保存，待办已完成' : '进展已保存', 'success')
+    progressSaving.current = false; setProgressBusy(false)
+    await reload()
   }
   const focusMs = active ? projectedFocusMs(active, control.now) : 0
   const remainingMs = active ? Math.max(0, active.targetMs - focusMs) : 0
@@ -107,7 +128,8 @@ export function FocusPage({ projects, draft, control, onTasksChanged, revision }
     restoreDurationFocus()
   }
   const prepareNewFocus = () => {
-    const queued = draft && draft.taskId !== control.session?.taskId && taskId === draft.taskId ? draft : null
+    const { draft: currentDraft, taskId: currentTaskId } = latestDraft.current
+    const queued = currentDraft && currentDraft.taskId !== control.session?.taskId && currentTaskId === currentDraft.taskId ? currentDraft : null
     setTitle(queued?.title ?? ''); setTaskId(queued?.taskId ?? null); setProjectId(queued?.projectId ?? null)
     setTargetMinutes(queued?.targetMinutes ?? 45); setIntervalMinutes(10)
     setDurationOpen(false); setDurationIndex(-1); setProgress('')
@@ -151,7 +173,7 @@ export function FocusPage({ projects, draft, control, onTasksChanged, revision }
             </form>
           </>}
         </div>
-        {control.session?.phase === 'ENDED' && <section className="panel focus-progress"><h2>本次会话已保存</h2><p>会话净时长 {formatDuration(control.session.focusMs)}，休息 {formatDuration(control.session.breakMs)}。关联待办仍需单独完成。</p><label>补充进展（可选）<textarea maxLength={4000} value={progress} onChange={event => setProgress(event.target.value)} placeholder="只记录实际进展，不会自动标记完成" /></label><div className="focus-actions"><button type="button" onClick={() => void saveProgress()}>保存进展</button><button type="button" className="secondary" onClick={prepareNewFocus}>开始新专注</button></div></section>}
+        {control.session?.phase === 'ENDED' && <section className="panel focus-progress"><h2>本次会话已保存</h2><p>会话净时长 {formatDuration(control.session.focusMs)}，休息 {formatDuration(control.session.breakMs)}。{control.session.taskId ? '填写进展并保存后，关联待办将完成，完成结果与进展一致。' : '填写进展并保存后，返回新专注页面。'}</p><label>{control.session.taskId ? '补充进展（待办完成结果）' : '补充进展（可选）'}<textarea required={Boolean(control.session.taskId)} disabled={progressBusy} maxLength={4000} value={progress} onChange={event => setProgress(event.target.value)} placeholder={control.session.taskId ? '填写本次完成结果' : '记录本次实际进展'} /></label><div className="focus-actions"><button type="button" disabled={progressBusy || control.busy || Boolean(control.session.taskId && !progress.trim())} onClick={() => void saveProgress()}>{progressBusy ? '保存中…' : '保存进展'}</button><button type="button" className="secondary" disabled={progressBusy || control.busy} onClick={() => { if (!progressSaving.current) prepareNewFocus() }}>开始新专注</button></div></section>}
       </section>}
         {tab === 'routines' && <div className="focus-grid"><section className="panel focus-main"><div className="focus-section-head"><div><h2>每日重复任务</h2><p className="muted">只生成今天符合星期的独立待办，不追补缺席日期。</p></div><button type="button" className="secondary" disabled={routineBusy} onClick={() => void refill()}>检查并补齐今天</button></div><div className="focus-routine-list">{routines.length === 0 && <p className="muted">还没有重复规则。</p>}{routines.map(routine => <article key={routine.id} className="focus-routine"><div><strong>{routine.title}</strong><p>{routine.weekdays.map(day => weekdays[day - 1]).join('、')} · 默认 {routine.defaultDurationMinutes} 分钟 · {routine.enabled ? '已启用' : '已停用'}</p></div><div className="focus-actions"><button type="button" className="text-button"  onClick={() => { setRoutineEdit(routine); setRoutineInput({ title: routine.title, projectId: routine.projectId, weekdays: routine.weekdays, defaultDurationMinutes: routine.defaultDurationMinutes }) }}>编辑</button><button type="button" className="text-button" disabled={routineBusy} onClick={() => void toggle(routine)}>{routine.enabled ? '停用' : '启用'}</button></div></article>)}</div></section><section className="panel focus-side"><h2>{routineEdit ? '编辑重复规则' : '新建重复规则'}</h2><form className="focus-form" onSubmit={event => void submitRoutine(event)}><label>名称<input required maxLength={200} value={routineInput.title} onChange={event => setRoutineInput(value => ({ ...value, title: event.target.value }))} /></label><label>项目<select value={routineInput.projectId ?? ''} onChange={event => setRoutineInput(value => ({ ...value, projectId: event.target.value || null }))}><option value="">未归属项目</option>{projects.filter(project => project.status === 'ACTIVE' || project.id === routineInput.projectId).map(project => <option key={project.id} value={project.id}>{project.name}{project.status === 'ARCHIVED' ? '（已归档）' : ''}</option>)}</select></label><fieldset><legend>重复星期</legend><div className="focus-weekdays">{weekdays.map((label, index) => <label key={label}><input type="checkbox" checked={routineInput.weekdays.includes(index + 1)} onChange={event => setRoutineInput(value => ({ ...value, weekdays: event.target.checked ? [...value.weekdays, index + 1].sort() : value.weekdays.filter(day => day !== index + 1) }))} />{label}</label>)}</div></fieldset><label>默认专注时长（分钟）<input type="number" required min={1} max={480} value={routineInput.defaultDurationMinutes} onChange={event => setRoutineInput(value => ({ ...value, defaultDurationMinutes: Number(event.target.value) }))} /></label><div className="focus-actions"><button type="submit" disabled={routineBusy}>保存规则</button>{routineEdit && <button type="button" className="secondary" onClick={() => { setRoutineEdit(null); setRoutineInput(emptyRoutine) }}>取消编辑</button>}</div></form></section></div>}
         {tab === 'today' && <section className="panel focus-today"><div className="focus-section-head"><div><h2>今日专注汇总</h2><p className="muted">{today?.date ?? '今天'} · 汇总已结束会话的净时长</p></div><button type="button" className="secondary" onClick={() => void reload()}>刷新</button></div><div className="focus-stats"><div><strong>{formatDuration(today?.focusMs ?? 0)}</strong><span>会话净时长</span></div><div><strong>{formatDuration(today?.breakMs ?? 0)}</strong><span>微休息</span></div><div><strong>{today?.sessionCount ?? 0}</strong><span>已结束会话</span></div></div><div className="focus-today-list">{today?.records.map(record => <article key={record.id}><strong>{record.content}</strong><span>会话净时长 {formatDuration(record.focusMs ?? 0)}{record.progress ? ` · 进展：${record.progress}` : ''}</span></article>)}{today?.records.length === 0 && <p className="muted">今天还没有已结束的专注会话。</p>}</div></section>}
