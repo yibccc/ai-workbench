@@ -1,0 +1,5 @@
+{"file":".trellis/spec/frontend/focus-page.md","reason":"Focus state and browser regressions"}
+{"file":".trellis/spec/backend/focus-routines.md","reason":"Ledger consistency; explicit user request requires progress save completion"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Completion consistency"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Rollback and validation"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Save response and reset"}

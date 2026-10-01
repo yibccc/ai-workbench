@@ -391,3 +391,25 @@
 ### Status
 
 [OK] **Completed**
+
+
+## Session 16: Focus progress completes linked task
+<!-- trellis-session: v=2 fp=d17a29f0cf91beb6 -->
+
+**Date**: 2026-10-01
+**Task**: Focus progress completes linked task
+**Branch**: `codex/focus-task-completion`
+
+### Summary
+
+Saving ended linked focus progress atomically completes its task with matching result and resets to the new focus form. Retains text on failure and queued task during pending save. Frontend lint/build, 177 backend tests and 7 scoped browser regressions passed; isolated test resources cleaned up. User authorized commit, archive, push and MR.
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `08f34a5` | fix(focus): complete linked task when saving progress |
+
+### Status
+
+[OK] **Completed**

@@ -1,0 +1,5 @@
+{"file":".trellis/spec/frontend/focus-page.md","reason":"Session lifecycle; explicit requested save completion supersedes prior independent completion rule"}
+{"file":".trellis/spec/backend/focus-routines.md","reason":"Focus transaction and source ledger"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Mapper and transaction conventions"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Owner and version errors"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Atomic save and UI reset"}

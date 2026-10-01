@@ -5,10 +5,14 @@ import com.aiworkbench.dto.focus.FocusModels.Session;
 import com.aiworkbench.dto.focus.FocusModels.SaveRoutine;
 import com.aiworkbench.dto.focus.FocusModels.Version;
 import com.aiworkbench.dto.focus.FocusModels.Checkpoint;
+import com.aiworkbench.dto.focus.FocusModels.Progress;
+import com.aiworkbench.dto.task.CreateTaskRequest;
+import com.aiworkbench.enums.TaskPriority;
 import com.aiworkbench.events.WorkbenchEventHub;
 import com.aiworkbench.mapper.FocusStore;
 import com.aiworkbench.mapper.TaskMapper;
 import com.aiworkbench.service.FocusService;
+import com.aiworkbench.service.TaskService;
 import com.aiworkbench.service.ProjectService;
 import com.aiworkbench.service.WorkRecordService;
 import com.aiworkbench.support.OwnerTestContext;
@@ -47,15 +51,21 @@ class FocusConcurrencyIntegrationTest {
     @Autowired ObjectMapper json;
     @Autowired FocusStore store;
     @Autowired TaskMapper tasks;
+    @Autowired TaskService taskService;
     @Autowired ProjectService projects;
     @Autowired WorkRecordService records;
     @Autowired WorkbenchEventHub events;
     @Autowired PlatformTransactionManager transactionManager;
     private final java.util.List<UUID> routineIds=new java.util.ArrayList<>();
+    private final java.util.List<UUID> taskIds=new java.util.ArrayList<>();
     @BeforeEach void setup(){OwnerTestContext.ensureAccounts(jdbc);OwnerTestContext.use(OwnerTestContext.USER_ID);dropFaultTrigger();clear();}
     @AfterEach void cleanup(){
         dropFaultTrigger();
         clear();
+        taskIds.forEach(id->jdbc.update("DELETE FROM work_records WHERE user_id=? AND todo_id=?",OwnerTestContext.USER_ID,id));
+        taskIds.forEach(id->jdbc.update("DELETE FROM task_events WHERE todo_id=?",id));
+        taskIds.forEach(id->jdbc.update("DELETE FROM todo_items WHERE user_id=? AND id=?",OwnerTestContext.USER_ID,id));
+        taskIds.clear();
         routineIds.forEach(id->jdbc.update("DELETE FROM todo_items WHERE user_id=? AND routine_id=?",OwnerTestContext.USER_ID,id));
         routineIds.forEach(id->jdbc.update("DELETE FROM focus_routines WHERE user_id=? AND id=?",OwnerTestContext.USER_ID,id));
         routineIds.clear();
@@ -66,10 +76,43 @@ class FocusConcurrencyIntegrationTest {
         jdbc.update("DELETE FROM focus_sessions WHERE user_id=?",OwnerTestContext.USER_ID);
     }
     private void dropFaultTrigger(){
+        jdbc.execute("DROP TRIGGER IF EXISTS reject_focus_task_completion ON task_events");
+        jdbc.execute("DROP FUNCTION IF EXISTS reject_focus_task_completion()");
         jdbc.execute("DROP TRIGGER IF EXISTS reject_focus_independent_settlement ON work_records");
         jdbc.execute("DROP FUNCTION IF EXISTS reject_focus_independent_settlement()");
         jdbc.execute("DROP TRIGGER IF EXISTS reject_focus_second_day_settlement ON work_records");
         jdbc.execute("DROP FUNCTION IF EXISTS reject_focus_second_day_settlement()");
+    }
+    @Test void completionEventFailureRollsBackProgressTaskAndCompletionRecordAndAllowsRetry(){
+        var task=taskService.create(new CreateTaskRequest(null,"专注保存事务回滚","",null,TaskPriority.MEDIUM));
+        taskIds.add(task.id());
+        var clock=new FocusIntegrationTest.MutableClock(Instant.parse("2052-04-09T04:00:00Z"));
+        var focus=new FocusServiceImpl(store,tasks,taskService,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
+        var tx=new TransactionTemplate(transactionManager);
+        Session started=tx.execute(status->focus.start(new Start(UUID.randomUUID(),task.title(),task.id(),null,25,10)));
+        clock.advance(Duration.ofSeconds(20));
+        Session ended=tx.execute(status->focus.end(started.id(),new Version(started.version())));
+        jdbc.execute("""
+                CREATE FUNCTION reject_focus_task_completion() RETURNS trigger LANGUAGE plpgsql AS $$
+                BEGIN IF NEW.event_type='COMPLETED' AND NEW.payload->>'title'='专注保存事务回滚' THEN
+                    RAISE EXCEPTION 'injected focus task completion failure'; END IF;
+                RETURN NEW; END $$
+                """);
+        jdbc.execute("CREATE TRIGGER reject_focus_task_completion BEFORE INSERT ON task_events " +
+                "FOR EACH ROW EXECUTE FUNCTION reject_focus_task_completion()");
+        assertThatThrownBy(()->tx.execute(status->focus.progress(ended.id(),new Progress(ended.version(),"已完成的实际进展"))))
+                .hasMessageContaining("injected focus task completion failure");
+        assertThat(focus.get(ended.id()).version()).isEqualTo(ended.version());
+        assertThat(focus.get(ended.id()).progress()).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT progress FROM work_records WHERE focus_session_id=?",String.class,ended.id())).isNull();
+        assertThat(taskService.get(task.id()).status().name()).isEqualTo("PENDING");
+        assertThat(taskService.get(task.id()).version()).isEqualTo(task.version());
+        assertThat(taskService.events(task.id())).isEmpty();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE todo_id=? AND source='TASK_COMPLETION'",Integer.class,task.id())).isZero();
+        dropFaultTrigger();
+        Session saved=tx.execute(status->focus.progress(ended.id(),new Progress(ended.version(),"已完成的实际进展")));
+        assertThat(saved.progress()).isEqualTo(taskService.get(task.id()).completionResult());
+        assertThat(taskService.get(task.id()).status().name()).isEqualTo("COMPLETED");
     }
     @Test void concurrentStartAllowsOnlyOneOpenSessionAndSameRequestIsIdempotent() throws Exception {
         UUID one=UUID.randomUUID(),two=UUID.randomUUID();CountDownLatch ready=new CountDownLatch(2),go=new CountDownLatch(1);
@@ -134,7 +177,7 @@ class FocusConcurrencyIntegrationTest {
     }
     @Test void concurrentTargetEndedLeaseTakeoverHasOneWinnerAndKeepsCommittedSettlement() throws Exception {
         var clock=new FocusIntegrationTest.MutableClock(Instant.parse("2052-04-09T04:00:00Z"));
-        var focus=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
+        var focus=new FocusServiceImpl(store,tasks,taskService,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
         var tx=new TransactionTemplate(transactionManager);
         Session started=tx.execute(status->focus.start(new Start(UUID.randomUUID(),"并发提醒接管",null,null,1,10)));
         UUID original=UUID.randomUUID(),firstTab=UUID.randomUUID(),secondTab=UUID.randomUUID();
@@ -195,7 +238,7 @@ class FocusConcurrencyIntegrationTest {
     }
     @Test void secondDayInsertFailureRollsBackFirstDaySliceAndSessionEnd() {
         var clock=new FocusIntegrationTest.MutableClock(Instant.parse("2052-04-09T15:59:50Z"));
-        var focus=new FocusServiceImpl(store,tasks,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
+        var focus=new FocusServiceImpl(store,tasks,taskService,projects,records,events,ZoneId.of("Asia/Shanghai"),clock);
         var tx=new TransactionTemplate(transactionManager);
         Session started=tx.execute(status->focus.start(new Start(UUID.randomUUID(),"跨日结算回滚",null,null,25,10)));
         clock.advance(Duration.ofSeconds(20));
