@@ -369,3 +369,25 @@
 ### Next Steps
 
 - 推送 feat/focus-completion-alarm 并创建 PR；隔离 E2E 环境补跑 Playwright
+
+
+## Session 15: 修复专注后台提醒与音频恢复
+<!-- trellis-session: v=2 fp=14d59939f278c300 -->
+
+**Date**: 2026-10-01
+**Task**: 修复专注后台提醒与音频恢复
+**Branch**: `codex/focus-background-alarm`
+
+### Summary
+
+后台启声页面续持120秒互斥租约，达标后仅续租；音频状态分类、有限恢复等待与循环音源。lint/build、173项后端及30项浏览器回归通过；Chrome140原生隐藏约6分钟，达标后528ms启动循环，唯一结算且无后台微休息。独立测试资源已清理；用户已授权推送并创建MR。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `351b367` | fix(focus): preserve background alarm ownership and recover audio |
+
+### Status
+
+[OK] **Completed**

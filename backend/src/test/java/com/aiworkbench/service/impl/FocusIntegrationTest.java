@@ -154,6 +154,137 @@ class FocusIntegrationTest {
         clock.advance(Duration.ofSeconds(20));s=service.checkpoint(s.id(),new Checkpoint(s.version(),null,null));
         assertThat(s.focusMs()).isEqualTo(81_000);
     }
+    @Test void controllerCheckpointsKeepLeaseBeyondSixtySecondsAndSettleWithUsableLease(){
+        UUID controller=UUID.randomUUID();
+        Session s=service.start(new Start(UUID.randomUUID(),"后台提醒续持",null,null,6,10));
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,null));
+        long generation=s.controllerGeneration();
+        for(int i=0;i<18;i++){
+            clock.advance(Duration.ofSeconds(20));
+            s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,generation));
+            assertThat(s.controllerId()).isEqualTo(controller);
+            assertThat(s.controllerGeneration()).isEqualTo(generation);
+            assertThat(s.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+        }
+        assertThat(s.phase()).isEqualTo("ENDED");
+        assertThat(s.focusMs()).isEqualTo(360_000);
+        assertThat(s.breakMs()).isZero();assertThat(s.reminderOrdinal()).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE focus_session_id=?",Integer.class,s.id())).isEqualTo(1);
+    }
+    @Test void targetEndedLeaseRenewalOnlyChangesLeaseAndRetainsProgressAndSettlement(){
+        UUID controller=UUID.randomUUID();
+        Session s=service.start(new Start(UUID.randomUUID(),"达标后持续提醒",null,null,1,10));
+        clock.advance(Duration.ofSeconds(60));
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,null));
+        s=service.progress(s.id(),new Progress(s.version(),"已记录的进展"));
+        Session ended=s;
+        var intervals=jdbc.queryForList("SELECT * FROM focus_intervals WHERE session_id=? ORDER BY ordinal",s.id());
+        var settlement=jdbc.queryForList("SELECT * FROM work_records WHERE focus_session_id=?",s.id());
+        for(int i=0;i<5;i++){
+            clock.advance(Duration.ofSeconds(20));
+            s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,s.controllerGeneration()));
+            assertThat(s.version()).isEqualTo(ended.version()+i+1);
+            assertThat(s.controllerGeneration()).isEqualTo(ended.controllerGeneration());
+            assertThat(s.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+            assertThat(s.phase()).isEqualTo("ENDED");assertThat(s.focusMs()).isEqualTo(ended.focusMs());
+            assertThat(s.breakMs()).isEqualTo(ended.breakMs());assertThat(s.pauseMs()).isEqualTo(ended.pauseMs());
+            assertThat(s.anchorAt()).isEqualTo(ended.anchorAt());assertThat(s.endedAt()).isEqualTo(ended.endedAt());
+            assertThat(s.progress()).isEqualTo("已记录的进展");
+        }
+        assertThat(jdbc.queryForList("SELECT * FROM focus_intervals WHERE session_id=? ORDER BY ordinal",s.id())).isEqualTo(intervals);
+        assertThat(jdbc.queryForList("SELECT * FROM work_records WHERE focus_session_id=?",s.id())).isEqualTo(settlement);
+        assertThat(service.end(s.id(),new Version(0L))).isEqualTo(s);
+    }
+    @Test void minuteThrottledControllerCheckpointsHaveTransportMarginAndKeepGeneration(){
+        UUID controller=UUID.randomUUID();
+        Session s=service.start(new Start(UUID.randomUUID(),"分钟节流续租",null,null,25,10));
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,null));
+        long generation=s.controllerGeneration();
+        for(int i=0;i<6;i++){
+            clock.advance(Duration.ofSeconds(65));
+            s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,generation));
+            assertThat(s.controllerGeneration()).isEqualTo(generation);
+            assertThat(s.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+        }
+        assertThat(s.focusMs()).isEqualTo(390_000);
+        assertThat(s.breakMs()).isZero();assertThat(s.phase()).isEqualTo("RUNNING");
+    }
+    @Test void terminalLeaseRenewalDoesNotShortenExpiryWhenServerClockRollsBack(){
+        UUID controller=UUID.randomUUID();
+        Session s=service.start(new Start(UUID.randomUUID(),"终态租约时钟回拨",null,null,1,10));
+        clock.advance(Duration.ofSeconds(60));
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,null));
+        clock.advance(Duration.ofSeconds(40));
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),controller,s.controllerGeneration()));
+        Session renewed=s;
+        clock.advance(Duration.ofSeconds(-20));
+        assertThat(service.checkpoint(s.id(),new Checkpoint(s.version(),controller,s.controllerGeneration()))).isEqualTo(renewed);
+    }
+    @Test void viewerAndOtherTabCannotDisplaceValidControllerWhenSettlingTarget(){
+        UUID owner=UUID.randomUUID(),other=UUID.randomUUID();
+        Session s=service.start(new Start(UUID.randomUUID(),"另一页完成检测",null,null,1,10));
+        clock.advance(Duration.ofSeconds(40));s=service.checkpoint(s.id(),new Checkpoint(s.version(),owner,null));
+        Session claimed=s;
+        clock.advance(Duration.ofSeconds(20));s=service.checkpoint(s.id(),new Checkpoint(s.version(),other,null));
+        assertThat(s.phase()).isEqualTo("ENDED");
+        assertThat(s.controllerId()).isEqualTo(owner);assertThat(s.controllerExpiresAt()).isEqualTo(claimed.controllerExpiresAt());
+        assertThat(s.controllerGeneration()).isEqualTo(claimed.controllerGeneration());
+        clock.advance(Duration.ofSeconds(10));
+        Session ended=s;
+        assertThat(service.checkpoint(s.id(),new Checkpoint(s.version(),null,null))).isEqualTo(ended);
+        assertThat(service.checkpoint(s.id(),new Checkpoint(s.version(),other,s.controllerGeneration()))).isEqualTo(ended);
+        assertThat(service.checkpoint(s.id(),new Checkpoint(s.version(),owner,s.controllerGeneration()-1))).isEqualTo(ended);
+        assertThat(service.checkpoint(s.id(),new Checkpoint(s.version(),owner,null))).isEqualTo(ended);
+        Session renewed=service.checkpoint(s.id(),new Checkpoint(s.version(),owner,s.controllerGeneration()));
+        assertThat(renewed.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+        assertThat(renewed.controllerId()).isEqualTo(owner);
+    }
+    @Test void expiredTargetEndedLeaseCanBeTakenOverAndStaleRequestsCannotRenewNewOwner(){
+        UUID owner=UUID.randomUUID(),other=UUID.randomUUID();
+        Session s=service.start(new Start(UUID.randomUUID(),"过期提醒接管",null,null,1,10));
+        clock.advance(Duration.ofSeconds(60));s=service.checkpoint(s.id(),new Checkpoint(s.version(),owner,null));
+        Session ended=s;
+        clock.advance(FocusServiceImpl.CONTROLLER_LEASE);s=service.checkpoint(s.id(),new Checkpoint(s.version(),other,null));
+        assertThat(s.controllerId()).isEqualTo(other);
+        assertThat(s.controllerGeneration()).isEqualTo(ended.controllerGeneration()+1);
+        assertThat(s.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+        Session takeover=s;
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->service.checkpoint(ended.id(),
+                new Checkpoint(ended.version(),owner,ended.controllerGeneration()))).hasMessageContaining("409");
+        clock.advance(Duration.ofSeconds(20));
+        assertThat(service.checkpoint(s.id(),new Checkpoint(s.version(),owner,ended.controllerGeneration()))).isEqualTo(takeover);
+        assertThat(service.checkpoint(s.id(),new Checkpoint(s.version(),other,ended.controllerGeneration()))).isEqualTo(takeover);
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),other,s.controllerGeneration()));
+        assertThat(s.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+        assertThat(s.focusMs()).isEqualTo(60_000);assertThat(s.endedAt()).isEqualTo(ended.endedAt());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM work_records WHERE focus_session_id=?",Integer.class,s.id())).isEqualTo(1);
+    }
+    @Test void expiredLeaseAcquisitionAtTargetSettlementUsesCurrentTimeAndNewGeneration(){
+        UUID owner=UUID.randomUUID(),other=UUID.randomUUID();
+        Session s=service.start(new Start(UUID.randomUUID(),"迟到达标与接管",null,null,1,10));
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),owner,null));
+        long generation=s.controllerGeneration();Instant expected=s.startedAt().plusSeconds(60);
+        clock.advance(Duration.ofMinutes(5));
+        s=service.checkpoint(s.id(),new Checkpoint(s.version(),other,null));
+        assertThat(s.phase()).isEqualTo("ENDED");assertThat(s.endedAt()).isEqualTo(expected);
+        assertThat(s.focusMs()).isEqualTo(60_000);assertThat(s.controllerId()).isEqualTo(other);
+        assertThat(s.controllerGeneration()).isEqualTo(generation+1);
+        assertThat(s.controllerExpiresAt()).isEqualTo(clock.instant().plus(FocusServiceImpl.CONTROLLER_LEASE));
+    }
+    @Test void targetEndedSessionWithoutLeaseCanAcquireOneButEarlyEndCannot(){
+        UUID controller=UUID.randomUUID();
+        Session target=service.start(new Start(UUID.randomUUID(),"查看页结算后启声",null,null,1,10));
+        clock.advance(Duration.ofSeconds(60));target=service.checkpoint(target.id(),new Checkpoint(target.version(),null,null));
+        assertThat(target.controllerId()).isNull();
+        target=service.checkpoint(target.id(),new Checkpoint(target.version(),controller,null));
+        assertThat(target.controllerId()).isEqualTo(controller);assertThat(target.controllerGeneration()).isEqualTo(1);
+        Session early=service.start(new Start(UUID.randomUUID(),"提前结束不续租",null,null,25,10));
+        early=service.checkpoint(early.id(),new Checkpoint(early.version(),controller,null));
+        clock.advance(Duration.ofSeconds(10));early=service.end(early.id(),new Version(early.version()));
+        clock.advance(Duration.ofMinutes(2));
+        assertThat(service.checkpoint(early.id(),new Checkpoint(early.version(),controller,early.controllerGeneration()))).isEqualTo(early);
+        assertThat(service.checkpoint(early.id(),new Checkpoint(early.version(),UUID.randomUUID(),null))).isEqualTo(early);
+    }
     @Test void crossingMidnightSplitsNetTimeAndReportTreatsFocusAsProgress(){
         clock.value=Instant.parse("2052-04-09T15:59:50Z");
         Session s=service.start(new Start(UUID.randomUUID(),"跨日调查",null,null,25,10));

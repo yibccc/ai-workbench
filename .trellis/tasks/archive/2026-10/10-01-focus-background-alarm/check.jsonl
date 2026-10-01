@@ -1,0 +1,6 @@
+{"file":".trellis/spec/frontend/focus-page.md","reason":"Background detection, audio recovery and dismissal"}
+{"file":".trellis/spec/frontend/identity-session.md","reason":"Account cleanup and passive sync"}
+{"file":".trellis/spec/backend/focus-routines.md","reason":"Lease, time and settlement invariants"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Transactional writes and isolation"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Conflict handling"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Terminal response and async recovery races"}
