@@ -1,0 +1,6 @@
+{"file":".trellis/spec/frontend/focus-page.md","reason":"Account-root completion audio and hidden-tab behavior"}
+{"file":".trellis/spec/frontend/identity-session.md","reason":"Account cleanup and passive request boundaries"}
+{"file":".trellis/spec/backend/focus-routines.md","reason":"Versioned sessions and idempotent settlement"}
+{"file":".trellis/spec/backend/database-guidelines.md","reason":"Owner-scoped transactional lease writes"}
+{"file":".trellis/spec/backend/error-handling.md","reason":"Version conflicts and HTTP failures"}
+{"file":".trellis/spec/guides/cross-layer-thinking-guide.md","reason":"Lease and sound lifecycle across client/server"}
