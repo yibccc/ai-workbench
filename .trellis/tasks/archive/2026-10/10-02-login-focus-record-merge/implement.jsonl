@@ -1,0 +1,8 @@
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/spec/frontend/identity-session.md"}
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/spec/frontend/focus-page.md"}
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/spec/backend/focus-routines.md"}
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/spec/backend/database-guidelines.md"}
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/spec/backend/pagination.md"}
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/spec/backend/identity-isolation.md"}
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/spec/guides/cross-layer-thinking-guide.md"}
+{"reason":"Contracts for password UI, owner-scoped daily record projection, pagination and retained focus/report evidence","file":".trellis/tasks/10-02-login-focus-record-merge/design.md"}
