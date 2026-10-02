@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
-- **Last Active**: 2026-10-01
+- **Total Sessions**: 17
+- **Last Active**: 2026-10-02
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~415 | Active |
+| `journal-1.md` | ~437 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-10-02 | 登录眼睛图标与专注待办记录合并 | `80cacbc` | `codex/login-focus-record-merge` |
 | 16 | 2026-10-01 | Focus progress completes linked task | `08f34a5` | `codex/focus-task-completion` |
 | 15 | 2026-10-01 | 修复专注后台提醒与音频恢复 | `351b367` | `codex/focus-background-alarm` |
 | 14 | 2026-09-30 | 专注达标持续响铃 | `b8b1206` | `feat/focus-completion-alarm` |
