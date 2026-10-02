@@ -53,9 +53,30 @@
         ORDER BY wr.created_at DESC, wr.id DESC
     </select>
     <select id="findPageBetween" resultMap="workRecordRow">
-        SELECT <include refid="joinedColumns"/>
-        FROM work_records wr LEFT JOIN projects p ON p.id = wr.project_id AND p.user_id = wr.user_id
-        WHERE wr.user_id = #{userId} AND wr.occurred_at &gt;= #{start} AND wr.occurred_at &lt; #{end} AND wr.is_active
+        WITH daily_records AS (
+            SELECT * FROM work_records
+            WHERE user_id = #{userId} AND occurred_at &gt;= #{start} AND occurred_at &lt; #{end} AND is_active
+        ), focus_totals AS (
+            SELECT user_id, todo_id, SUM(focus_ms)::BIGINT AS focus_ms, SUM(break_ms)::BIGINT AS break_ms
+            FROM daily_records
+            WHERE source = 'FOCUS_SESSION' AND todo_id IS NOT NULL
+            GROUP BY user_id, todo_id
+        )
+        SELECT wr.id, wr.project_id, p.name AS project_name, p.status AS project_status,
+               wr.content, wr.source, wr.todo_id, wr.is_active, wr.completion_result,
+               wr.occurred_at, wr.created_at, wr.updated_at, wr.focus_session_id, wr.business_date,
+               COALESCE(ft.focus_ms, wr.focus_ms) AS focus_ms,
+               COALESCE(ft.break_ms, wr.break_ms) AS break_ms,
+               wr.segment_start, wr.segment_end, wr.progress
+        FROM daily_records wr
+        LEFT JOIN projects p ON p.id = wr.project_id AND p.user_id = wr.user_id
+        LEFT JOIN focus_totals ft ON wr.source = 'TASK_COMPLETION'
+            AND ft.user_id = wr.user_id AND ft.todo_id = wr.todo_id
+        WHERE wr.source &lt;&gt; 'FOCUS_SESSION' OR NOT EXISTS (
+            SELECT 1 FROM daily_records completion
+            WHERE completion.source = 'TASK_COMPLETION'
+                AND completion.user_id = wr.user_id AND completion.todo_id = wr.todo_id
+        )
         ORDER BY wr.created_at DESC, wr.id DESC
     </select>
     <update id="update">

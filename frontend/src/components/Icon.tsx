@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-export type IconName = 'notebook' | 'checklist' | 'report' | 'folder' | 'sparkles' | 'plus' | 'arrow-right' | 'arrow-left' | 'chevron-left' | 'chevron-right' | 'calendar' | 'close' | 'check' | 'edit' | 'search' | 'clock' | 'archive' | 'menu' | 'refresh' | 'alert'
+export type IconName = 'notebook' | 'checklist' | 'report' | 'folder' | 'sparkles' | 'plus' | 'arrow-right' | 'arrow-left' | 'chevron-left' | 'chevron-right' | 'calendar' | 'close' | 'check' | 'edit' | 'search' | 'clock' | 'archive' | 'menu' | 'refresh' | 'alert' | 'eye' | 'eye-off'
 const paths: Record<IconName, string[]> = {
   notebook: ['M5 3h13a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5V3Z', 'M5 3H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h1M8 7h8M8 11h6M8 15h4'],
   checklist: ['M9 5h11M9 12h11M9 19h11', 'm3 5 1 1 2-2m-3 8 1 1 2-2m-3 8 1 1 2-2'],
@@ -17,6 +17,8 @@ const paths: Record<IconName, string[]> = {
   archive: ['M3 3h18v5H3V3Zm2 5v13h14V8M9 12h6'], menu: ['M4 6h16M4 12h16M4 18h16'],
   refresh: ['M20 7v5h-5M4 17v-5h5', 'M6 6a8 8 0 0 1 13 2M18 18a8 8 0 0 1-13-2'],
   alert: ['M12 8v5M12 17h.01', 'M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'],
+  eye: ['M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z'],
+  'eye-off': ['m3 3 18 18', 'M10.6 5.1A12 12 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-3 3.8M6.2 6.2A20 20 0 0 0 2 12s3.6 7 10 7a12 12 0 0 0 5.8-1.8', 'M9.9 9.9a3 3 0 0 0 4.2 4.2'],
 }
 export function Icon({ name, size = 18, className, style }: { name: IconName; size?: number; className?: string; style?: CSSProperties }) {
   return <svg aria-hidden="true" focusable="false" className={className} style={style} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{paths[name].map((d, i) => <path key={i} d={d} />)}</svg>

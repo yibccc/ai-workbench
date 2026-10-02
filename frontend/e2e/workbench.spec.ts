@@ -137,6 +137,98 @@ async function assertPinnedPager(rows: Locator, pager: Locator, lastRow?: Locato
 
 test.beforeEach(async ({ request }) => reset(request))
 
+test('登录眼睛按钮保留密码并支持键盘切换且不会提交表单', async ({ page }, testInfo) => {
+  let loginCalls = 0
+  page.on('request', request => { if (new URL(request.url()).pathname === '/api/auth/login') loginCalls++ })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
+  const password = page.getByLabel('密码', { exact: true })
+  const show = page.getByRole('button', { name: '显示密码', exact: true })
+  await expect(password).toHaveAttribute('type', 'password')
+  await expect(show.locator('svg')).toBeVisible()
+  await expect(show).toHaveText('')
+  await page.screenshot({ path: testInfo.outputPath('login-eye.png') })
+  await page.getByLabel('用户名').fill(e2eUsername)
+  await password.fill(e2ePassword)
+  await show.click()
+  await expect(password).toHaveAttribute('type', 'text')
+  await expect(password).toHaveValue(e2ePassword)
+  const hide = page.getByRole('button', { name: '隐藏密码', exact: true })
+  await expect(hide.locator('svg')).toBeVisible()
+  await expect(hide).toHaveAttribute('aria-pressed', 'true')
+  await hide.focus()
+  await page.keyboard.press('Space')
+  await expect(password).toHaveAttribute('type', 'password')
+  await expect(password).toHaveValue(e2ePassword)
+  await show.focus()
+  await page.keyboard.press('Enter')
+  await expect(password).toHaveAttribute('type', 'text')
+  await expect(password).toHaveValue(e2ePassword)
+  expect(loginCalls).toBe(0)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByTestId('workbench')).toBeVisible()
+  expect(loginCalls).toBe(1)
+})
+
+test('同日待办专注合并后按五项分页，更新结果和重新打开保留投入', async ({ page, request }) => {
+  const created = await request.post(`${apiBase}/api/tasks`, { data: { title: '同日汇总待办' } })
+  expect(created.ok()).toBeTruthy()
+  const task = await created.json() as { id: string }
+  let totalFocus = 0
+  for (let index = 0; index < 2; index++) {
+    const started = await request.post(`${apiBase}/api/focus/sessions`, { data: {
+      requestId: crypto.randomUUID(), title: `同日投入${index}`, taskId: task.id, targetMinutes: 25, intervalMinutes: 10,
+    } })
+    expect(started.ok()).toBeTruthy()
+    const session = await started.json() as FocusSession
+    const ended = await request.post(`${apiBase}/api/focus/sessions/${session.id}/end`, { data: { version: session.version } })
+    expect(ended.ok()).toBeTruthy()
+    const settled = await ended.json() as FocusSession
+    expect(settled.focusMs).toBeGreaterThan(0)
+    totalFocus += settled.focusMs
+    const saved = await request.put(`${apiBase}/api/focus/sessions/${session.id}/progress`, { data: { version: settled.version, progress: '合并后的完成结果' } })
+    expect(saved.ok()).toBeTruthy()
+  }
+  const today = await (await request.get(`${apiBase}/api/focus/today`)).json() as { date: string; focusMs: number; records: unknown[] }
+  expect(today.focusMs).toBe(totalFocus)
+  expect(today.records).toHaveLength(2)
+  for (let index = 0; index < 5; index++) {
+    expect((await request.post(`${apiBase}/api/records`, { data: { content: `独立记录${index}`, occurredAt: new Date().toISOString() } })).ok()).toBeTruthy()
+  }
+  await openWorkbench(page)
+  const list = page.getByTestId('record-list')
+  await expect(list.locator('.count-badge')).toHaveText('6')
+  await expect(page.getByTestId('record-item')).toHaveCount(5)
+  await list.getByRole('button', { name: '下一页' }).click()
+  const merged = page.getByTestId('record-item')
+  await expect(merged).toHaveCount(1)
+  await expect(merged).toContainText('同日汇总待办')
+  await expect(merged.locator('.source-label')).toHaveText('任务完成')
+  await expect(merged.locator('.completion-result')).toHaveCount(1)
+  await expect(merged.locator('.completion-result')).toHaveText('完成结果：合并后的完成结果')
+  await expect(merged.locator('.focus-record-duration')).toContainText('会话净时长')
+  const projected = await (await request.get(`${apiBase}/api/records/page?date=${today.date}&page=1&size=5`)).json() as { items: Array<{ focusMs: number }> }
+  expect(projected.items[0].focusMs).toBe(totalFocus)
+
+  const completed = await (await request.get(`${apiBase}/api/tasks/${task.id}`)).json() as { version: number }
+  const updatedResponse = await request.put(`${apiBase}/api/tasks/${task.id}/completion-result`, { data: { version: completed.version, result: '最新完成结果' } })
+  expect(updatedResponse.ok()).toBeTruthy()
+  const updated = await updatedResponse.json() as { version: number }
+  await page.reload()
+  await expect(list.locator('.count-badge')).toHaveText('6')
+  await expect(page.getByTestId('record-item')).toHaveCount(5)
+  await list.getByRole('button', { name: '下一页' }).click()
+  await expect(merged.locator('.completion-result')).toHaveText('完成结果：最新完成结果')
+  expect((await request.post(`${apiBase}/api/tasks/${task.id}/reopen`, { data: { version: updated.version } })).ok()).toBeTruthy()
+  await page.reload()
+  await expect(list.locator('.count-badge')).toHaveText('7')
+  await list.getByRole('button', { name: '下一页' }).click()
+  await expect(merged).toHaveCount(2)
+  await expect(merged.locator('.source-label')).toHaveText(['会话计时', '会话计时'])
+  const retained = await (await request.get(`${apiBase}/api/focus/today`)).json() as { focusMs: number }
+  expect(retained.focusMs).toBe(totalFocus)
+})
+
 test('达标铃声跨页面持续至点击结束，提前结束不会响铃', async ({ page }) => {
   await page.addInitScript(() => {
     const state = { tones: 0, loops: 0, active: 0 }
@@ -314,6 +406,9 @@ test('待办专注保存进展后完成并回到新表单，空白和失败保�
   await expect(page.getByTestId('task-item').filter({ hasText: '专注保存完成结果' })).toHaveCount(0)
   await navigate(page, '工作记录')
   await expect(page.getByTestId('record-list')).toContainText('方案完成并通过评审')
+  await expect(page.getByTestId('record-item')).toHaveCount(1)
+  await expect(page.getByTestId('record-item').locator('.completion-result')).toHaveText('完成结果：方案完成并通过评审')
+  await expect(page.getByTestId('record-item').locator('.focus-record-duration')).toContainText('会话净时长')
 })
 
 test('保存版本冲突保留进展并刷新重试，保存期间带入下一待办且汇总失败仍返回表单', async ({ page, request }) => {
