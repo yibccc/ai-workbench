@@ -499,3 +499,49 @@ R3正式规划获批后实现发布快照、RustFS私有附件和R2复用界面�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 19: 站内广场MR发布与收尾
+<!-- trellis-session: v=2 fp=f9bf712b4553fc73 -->
+
+**Date**: 2026-10-03
+**Task**: 站内广场MR发布与收尾
+**Branch**: `codex/community-oss`
+
+### Summary
+
+已推送codex/community-oss并创建MR #13；依赖#12先合并，复查四任务归档及此前工程证据，记录实际发布。
+
+### Main Changes
+
+# 站内广场MR发布与收尾
+
+用户后续明确授权推送远端、创建MR并执行trellis-finish-work。当前代码已通过前一会话22项工程验收，3work/4task归档/会话18提交已完成；本次没有产品代码修改，因此不虚构新测试或重跑原业务门禁。
+
+## 实际远端事实
+
+- 仓库 yibccc/ai-workbench，分支 codex/community-oss；首次成功推送远端HEAD为a9d47f7298ec4c441bfaeb9ec36c32dc75fb1cfb，upstream为origin/codex/community-oss。
+- MR #13：https://github.com/yibccc/ai-workbench/pull/13，open/非draft，目标master；创建时API核实head SHA与首次推送一致。
+- 尚未合并的MR #12为登录密码眼睛图标/私有每日专注记录合并，head1a7928c。当前社区实现依赖此已披露基线。新MR正文明确先合并#12，再合并#13，并提供社区新增审阅起点；没有主动合并旧MR或改写基线。
+- 首次HTTPS push和随后读取遭遇Recv failure Connection was reset；确认各命令终态后以仅本次HTTP/1.1传输成功（56702 exit0），没有force/TLS降低/全局网络配置更改。
+
+## Trellis收尾
+
+四个本需求任务已经completed并原生归档，此轮no_task且没有额外cleanup授权，按finish-work跳过重复归档，00-bootstrap保持in_progress。保留已有会话18，新发布会话只引用原3个业务SHA，记录实际MR/推送事实；原5份无关用户SOP保持原样未跟踪。该日志提交随后推送同一feature分支，最终远端HEAD在客户端读回核验。
+
+## 已验证范围与延期
+
+工程证据见归档父validation/子check及delivery，223后端全量、最新25无retry浏览器与额外1并发/1视觉分别记录。阿里云API/adapter/资源/迁移按批准范围延期；高压缩WebP/加密PDF结构验证与人工视觉/物理声音/持续使用限度未扩大。原始trace、环境秘密及运行产物保持ignored。本次只推分支和提MR，合并/部署由后续动作决定。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bff403f142793d9f30c039f7036604d368946085` | feat(community): add member publications and private RustFS attachments |
+| `5180ff121a2e5e0f1e81d48bdf9307a7c3bd416f` | feat(community): reuse R2 publishing views and protected attachments |
+| `9df38313f64bf57e0446ca40dc7e9803af1ff56c` | docs(community): record delivery and publication contracts |
+
+### Status
+
+[OK] **Completed**
