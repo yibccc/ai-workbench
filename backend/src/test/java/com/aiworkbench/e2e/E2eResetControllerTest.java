@@ -40,6 +40,7 @@ class E2eResetControllerTest {
         verify(jdbcTemplate).execute(sql.capture());
         org.assertj.core.api.Assertions.assertThat(sql.getValue())
                 .startsWith("TRUNCATE TABLE d9_e2e.report_sources")
+                .contains("d9_e2e.community_post_revisions", "d9_e2e.community_posts", "d9_e2e.community_public_profiles")
                 .doesNotContain(" TABLE report_sources");
     }
 }

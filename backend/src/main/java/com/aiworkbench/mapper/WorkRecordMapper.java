@@ -27,6 +27,9 @@ public interface WorkRecordMapper {
     Optional<WorkRecordRow> findById(@Param("userId") UUID userId, @Param("id") UUID id);
     List<WorkRecordRow> findBetween(@Param("userId") UUID userId, @Param("start") Instant start, @Param("end") Instant end);
     List<WorkRecordRow> findPageBetween(@Param("userId") UUID userId, @Param("start") Instant start, @Param("end") Instant end);
+    List<WorkRecordRow> findPresentationByIds(@Param("userId") UUID userId, @Param("start") Instant start,
+            @Param("end") Instant end, @Param("ids") List<UUID> ids);
+    boolean existsOwned(@Param("userId") UUID userId, @Param("id") UUID id);
     int update(
             @Param("userId") UUID userId,
             @Param("id") UUID id,

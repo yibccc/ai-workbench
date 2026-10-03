@@ -26,7 +26,10 @@ public class E2eMaintenanceServiceImpl implements E2eMaintenanceService {
         jdbcTemplate.execute("TRUNCATE TABLE "
                 + "d9_e2e.report_sources, d9_e2e.reports, d9_e2e.task_events, "
                 + "d9_e2e.work_records, d9_e2e.todo_items, d9_e2e.capture_inputs, "
-                + "d9_e2e.projects RESTART IDENTITY CASCADE");
+                + "d9_e2e.projects, d9_e2e.community_moderation_audit, d9_e2e.community_revision_attachments, "
+                + "d9_e2e.community_draft_attachments, d9_e2e.community_attachments, d9_e2e.community_post_revisions, "
+                + "d9_e2e.community_post_drafts, d9_e2e.community_posts, "
+                + "d9_e2e.community_public_profiles RESTART IDENTITY CASCADE");
         gateway.ifAvailable(E2eDeterministicAiGateway::reset);
     }
 }

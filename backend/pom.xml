@@ -22,9 +22,28 @@
         <agentscope.version>2.0.3</agentscope.version>
         <mybatis.version>3.0.5</mybatis.version>
         <pagehelper.version>2.1.1</pagehelper.version>
+        <aws-sdk.version>2.55.10</aws-sdk.version>
+        <pdfbox.version>3.0.8</pdfbox.version>
+        <twelvemonkeys.version>3.15.2</twelvemonkeys.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws-sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency><groupId>software.amazon.awssdk</groupId><artifactId>s3</artifactId></dependency>
+        <dependency><groupId>software.amazon.awssdk</groupId><artifactId>apache5-client</artifactId></dependency>
+        <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>${pdfbox.version}</version></dependency>
+        <dependency><groupId>com.twelvemonkeys.imageio</groupId><artifactId>imageio-webp</artifactId><version>${twelvemonkeys.version}</version></dependency>
         <dependency>
             <groupId>com.github.pagehelper</groupId>
             <artifactId>pagehelper-spring-boot-starter</artifactId>
@@ -110,6 +129,8 @@
                 <configuration>
                     <systemPropertyVariables>
                         <spring.profiles.active>test</spring.profiles.active>
+                        <!-- Each retained context owns a real Hikari pool. Keep isolated PG below 100 connections. -->
+                        <spring.test.context.cache.maxSize>8</spring.test.context.cache.maxSize>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

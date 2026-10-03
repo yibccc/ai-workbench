@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.mapper.AttachmentMapper">
+    <resultMap id="attachment" type="com.aiworkbench.entity.community.AttachmentRow">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/>
+            <arg column="post_id" javaType="java.util.UUID"/>
+            <arg column="owner_id" javaType="java.util.UUID"/>
+            <arg column="request_id" javaType="java.util.UUID"/>
+            <arg column="object_key" javaType="java.lang.String"/>
+            <arg column="original_filename" javaType="java.lang.String"/>
+            <arg column="verified_content_type" javaType="java.lang.String"/>
+            <arg column="actual_size" javaType="_long"/>
+            <arg column="sha256" javaType="java.lang.String"/>
+            <arg column="state" javaType="java.lang.String"/>
+            <arg column="attempt_token" javaType="java.util.UUID"/>
+            <arg column="reservation_expires_at" javaType="java.time.Instant"/>
+            <arg column="result_version" javaType="_long"/>
+            <arg column="safe_failure_code" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.Instant"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <select id="findAll" resultMap="attachment">
+        SELECT * FROM community_attachments WHERE owner_id=#{ownerId} AND post_id=#{postId} ORDER BY created_at,id
+    </select>
+    <select id="lockAll" resultMap="attachment">
+        SELECT * FROM community_attachments WHERE owner_id=#{ownerId} AND post_id=#{postId} ORDER BY id FOR UPDATE
+    </select>
+    <select id="findRequest" resultMap="attachment">
+        SELECT * FROM community_attachments WHERE owner_id=#{ownerId} AND post_id=#{postId} AND request_id=#{requestId}
+    </select>
+    <select id="findDraft" resultMap="attachment">
+        SELECT a.* FROM community_attachments a JOIN community_draft_attachments d
+            ON d.attachment_id=a.id AND d.post_id=a.post_id AND d.owner_id=a.owner_id
+        WHERE a.owner_id=#{ownerId} AND a.post_id=#{postId} ORDER BY d.position
+    </select>
+    <select id="findRevision" resultMap="attachment">
+        SELECT a.* FROM community_attachments a JOIN community_revision_attachments r
+            ON r.attachment_id=a.id AND r.post_id=a.post_id AND r.owner_id=a.owner_id
+        WHERE a.owner_id=#{ownerId} AND a.post_id=#{postId} AND r.revision_id=#{revisionId} AND a.state='READY' ORDER BY r.position
+    </select>
+    <select id="findPublished" resultMap="attachment">
+        SELECT a.* FROM community_posts p JOIN community_revision_attachments r
+            ON r.revision_id=p.current_revision_id AND r.post_id=p.id AND r.owner_id=p.owner_id
+        JOIN community_attachments a ON a.id=r.attachment_id AND a.post_id=r.post_id AND a.owner_id=r.owner_id
+        WHERE p.id=#{postId} AND p.status='PUBLISHED' AND p.current_revision_id=#{revisionId} AND a.state='READY' ORDER BY r.position
+    </select>
+    <select id="findOwnedReadable" resultMap="attachment">
+        SELECT a.* FROM community_attachments a WHERE a.owner_id=#{ownerId} AND a.post_id=#{postId} AND a.id=#{id} AND a.state='READY'
+        AND (EXISTS(SELECT 1 FROM community_draft_attachments d WHERE d.attachment_id=a.id AND d.owner_id=a.owner_id AND d.post_id=a.post_id)
+            OR EXISTS(SELECT 1 FROM community_revision_attachments r WHERE r.attachment_id=a.id AND r.owner_id=a.owner_id AND r.post_id=a.post_id))
+    </select>
+    <select id="findPublishedReadable" resultMap="attachment">
+        SELECT a.* FROM community_posts p JOIN community_revision_attachments r
+            ON r.revision_id=p.current_revision_id AND r.post_id=p.id AND r.owner_id=p.owner_id
+        JOIN community_attachments a ON a.id=r.attachment_id AND a.post_id=r.post_id AND a.owner_id=r.owner_id
+        WHERE p.id=#{postId} AND p.status='PUBLISHED' AND a.id=#{id} AND a.state='READY'
+    </select>
+    <insert id="insert">
+        INSERT INTO community_attachments(id,post_id,owner_id,request_id,object_key,original_filename,verified_content_type,
+            actual_size,sha256,state,attempt_token,reservation_expires_at,result_version,safe_failure_code,created_at,updated_at)
+        VALUES(#{row.id},#{row.postId},#{row.ownerId},#{row.requestId},#{row.objectKey},#{row.originalFilename},#{row.verifiedContentType},
+            #{row.actualSize},#{row.sha256},#{row.state},#{row.attemptToken},#{row.reservationExpiresAt},#{row.resultVersion},
+            #{row.safeFailureCode},#{row.createdAt},#{row.updatedAt})
+    </insert>
+    <update id="changeState">
+        UPDATE community_attachments SET state=#{state},safe_failure_code=#{code},result_version=#{version},updated_at=#{now}
+        WHERE owner_id=#{ownerId} AND post_id=#{postId} AND id=#{id} AND state=#{oldState} AND attempt_token=#{token}
+    </update>
+    <insert id="insertDraft">
+        INSERT INTO community_draft_attachments(post_id,owner_id,attachment_id,position) VALUES(#{postId},#{ownerId},#{id},#{position})
+    </insert>
+    <delete id="deleteDraft">DELETE FROM community_draft_attachments WHERE owner_id=#{ownerId} AND post_id=#{postId}</delete>
+    <delete id="deleteDraftOne">DELETE FROM community_draft_attachments WHERE owner_id=#{ownerId} AND post_id=#{postId} AND attachment_id=#{id}</delete>
+    <insert id="insertRevision">
+        INSERT INTO community_revision_attachments(revision_id,post_id,owner_id,attachment_id,position)
+        VALUES(#{revisionId},#{postId},#{ownerId},#{id},#{position})
+    </insert>
+    <select id="referenced" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM community_draft_attachments WHERE owner_id=#{ownerId} AND post_id=#{postId} AND attachment_id=#{id})
+            OR EXISTS(SELECT 1 FROM community_revision_attachments WHERE owner_id=#{ownerId} AND post_id=#{postId} AND attachment_id=#{id})
+    </select>
+    <update id="claimDelete">
+        UPDATE community_attachments SET state='DELETING',attempt_token=#{token},reservation_expires_at=#{deadline},
+            updated_at=#{now}
+        WHERE owner_id=#{ownerId} AND post_id=#{postId} AND id=#{id}
+    </update>
+</mapper>
