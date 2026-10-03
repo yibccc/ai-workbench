@@ -1,0 +1,28 @@
+{
+  "id": "community-ui",
+  "name": "community-ui",
+  "title": "R2 原型复用与广场端到端交付",
+  "description": "直接复用已批准 R2 布局与 CSS，连接真实发布/附件 API，保持账号根与专注生命周期，完成桌面手机完整验收。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kira",
+  "assignee": "kira",
+  "createdAt": "2026-10-03",
+  "completedAt": "2026-10-03",
+  "branch": "codex/community-oss",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-03-community-oss",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "deliverable": "ui"
+  }
+}

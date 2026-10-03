@@ -1,0 +1,172 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "跳转到主要内容" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary "工作区导航" [ref=e5]:
+    - link "工作台首页" [ref=e6] [cursor=pointer]:
+      - /url: "#records"
+      - img [ref=e8] [cursor=pointer]
+      - generic [ref=e11] [cursor=pointer]:
+        - strong [ref=e12] [cursor=pointer]:
+          - text: 工作台
+          - generic [ref=e13] [cursor=pointer]: .
+        - generic [ref=e14] [cursor=pointer]: LOCAL WORKBENCH
+    - generic [ref=e15]:
+      - link "工作台" [ref=e16] [cursor=pointer]:
+        - /url: "#records"
+      - link "广场" [ref=e17] [cursor=pointer]:
+        - /url: "#/community"
+    - navigation "主导航" [ref=e18]:
+      - link "工作记录" [ref=e19] [cursor=pointer]:
+        - /url: "#records"
+        - img [ref=e20] [cursor=pointer]
+        - generic [ref=e23] [cursor=pointer]: 工作记录
+      - link "待办任务" [ref=e24] [cursor=pointer]:
+        - /url: "#tasks"
+        - img [ref=e25] [cursor=pointer]
+        - generic [ref=e28] [cursor=pointer]: 待办任务
+      - link "专注" [ref=e29] [cursor=pointer]:
+        - /url: "#focus"
+        - img [ref=e30] [cursor=pointer]
+        - generic [ref=e33] [cursor=pointer]: 专注
+      - link "工作汇报" [ref=e34] [cursor=pointer]:
+        - /url: "#reports"
+        - img [ref=e35] [cursor=pointer]
+        - generic [ref=e38] [cursor=pointer]: 工作汇报
+      - link "项目管理" [ref=e39] [cursor=pointer]:
+        - /url: "#projects"
+        - img [ref=e40] [cursor=pointer]
+        - generic [ref=e42] [cursor=pointer]: 项目管理
+  - generic [ref=e43]:
+    - banner [ref=e44]:
+      - strong [ref=e46]: 待办任务
+      - button "账号菜单：e2e_admin" [ref=e50] [cursor=pointer]:
+        - text: e2e_admin
+        - generic [ref=e51] [cursor=pointer]: ⌄
+    - main [active] [ref=e52]:
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - heading "待办任务" [level=1] [ref=e57]
+          - button "新建待办" [ref=e58] [cursor=pointer]:
+            - img [ref=e59] [cursor=pointer]
+            - text: 新建待办
+        - region "待办筛选" [ref=e61]:
+          - generic [ref=e62]:
+            - group "任务状态" [ref=e63]:
+              - button "待处理" [pressed] [ref=e64] [cursor=pointer]
+              - button "已完成" [ref=e65] [cursor=pointer]
+              - button "全部任务" [ref=e66] [cursor=pointer]
+            - generic [ref=e67]: 当前筛选 · 6 项
+          - generic "待办筛选" [ref=e68]:
+            - generic [ref=e69]:
+              - text: 项目
+              - combobox "项目筛选" [ref=e70]:
+                - option "全部项目" [selected]
+                - option "未归属项目"
+                - option "响应式项目-5"
+                - option "响应式项目-4"
+                - option "响应式项目-3"
+                - option "响应式项目-2"
+                - option "响应式项目-1"
+                - option "响应式项目-0"
+            - generic [ref=e71]:
+              - text: 优先级
+              - combobox "优先级筛选" [ref=e72]:
+                - option "全部优先级" [selected]
+                - option "高优先级"
+                - option "中优先级"
+                - option "低优先级"
+            - generic [ref=e73]:
+              - text: 截止日期
+              - combobox "截止日期筛选" [ref=e74]:
+                - option "全部期限" [selected]
+                - option "已逾期"
+                - option "今天到期"
+                - option "之后到期"
+                - option "无期限"
+        - region "待办列表内容" [ref=e75]:
+          - region "待办列表" [ref=e76]:
+            - region "待办数据" [ref=e77]:
+              - article [ref=e78]:
+                - button "完成任务：响应式任务标题-5" [ref=e79] [cursor=pointer]
+                - generic [ref=e80]:
+                  - strong [ref=e81]: 响应式任务标题-5
+                  - paragraph [ref=e82]: 测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。
+                  - generic [ref=e83]:
+                    - generic [ref=e84]: 高优先级
+                    - generic [ref=e85]:
+                      - img [ref=e86]
+                      - text: 未归属项目
+                - generic [ref=e88]:
+                  - button "带入专注" [ref=e89] [cursor=pointer]
+                  - button "编辑" [ref=e90] [cursor=pointer]
+                  - button "删除" [ref=e91] [cursor=pointer]
+              - article [ref=e92]:
+                - button "完成任务：响应式任务标题-4" [ref=e93] [cursor=pointer]
+                - generic [ref=e94]:
+                  - strong [ref=e95]: 响应式任务标题-4
+                  - paragraph [ref=e96]: 测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。
+                  - generic [ref=e97]:
+                    - generic [ref=e98]: 高优先级
+                    - generic [ref=e99]:
+                      - img [ref=e100]
+                      - text: 未归属项目
+                - generic [ref=e102]:
+                  - button "带入专注" [ref=e103] [cursor=pointer]
+                  - button "编辑" [ref=e104] [cursor=pointer]
+                  - button "删除" [ref=e105] [cursor=pointer]
+              - article [ref=e106]:
+                - button "完成任务：响应式任务标题-3" [ref=e107] [cursor=pointer]
+                - generic [ref=e108]:
+                  - strong [ref=e109]: 响应式任务标题-3
+                  - paragraph [ref=e110]: 测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。
+                  - generic [ref=e111]:
+                    - generic [ref=e112]: 高优先级
+                    - generic [ref=e113]:
+                      - img [ref=e114]
+                      - text: 未归属项目
+                - generic [ref=e116]:
+                  - button "带入专注" [ref=e117] [cursor=pointer]
+                  - button "编辑" [ref=e118] [cursor=pointer]
+                  - button "删除" [ref=e119] [cursor=pointer]
+              - article [ref=e120]:
+                - button "完成任务：响应式任务标题-2" [ref=e121] [cursor=pointer]
+                - generic [ref=e122]:
+                  - strong [ref=e123]: 响应式任务标题-2
+                  - paragraph [ref=e124]: 测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。
+                  - generic [ref=e125]:
+                    - generic [ref=e126]: 高优先级
+                    - generic [ref=e127]:
+                      - img [ref=e128]
+                      - text: 未归属项目
+                - generic [ref=e130]:
+                  - button "带入专注" [ref=e131] [cursor=pointer]
+                  - button "编辑" [ref=e132] [cursor=pointer]
+                  - button "删除" [ref=e133] [cursor=pointer]
+              - article [ref=e134]:
+                - button "完成任务：响应式任务标题-1" [ref=e135] [cursor=pointer]
+                - generic [ref=e136]:
+                  - strong [ref=e137]: 响应式任务标题-1
+                  - paragraph [ref=e138]: 测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。测试抽屉布局。
+                  - generic [ref=e139]:
+                    - generic [ref=e140]: 高优先级
+                    - generic [ref=e141]:
+                      - img [ref=e142]
+                      - text: 未归属项目
+                - generic [ref=e144]:
+                  - button "带入专注" [ref=e145] [cursor=pointer]
+                  - button "编辑" [ref=e146] [cursor=pointer]
+                  - button "删除" [ref=e147] [cursor=pointer]
+              - paragraph [ref=e148]:
+                - img [ref=e149]
+                - text: 完成任务时可填写成果，系统会生成对应工作记录。
+            - navigation "分页" [ref=e151]:
+              - generic [ref=e152]: 第 1 / 2 页
+              - generic [ref=e153]:
+                - button "上一页" [disabled] [ref=e154]:
+                  - img [ref=e155]
+                - button "下一页" [ref=e157] [cursor=pointer]:
+                  - img [ref=e158] [cursor=pointer]
+```

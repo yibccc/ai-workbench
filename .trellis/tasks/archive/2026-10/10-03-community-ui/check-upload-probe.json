@@ -1,0 +1,17 @@
+{
+  "kind": "FIXTURE_ONLY",
+  "checks": [
+    "unknown upload same complete payload",
+    "old receipt authoritative owner version",
+    "refresh updates dirty baseline without overwrite",
+    "active upload same key status query",
+    "confirmed failed upload new key",
+    "ready receipt owner reread retry without new upload",
+    "ADMIN menu respects dirty guard",
+    "accepted uppercase UUID matches owner identity",
+    "async profile initial focus and trigger restoration"
+  ],
+  "uploadRequests": 7,
+  "writes": 4,
+  "pageErrors": []
+}

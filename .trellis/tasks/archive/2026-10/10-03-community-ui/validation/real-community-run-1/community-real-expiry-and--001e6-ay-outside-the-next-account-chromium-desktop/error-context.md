@@ -1,0 +1,156 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "跳转到主要内容" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary "工作区导航" [ref=e5]:
+    - link "工作台首页" [ref=e6] [cursor=pointer]:
+      - /url: "#/community"
+      - img [ref=e8] [cursor=pointer]
+      - generic [ref=e10] [cursor=pointer]:
+        - strong [ref=e11] [cursor=pointer]:
+          - text: 工作台
+          - generic [ref=e12] [cursor=pointer]: .
+        - generic [ref=e13] [cursor=pointer]:
+          - text: PERSONAL
+          - text: WORKBENCH
+    - generic [ref=e14]:
+      - button "工作台" [ref=e15] [cursor=pointer]
+      - button "广场" [ref=e16] [cursor=pointer]
+    - generic [ref=e17]: 分享与沉淀
+    - navigation "站内空间" [ref=e18]:
+      - link "内容广场" [ref=e19] [cursor=pointer]:
+        - /url: "#/community"
+        - img [ref=e20] [cursor=pointer]
+        - text: 内容广场
+      - link "我的发布" [ref=e25] [cursor=pointer]:
+        - /url: "#/publishing"
+        - img [ref=e26] [cursor=pointer]
+        - text: 我的发布
+      - link "我的主页" [ref=e28] [cursor=pointer]:
+        - /url: "#/community/authors/0a226071-0a85-458e-9bb9-b789967e8f77"
+        - img [ref=e29] [cursor=pointer]
+        - text: 我的主页
+    - generic [ref=e32]:
+      - img [ref=e33]
+      - strong [ref=e36]: 记录属于自己，分享由你选择
+      - paragraph [ref=e37]:
+        - text: 把日常的一点进展，
+        - text: 留成彼此可见的收获。
+    - button "账号菜单：community_epoch_6f6358e5" [ref=e40] [cursor=pointer]:
+      - text: community_epoch_6f6358e5
+      - generic [ref=e41] [cursor=pointer]: ⌄
+  - generic [ref=e42]:
+    - banner [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: 站内空间
+        - generic [ref=e46]: /
+        - strong [ref=e47]: 发布编辑器
+      - button "账号菜单：community_epoch_6f6358e5" [ref=e50] [cursor=pointer]:
+        - text: community_epoch_6f6358e5
+        - generic [ref=e51] [cursor=pointer]: ⌄
+    - main "社区内容滚动区" [ref=e52]:
+      - generic [ref=e54]:
+        - link "返回我的发布" [ref=e55] [cursor=pointer]:
+          - /url: "#/publishing"
+          - img [ref=e56] [cursor=pointer]
+          - text: 返回我的发布
+        - generic [ref=e58]:
+          - alert [ref=e59]:
+            - img [ref=e60]
+            - generic [ref=e63]: 请求仍在处理中，请完成后再离开编辑器。
+          - button "读取当前版本，保留输入" [disabled] [ref=e64]
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]: PUBLISHING
+            - heading "写下你的分享" [level=1] [ref=e68]
+            - paragraph [ref=e69]: 保存的是私有草稿，发布才会让站内成员看见。
+          - generic [ref=e70]: 草稿 · 仅自己可见
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - button "今日分享" [disabled] [ref=e74]:
+                - img [ref=e75]
+                - text: 今日分享
+              - button "动态" [disabled] [ref=e78]:
+                - img [ref=e79]
+                - text: 动态
+              - button "博客" [disabled] [pressed] [ref=e81]:
+                - img [ref=e82]
+                - text: 博客
+            - generic [ref=e84]: 标题
+            - textbox "标题" [ref=e85]: B 私有稿
+            - generic [ref=e86]: 摘要（可选）
+            - textbox "摘要（可选）" [ref=e87]
+            - toolbar "正文编辑工具" [ref=e88]:
+              - button "插入二级标题" [ref=e89] [cursor=pointer]: H₂
+              - button "加粗" [ref=e90] [cursor=pointer]:
+                - generic [ref=e91] [cursor=pointer]: B
+              - button "插入列表" [ref=e92] [cursor=pointer]:
+                - img [ref=e93] [cursor=pointer]
+              - button "插入代码块" [ref=e96] [cursor=pointer]:
+                - img [ref=e97] [cursor=pointer]
+              - button "添加附件" [ref=e99] [cursor=pointer]:
+                - img [ref=e100] [cursor=pointer]
+              - generic [ref=e102]: Markdown 编辑
+            - generic [ref=e103]: 正文
+            - textbox "正文" [active] [ref=e104]: B 私有正文
+            - generic [ref=e105]:
+              - generic [ref=e106]: 已保存私有草稿
+              - generic [ref=e107]: 6 字符
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - heading "图片与附件" [level=3] [ref=e110]
+                - generic [ref=e111]: 仅你可见
+              - generic [ref=e113]:
+                - img [ref=e115]
+                - generic [ref=e117]:
+                  - generic [ref=e118]: B-late.md
+                  - generic [ref=e119]: 0 KiB · 正在上传…
+              - button "选择图片、PDF 或 MD 文件" [ref=e120]
+              - button "选择图片、PDF 或 MD 文件 JPG / PNG / WebP ≤ 5 MiB · PDF ≤ 20 MiB · MD ≤ 1 MiB" [ref=e121] [cursor=pointer]:
+                - generic [ref=e122] [cursor=pointer]:
+                  - img [ref=e123] [cursor=pointer]
+                  - text: 选择图片、PDF 或 MD 文件
+                - generic [ref=e125] [cursor=pointer]: JPG / PNG / WebP ≤ 5 MiB · PDF ≤ 20 MiB · MD ≤ 1 MiB
+              - generic [ref=e126]:
+                - generic [ref=e127]:
+                  - generic [ref=e128]: 0 / 10 个附件
+                  - generic [ref=e129]: 0 KiB / 50 MiB
+                - progressbar "附件总容量" [ref=e130]
+              - paragraph [ref=e131]: 文件由服务端验证并保存到私有存储。上传不会自动保存正在编辑的正文。移除仅更新私有附件引用；正文仍需手动保存。
+              - generic [ref=e132]:
+                - button "恢复过期上传" [disabled] [ref=e133]
+                - button "清理无引用附件" [disabled] [ref=e134]
+          - complementary [ref=e135]:
+            - generic [ref=e136]:
+              - heading "发布设置" [level=3] [ref=e137]
+              - paragraph [ref=e138]:
+                - img [ref=e139]
+                - text: 本站所有登录用户
+              - paragraph [ref=e142]: 不对匿名访客开放。只有本次确认的正文与附件会被分享。
+              - heading "发布前，再检查一下" [level=3] [ref=e144]
+              - list [ref=e145]:
+                - listitem [ref=e146]:
+                  - img [ref=e147]
+                  - text: 正文只包含愿意分享的内容
+                - listitem [ref=e149]:
+                  - img [ref=e150]
+                  - text: 图片与文件没有敏感信息
+                - listitem [ref=e152]:
+                  - img [ref=e153]
+                  - text: 所有附件已就绪，并符合额度
+              - generic [ref=e155]:
+                - button "预览并发布" [ref=e156] [cursor=pointer]:
+                  - img [ref=e157] [cursor=pointer]
+                  - text: 预览并发布
+                - button "正在处理…" [disabled] [ref=e160]
+              - generic [ref=e161]: 草稿不会出现在广场。发布之后仍可编辑更新或撤回；他人已下载的副本无法收回。
+            - generic [ref=e162]:
+              - heading "附件跟随本次发布" [level=3] [ref=e163]
+              - paragraph [ref=e164]:
+                - text: 图片可插在正文中。
+                - text: PDF 与 MD 仅提供下载。
+              - paragraph [ref=e165]: 移除或替换附件，不会提前修改已发布版本。
+```

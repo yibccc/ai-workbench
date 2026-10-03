@@ -1,0 +1,84 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "跳转到主要内容" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - link "工作台 ." [ref=e7] [cursor=pointer]:
+        - /url: "#/community"
+        - img [ref=e8] [cursor=pointer]
+        - text: 工作台
+        - generic [ref=e11] [cursor=pointer]: .
+      - generic [ref=e12]:
+        - link "工作台" [ref=e13] [cursor=pointer]:
+          - /url: "#records"
+        - button "账号菜单：e2e_admin" [ref=e15] [cursor=pointer]:
+          - text: e2e_admin
+          - generic [ref=e16] [cursor=pointer]: ⌄
+    - main "社区内容滚动区" [active] [ref=e17]:
+      - generic [ref=e19]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: COMMUNITY
+          - heading "让每一点进展，被看见" [level=1] [ref=e23]
+          - paragraph [ref=e24]: 分享今天的收获，写下值得留下的经验。
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - img [ref=e30]
+              - generic [ref=e32]:
+                - strong [ref=e33]: 今天，有什么值得分享？
+                - paragraph [ref=e34]: 你的工作记录始终私有，只有确认发布的内容才会出现在这里。
+            - generic [ref=e35]:
+              - link "分享今天" [ref=e36] [cursor=pointer]:
+                - /url: "#/publishing/sources"
+                - img [ref=e37] [cursor=pointer]
+                - text: 分享今天
+              - link "发动态" [ref=e40] [cursor=pointer]:
+                - /url: "#/publishing/new/MOMENT"
+                - img [ref=e41] [cursor=pointer]
+                - text: 发动态
+              - link "写博客" [ref=e43] [cursor=pointer]:
+                - /url: "#/publishing/new/BLOG"
+                - img [ref=e44] [cursor=pointer]
+                - text: 写博客
+          - generic [ref=e46]:
+            - generic "内容分类" [ref=e47]:
+              - button "全部" [pressed] [ref=e48] [cursor=pointer]
+              - button "今日分享" [ref=e49] [cursor=pointer]
+              - button "动态" [ref=e50] [cursor=pointer]
+              - button "博客" [ref=e51] [cursor=pointer]
+            - generic [ref=e52]:
+              - img [ref=e53]
+              - text: 最新发布
+          - generic [ref=e57]:
+            - img [ref=e59]
+            - heading "让第一份分享，从你开始" [level=2] [ref=e61]
+            - paragraph [ref=e62]: 工作记录仍然私有。选一小段值得分享的进展就好。
+            - link "开始分享" [ref=e63] [cursor=pointer]:
+              - /url: "#/publishing/new"
+          - generic [ref=e64]:
+            - generic [ref=e65]: 共 0 条
+            - generic [ref=e66]:
+              - button "上一页" [disabled] [ref=e67]
+              - generic [ref=e68]: 1 / 1
+              - button "下一页" [disabled] [ref=e69]
+  - navigation "移动端导航" [ref=e70]:
+    - link "广场" [ref=e71] [cursor=pointer]:
+      - /url: "#/community"
+      - img [ref=e72] [cursor=pointer]
+      - text: 广场
+    - link "发布" [ref=e77] [cursor=pointer]:
+      - /url: "#/publishing/new"
+      - img [ref=e78] [cursor=pointer]
+      - text: 发布
+    - link "我的发布" [ref=e80] [cursor=pointer]:
+      - /url: "#/publishing"
+      - img [ref=e81] [cursor=pointer]
+      - text: 我的发布
+    - link "我的" [ref=e83] [cursor=pointer]:
+      - /url: "#/community/authors/6acac3f4-0109-440d-a8bd-a612d17432c5"
+      - img [ref=e84] [cursor=pointer]
+      - text: 我的
+```
