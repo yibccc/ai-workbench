@@ -1,0 +1,2293 @@
+{
+  "base": "1a7928c2b2fa15ce0d3148af187770d85aca96f7",
+  "branch": "codex/community-oss",
+  "status": "WORK_AND_THREE_CHILD_ARCHIVES_COMPLETE; PARENT_ARCHIVE_JOURNAL_NEXT",
+  "independentReviewedSources": 366,
+  "sourceMatches": true,
+  "businessFiles": [
+    {
+      "path": ".env.example",
+      "bytes": 2242,
+      "sha256": "822c42d232d6fa23790724cc3490786bd910b9bfc7cf7bdef6e961368c85b5b6",
+      "group": 1
+    },
+    {
+      "path": "backend/pom.xml",
+      "bytes": 5903,
+      "sha256": "5cf74dc3d3504b57d0fc6263787215f0ad8a9eb269c87426ca4d5bb942b86322",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/config/CommunityCacheControlFilter.java",
+      "bytes": 1264,
+      "sha256": "27f5a342338fc774ee3b19f15d3bd3f74156f3716e6c9c01024ff98a4d566cf8",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/config/StorageProperties.java",
+      "bytes": 1516,
+      "sha256": "80dc93e71c27c5174ec66423b530c3ddd93082afbf5315e4d41cc3beebbac09e",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/controller/AttachmentController.java",
+      "bytes": 4734,
+      "sha256": "befdebbf731428c51e4facd02a2e62d61337f44d2dcdb3bdbfd8d6ba53d50b88",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/controller/CommunityController.java",
+      "bytes": 1116,
+      "sha256": "bd3e118f03dce82788191cd3b1a8eae0170f37cb32125dafb94b97c47a2d2b77",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/controller/CommunityModerationController.java",
+      "bytes": 696,
+      "sha256": "f5f9e87eeeece0507183c1e71ec7bebcc991e915afefbf8d8c884331ad709cf2",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/controller/CommunityProfileController.java",
+      "bytes": 679,
+      "sha256": "617e2acc11cac5f02c75f4eda08f59b1c620c1eadc8bc83fed31b408051bb896",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/controller/PublishingController.java",
+      "bytes": 2333,
+      "sha256": "5e2a3655765883d37f82c6ff85617c99d9bf436aedc6a940fee16b25ae43b4d5",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/dto/community/AttachmentModels.java",
+      "bytes": 453,
+      "sha256": "4bcc4d7f5a6014060b33c6e2f7889b9c762d54e19d94d0a183c8af308ff52a08",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/dto/community/CommunityModels.java",
+      "bytes": 1308,
+      "sha256": "8bf73793ccd5d2e5496069b1c99bc3268b06dc9c543b7750c5341a97419b01d1",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/dto/publishing/PublishingModels.java",
+      "bytes": 3326,
+      "sha256": "78a09a5bf1feed8fcf2942544235df90311464074bbdb904cd4643d060e7650d",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/entity/community/AttachmentRow.java",
+      "bytes": 958,
+      "sha256": "beb32afeb8f3bede501609d3c4c2ef3ce3d389fb40d5ffc0d50ca9ee6b093133",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/entity/community/CommunityRows.java",
+      "bytes": 1989,
+      "sha256": "bcc8b34433313a39b89f4c9361c4b52da6c6f5f5bfe100c5f9ab0a59bc7e9073",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/enums/CommunityPostStatus.java",
+      "bytes": 104,
+      "sha256": "ff711286ba02904741ec15adce11a3b25943ac45b62b45712175aad8a99a418c",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/enums/CommunityPostType.java",
+      "bytes": 86,
+      "sha256": "3dcbbcc539fe14cc4b3c80976833a41778a545dd755b4e77967b75316ec37844",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/exception/ApiExceptionHandler.java",
+      "bytes": 3610,
+      "sha256": "6288555c5a707b397de486be4c94a4091fb66dbdc967b447363876fcac8787ca",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/exception/AttachmentException.java",
+      "bytes": 791,
+      "sha256": "f94c84d38ffa7f8916a8d86f5b2de955982057081ce61d01077d2fef30538e1c",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/mapper/AttachmentMapper.java",
+      "bytes": 2360,
+      "sha256": "6d9841b51f2218a5d2183ec0ae266d75d4f44a39910e9fe2aba396c699ffb6c0",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/mapper/CommunityPostMapper.java",
+      "bytes": 2406,
+      "sha256": "093af5958107c57a67978841f9169c6709b2183bed817a964bb2de49e2f7cca0",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/mapper/CommunityProfileMapper.java",
+      "bytes": 760,
+      "sha256": "522e61319773de799b48dcfdda84134cdbbaa2b4beaab1a2bcaf09c195ffa483",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/mapper/WorkRecordMapper.java",
+      "bytes": 2193,
+      "sha256": "1c4062604e23ce1604a55d0f299ab243ca304b634792c4a8c22c1480778fae59",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/AttachmentService.java",
+      "bytes": 650,
+      "sha256": "3c615069b78bc31eb31d0f39d4b06145cd234ab8b6948ced4210cca73b62b2af",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/CommunityModerationService.java",
+      "bytes": 282,
+      "sha256": "2373d5c141026b03ff0ba143f9705badd27e4b9970f60ba8bf9ed1ebd0a69efb",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/CommunityProfileService.java",
+      "bytes": 198,
+      "sha256": "74e973cb72042a92eecd5d8590095d417a269012f32cfd43a3877c848c779820",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/CommunityService.java",
+      "bytes": 403,
+      "sha256": "20b54dbaad35b675fb065bfdd900213af921356c1776075deaa8ffc5f184d1f0",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/PublishingService.java",
+      "bytes": 782,
+      "sha256": "9a2980f26a396dfaead85aadb5e625a2160713dba1e6517d61330becad4aec36",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/impl/AttachmentPersistenceService.java",
+      "bytes": 11125,
+      "sha256": "f72099215416e620aafd4c7fc4b69f50b0e2c6bd40d9afd418ad78080751ed98",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/impl/AttachmentServiceImpl.java",
+      "bytes": 5388,
+      "sha256": "ca3dd68bfb5ac4ea545e272398cdeb87394b071d450f93a4e41bee6851e7fd9b",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/impl/CommunityModerationServiceImpl.java",
+      "bytes": 2643,
+      "sha256": "fe1aa02a069007d092a4ce06d3c357ea54605d6d65a1df637dfd9c954781ff9f",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/impl/CommunityProfileServiceImpl.java",
+      "bytes": 2214,
+      "sha256": "2f319f223efef3045fade99047af174a1481ea9d0343e9f02b6e7be5f3b1a480",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/impl/CommunityServiceImpl.java",
+      "bytes": 3180,
+      "sha256": "e1ced3f8a815f0879c9231de21983e3bba3e55ae1e40acbc957870796c80b7d2",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/impl/E2eMaintenanceServiceImpl.java",
+      "bytes": 1735,
+      "sha256": "cd0cccebd8fabe926b3ab0250fa3e6631ee77a8a3e97c82a025cf231e578d24e",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/service/impl/PublishingServiceImpl.java",
+      "bytes": 19300,
+      "sha256": "1e8f37457a3b74aec19e6e8b57a444d26a24c7caa44c6e99104b8903ae23a597",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/AttachmentValidationWorker.java",
+      "bytes": 5322,
+      "sha256": "d8d978f71b57f68522d0ba74ca0a029ae2609b6c828e9de2b37646256a48520a",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/AttachmentValidator.java",
+      "bytes": 6180,
+      "sha256": "eee9c178f0baebbba905b8bfdaf5205e241869b8917b6325d9b019c000fe08c7",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/ObjectStorage.java",
+      "bytes": 546,
+      "sha256": "eee901bc654b87c4cbb7bc52cb3a3fc6a149c4594ac414ef30606db95dba214b",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/PdfStructureValidator.java",
+      "bytes": 4649,
+      "sha256": "11225c657211f46bfc00b7a3a66fe5295ed41170bc90c52e90d06abc529da08a",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/RustFsObjectStorage.java",
+      "bytes": 4436,
+      "sha256": "3023d612c66931664a2dcffa165cf80ed2bf04094314224604e33be260d6644e",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/StorageException.java",
+      "bytes": 189,
+      "sha256": "c2777b8ce535ca5aaf96c774e0792247a19eb4cedece26f37314f5574186e347",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/ValidatedAttachment.java",
+      "bytes": 431,
+      "sha256": "b4de4c15967cd9abb064f4dc3fc33ad70de766e3abf0b02986189268940d8bea",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/java/com/aiworkbench/storage/WebPStructureValidator.java",
+      "bytes": 4707,
+      "sha256": "9c526158951bcd04e2570c280b45766bff5c0367f2dce1d20908e580091c7523",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/resources/application.yml",
+      "bytes": 2773,
+      "sha256": "ad8d107fba624e820ae121ba5dce5abdbb44c46f5d888a5bbdbb299f334e417f",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V17__community_publishing.sql",
+      "bytes": 4136,
+      "sha256": "01bcd2871797dea029fce19e4fe053a40ca0c71b10056d686b364973f34fd61e",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/resources/db/migration/V18__community_attachments.sql",
+      "bytes": 2693,
+      "sha256": "067470ab5443e1a271611f360f2dd4f5b65db7ac5a4ddcd2fe25a632e0093440",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/resources/mapper/AttachmentMapper.xml",
+      "bytes": 6303,
+      "sha256": "c26dc1d01b71285e507a23b3dc428ab1f399618fa7241ec0751c017a6c9c5189",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/resources/mapper/CommunityPostMapper.xml",
+      "bytes": 11551,
+      "sha256": "2b829f94e05114b05f75d7f7b30c6dabbe6316f7753f12e40c3f4c4101a6c802",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/resources/mapper/CommunityProfileMapper.xml",
+      "bytes": 1853,
+      "sha256": "0d96908560fc7754ccd39d86d5821d933c408b8f1a1d2300469611cc676f169e",
+      "group": 1
+    },
+    {
+      "path": "backend/src/main/resources/mapper/WorkRecordMapper.xml",
+      "bytes": 6383,
+      "sha256": "cf9bd007a1093832cd3f8f347705053fbb9c05d135e14b5b96183a890b0a5540",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/AttachmentConcurrencyIntegrationTest.java",
+      "bytes": 22671,
+      "sha256": "12b46305b03217a68e3b53f2946c8935013176cfb11fb9f2cae2009e7b0bbc2c",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/AttachmentHttpIntegrationTest.java",
+      "bytes": 11275,
+      "sha256": "c892c169177b0009da7602bfb3c03397c5eae4b063cf82322105fe75aee6c5a1",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/AttachmentMigrationIntegrationTest.java",
+      "bytes": 3464,
+      "sha256": "66ead7508cbab319d2ec9d156f8c3c1f7daff6a77668873937640116168982b0",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/AttachmentQuotaIntegrationTest.java",
+      "bytes": 4337,
+      "sha256": "edf900ed5171fec352703f8957d1347e21aca4ef0e41835d9fac79ec95865561",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/AttachmentReadConsistencyIntegrationTest.java",
+      "bytes": 3878,
+      "sha256": "40ba7325cb3b877e1e804cd96884e2115a4a8acfca1fd0a3b95b7ee71e1a1517",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/CommunityHttpIntegrationTest.java",
+      "bytes": 16074,
+      "sha256": "51cbc2e45befc4abd8ae8301964cca560a40b6e406d20f8e9ddbddb32fd7e402",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/CommunityMigrationIntegrationTest.java",
+      "bytes": 6442,
+      "sha256": "6bd82d0ce770cc4972a67106410b75fe7ba6cd698b575c90d6b850c4d1174501",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/CommunityPublishingIntegrationTest.java",
+      "bytes": 17145,
+      "sha256": "77c9154b48bfef6b38eaab3bed5ccf67216d4ba5105d136203c8de2dbc6dbe8e",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/CommunitySourcesIntegrationTest.java",
+      "bytes": 8084,
+      "sha256": "7a6d5b0e6685129df628aa2281a74e63c90a9c6d71111cc9f9c64a157a60cfab",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/community/CommunityTestData.java",
+      "bytes": 1711,
+      "sha256": "33b17ec364111c1db5edd9b609ed5a2cb2235c7f501f7ac64763e544a5844be8",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/e2e/E2eResetControllerTest.java",
+      "bytes": 2023,
+      "sha256": "5f248b9efc40e4304a2d9309cfc408dfae1202a634dc55ba659c5539787c5b04",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/storage/AttachmentValidationTest.java",
+      "bytes": 5166,
+      "sha256": "c889605986bd4ba872c87b6edaad0c83fa7a253b292fb4a3415944f51ef035ca",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/storage/RustFsStorageIntegrationTest.java",
+      "bytes": 2178,
+      "sha256": "6e23e008d2586c82c818dbbf0422055103d10ca8e3d235692dd3a30b76aed130",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/java/com/aiworkbench/support/AttachmentTestFiles.java",
+      "bytes": 2560,
+      "sha256": "dd025c8ea41684b5ae0e196a93dfa9bba3fe5668baaf1c2762058c4790f164f9",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/resources/storage/GeneratePublicKeyPdf.java",
+      "bytes": 1869,
+      "sha256": "318223242ee7f49d76d91a203d1724d20935e8b31f4232d540e8662d9d359131",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/resources/storage/README.md",
+      "bytes": 1223,
+      "sha256": "a53ac360030cb15a8971a507a5b6028d944d7e6b31f83c7fb3562a912b75cc71",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/resources/storage/animated.webp",
+      "bytes": 144,
+      "sha256": "5507b0b59746dfb7f8057510c239b9256f55ab1e6955d7307adffcd1de003f1c",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/resources/storage/high-compression.webp",
+      "bytes": 706,
+      "sha256": "301a64b9cd41d00a43ddfdc9adfa78ed7e80af35fed7e2be72aa3d345bcdaa90",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/resources/storage/public-key-encrypted.pdf",
+      "bytes": 1581,
+      "sha256": "d2367e3d48aabaabbf097e678fcd52d5629b99ef06be7ff40fe299412403d7aa",
+      "group": 1
+    },
+    {
+      "path": "backend/src/test/resources/storage/static.webp",
+      "bytes": 38,
+      "sha256": "b7c0114056657b5160a8851ca06b769ae2fb47d21285570740fe6476afb537bf",
+      "group": 1
+    },
+    {
+      "path": "compose.yaml",
+      "bytes": 4473,
+      "sha256": "8139b037d8b9a597e0190c4fc2627a0c76c0f413a0affd6f8646928dce971e31",
+      "group": 1
+    },
+    {
+      "path": "deploy/nginx.conf",
+      "bytes": 1674,
+      "sha256": "a6d68507e0a331172ea746ad0f3e246d6b2cb2f2117600799a9997ce2d3db995",
+      "group": 1
+    },
+    {
+      "path": "scripts/local/browser-env-check.mjs",
+      "bytes": 858,
+      "sha256": "917c69280ad9c1195a73744f6e8631cdf4df6bb94e6b39b7417dd1e7d248d40f",
+      "group": 1
+    },
+    {
+      "path": "scripts/local/initialize-storage.py",
+      "bytes": 11360,
+      "sha256": "27cf67c49dc202dddd7480aba80efc3e22f7fd2fa4d44d30ce769e23f6f3753a",
+      "group": 1
+    },
+    {
+      "path": "scripts/local/start.ps1",
+      "bytes": 5056,
+      "sha256": "c32737b56a0abd8b2325968a0629000ccb78969005d79eab2a2ab48527cc8330",
+      "group": 1
+    },
+    {
+      "path": "scripts/local/storage-smoke.py",
+      "bytes": 9766,
+      "sha256": "5cc664ba9a38613c55a95e722e8cd2785ebb71911ed125d06bd474755493139a",
+      "group": 1
+    },
+    {
+      "path": "scripts/local/verify-compose.py",
+      "bytes": 26747,
+      "sha256": "7950695ca63eb8ceee1b8ef11190b3ba864604bc2fb5a671fd2fe5348e722fc7",
+      "group": 1
+    },
+    {
+      "path": "frontend/e2e/community.spec.ts",
+      "bytes": 49696,
+      "sha256": "12023e09ed192707fd110ee32d2ad3776f95c04035750155429e4e251ed729f9",
+      "group": 2
+    },
+    {
+      "path": "frontend/e2e/focus-alarm.spec.ts",
+      "bytes": 23241,
+      "sha256": "a1ab87523792da339e9c7c4b7c84777e7c6ef6bbd664cad13dc6f5df18cf5419",
+      "group": 2
+    },
+    {
+      "path": "frontend/e2e/start-vite.mjs",
+      "bytes": 842,
+      "sha256": "47fd9cb42a4ac3446b4041d56ca5733566d908b682231a1fd9fe79b1c2f044ec",
+      "group": 2
+    },
+    {
+      "path": "frontend/e2e/workbench.spec.ts",
+      "bytes": 177219,
+      "sha256": "d4008252197ebb4ea98cc2f90d8046fa1f8ea4597dddd467ed3af0f7d563b951",
+      "group": 2
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "bytes": 158992,
+      "sha256": "39f75022bcf09df8fd2f4034e9dd6c1a98da406d217398a86bbf2d3eb6e1d185",
+      "group": 2
+    },
+    {
+      "path": "frontend/package.json",
+      "bytes": 925,
+      "sha256": "b922c35fbacc83bf7e0311f8bf79a3ee8e9b24de8a36cd1bb448f37b26b68192",
+      "group": 2
+    },
+    {
+      "path": "frontend/playwright.config.ts",
+      "bytes": 2127,
+      "sha256": "1dd3429fc13acef0ffe22e281084d4dbe46efc56f15bbdc2702596a12bb0f1ea",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/App.tsx",
+      "bytes": 17441,
+      "sha256": "d4fcaba78e67a318114101de4a1befb346108f7f7f90928dd4a2f4f7a0805f65",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/api/community.ts",
+      "bytes": 2276,
+      "sha256": "de1036168e2f8c41edc6cfb8fae2a8c056fbf645ed38a16b26812ea02101a548",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/api/http.ts",
+      "bytes": 4631,
+      "sha256": "f997c3f99c02c2edd9eba8a1298c302ad0ccf746b22ee026951b362fbdbd93fb",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/api/publishing.ts",
+      "bytes": 4336,
+      "sha256": "59c7f9614ac0e3dde9623e6906ed0d1d48f3d242e80a9c49edc9f2a6bdf859be",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/components/DialogProvider.tsx",
+      "bytes": 3492,
+      "sha256": "cf60c7ec3c8e9c4d05f2cf951ce47d9c94deed343240cdd35d6161495ccdca90",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/components/dialogContext.ts",
+      "bytes": 541,
+      "sha256": "bf94ac16545a656b46f287c8692fb15eb1ab19e49d05e845f988f717c3b268b9",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/components/layout/AppShell.tsx",
+      "bytes": 4779,
+      "sha256": "5b71bce8f7312491a056aadba9dbe45aaa94bebd5cd39c0209377b6b593e50f0",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/components/layout/routes.ts",
+      "bytes": 1762,
+      "sha256": "3e5a8212b2a2d79884bdcda3a4f97b7db762afe9c96e68a7e30af446ad7dc776",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/auth/AccountMenu.tsx",
+      "bytes": 1968,
+      "sha256": "ffeb777e994cd559fe6d81640b0c46b59d9f13a330ac7031ff64c5a43f22d370",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/auth/LoginPage.tsx",
+      "bytes": 2383,
+      "sha256": "4df71741709707b66823afe0091491eb471e64b813d57f2a8116573c84f6ecd0",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/AttachmentMedia.tsx",
+      "bytes": 4904,
+      "sha256": "de9f5eb7d70f20448f1935cfbc9ef1c6e913bed2645a0e2dbfa3b018178002e8",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/CommunityChrome.tsx",
+      "bytes": 2423,
+      "sha256": "d00c7f1ac28665d5e6d31299760de00acde311bd2856f09c1bc2cb8524aca8c1",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/CommunityPages.tsx",
+      "bytes": 18045,
+      "sha256": "9e8df739947c6ef1b78f7194ca42b9cce066e842742146f7fd63319e8cefaf6f",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/CommunityWorkspace.tsx",
+      "bytes": 2758,
+      "sha256": "3be3cf07ba5dbc0734a79974171cc6ba7d328307dec8bf5b5e83faae0d035526",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/PublicationDocument.tsx",
+      "bytes": 3879,
+      "sha256": "d5105d329b8e9f3ee9a92e20142113300dec119b9757ed1520b19d85ccb33fbf",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/community.css",
+      "bytes": 50181,
+      "sha256": "e0c5a38a21313e035793c233ba3be9c6f57d315ca32ded21e23481a259164c98",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/integration.css",
+      "bytes": 6745,
+      "sha256": "522ac163f38871123e0c3fa4a90bf0a4dd8296308fa5cc719a913ae13fedca87",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/model.ts",
+      "bytes": 975,
+      "sha256": "2547615c3b1d2813c959773b29fe961a88f8262f63372dab9cfc00d6520352ba",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/community/ui.tsx",
+      "bytes": 5451,
+      "sha256": "8045d8e708f2ad787e3e032205d4ab3ce9363f8dc8bb9df854a6bbe1d1ba7aae",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/publishing/PublishingEditor.tsx",
+      "bytes": 32955,
+      "sha256": "aa9d15eb935949fa92f9dedba5a0a1f9b179a277b0342ed61d9debbbf0742783",
+      "group": 2
+    },
+    {
+      "path": "frontend/src/features/publishing/SourcePicker.tsx",
+      "bytes": 6984,
+      "sha256": "c2b391fedd91824a9d5ca06060e2b84f1350e21458de1976160165c04bf2ee35",
+      "group": 2
+    },
+    {
+      "path": ".trellis/spec/backend/community-publication.md",
+      "bytes": 8119,
+      "sha256": "11f266e1d28b2110a292eb87a4356c28af3d90b53553cc393d2415a6a96acb9b",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/backend/index.md",
+      "bytes": 2621,
+      "sha256": "4a47795b5358306e9a34ac273802a039bb7496a79cfb19b3ceb6ac2c1194cb99",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/backend/linux-deployment.md",
+      "bytes": 8175,
+      "sha256": "d84187a1b4632d180a306318fa11d962ee37583149cf4672d047be179231c41f",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/backend/local-delivery.md",
+      "bytes": 5724,
+      "sha256": "e40284cba51f69f5a4c1baab155edaefddbf1b4ce78aedd8ef833b1a4b65c4a1",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/backend/private-attachments.md",
+      "bytes": 11184,
+      "sha256": "4c6b0154c60934c83623b548265ee3f652b745f06be165c38f6a020d08354805",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/frontend/community-publishing.md",
+      "bytes": 9506,
+      "sha256": "ccbd4b1d7ad84a3623bd4413cc9dafd5b3245f256c0abe0d12341765a9e4446e",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/frontend/dialogs.md",
+      "bytes": 2083,
+      "sha256": "158c364804e50bb488dec193e78ae4db850861ceb633e48489132525746e8398",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/frontend/directory-structure.md",
+      "bytes": 6064,
+      "sha256": "80a1f7a50c5fefb3c10d292cf4c26238a2e8a32227e4cfcc0562e1bb27105d35",
+      "group": 3
+    },
+    {
+      "path": ".trellis/spec/frontend/index.md",
+      "bytes": 2170,
+      "sha256": "f9ca45b3b73b9e66e7cd01b118141b77b7a9c4825bcf944733c53972f32116f2",
+      "group": 3
+    },
+    {
+      "path": "README.md",
+      "bytes": 14238,
+      "sha256": "c86b40996e4b6a8b314962e0de4b51056fc0ee85704f1cf54663cf5990c12c72",
+      "group": 3
+    },
+    {
+      "path": "docs/dev-sop/WB-20261003-community-oss-3f9aaa/delivery.md",
+      "bytes": 11125,
+      "sha256": "4f6f52e6971d64d174f4aa8a43bf14a4d61dfa7ae8fbae406afe79e063630ec6",
+      "group": 3
+    }
+  ],
+  "businessSha256": "2a451b82acb098ac2179f762fb4c5c62a1b9bbe8e1631bb4c35990fae07ffb00",
+  "managedTaskFiles": [
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/check-fingerprint.json",
+      "bytes": 6473,
+      "sha256": "dc2742ca52369134d908f0c17d7fc0f95fcb496f06583c1308b03fa3d460e7ba"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/check-report.md",
+      "bytes": 9926,
+      "sha256": "47d7a9033da9d9966ae684e6b784c07ff17a9c480222eea09ac50f5e5f4a0f47"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/check.jsonl",
+      "bytes": 1284,
+      "sha256": "b7780bb7ab6198f54fef80e514ea63dfdd2a7088ed4b813f7d0fd50cfb9b9524"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/design.md",
+      "bytes": 1473,
+      "sha256": "21db19dd2637b765359a0e0ce57f8ed7d9840005ede2c6cad9ce9de635f03ff8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/implement.jsonl",
+      "bytes": 1284,
+      "sha256": "b7780bb7ab6198f54fef80e514ea63dfdd2a7088ed4b813f7d0fd50cfb9b9524"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/implement.md",
+      "bytes": 1543,
+      "sha256": "87e010fa62ade250ef9d247af139c4f39045124fc1400ad49053b47386dc1051"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/prd.md",
+      "bytes": 2215,
+      "sha256": "93eb5b4807c7cdbddc5f822574ed0bf568092544f06bec0c9c4a00148e3f2988"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/storage-handoff.md",
+      "bytes": 4556,
+      "sha256": "6313f02b5973aca869651ea7cb8e4f558597429bdc526081c55680cd8559b266"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/task.json",
+      "bytes": 772,
+      "sha256": "9a7d430b1e451838d5e23e30c423e589932d5d206ce2189b2135af3e8a13da23"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/validation.md",
+      "bytes": 5540,
+      "sha256": "925919e5ca080251ef5ea9cf1713e213e31e631cd8338ecbbe93c2fc8cf7068c"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-publishing/research/storage-preflight.md",
+      "bytes": 18723,
+      "sha256": "f74cbd6460b8dff60d0e44e9dadceccb36f38c11d8bef3cf0017749554b91c4a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/change-boundary.md",
+      "bytes": 1311,
+      "sha256": "1b64682875ba45a4eb9cea174db31091cfbf507a0edbd4895dd18b617202ec3e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/check-fingerprint.json",
+      "bytes": 84279,
+      "sha256": "04478cfdfa06dc7fcd75ef4498e24062982901479ab4ecc2a3f589c44862284c"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/check-report.md",
+      "bytes": 17665,
+      "sha256": "4917037f90049bbb9333b10ec17b329dc64427766f32f37ffae575481a81e7ea"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/check.jsonl",
+      "bytes": 1976,
+      "sha256": "062ab84a8beda589994335f46670fbf414519c69beb4fda520c6a480b97e4ea6"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/design.md",
+      "bytes": 1649,
+      "sha256": "9d4503698df2cf01e4682fe323e48760ef3d318e3cd0406b074a51a00fa2aedc"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/implement.jsonl",
+      "bytes": 1968,
+      "sha256": "a068cf7c65edf2f420fa924da56bd9df59f94fb4dec203744c18e3215409ab45"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/implement.md",
+      "bytes": 2085,
+      "sha256": "6a15e47717f87a41dc0d46ab6d446cf3cd58071b230cf080ac0fddf765c96b12"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/prd.md",
+      "bytes": 2024,
+      "sha256": "277245464c084da22a6c40b4a170d7a8587cb39d5a40e2ec8c1e1710c9687c9c"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/task.json",
+      "bytes": 785,
+      "sha256": "815b456fe064d0f03e79e8ae167b00209c7c2a38de1456f1cd0ff9f179f444a4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-storage/validation.md",
+      "bytes": 12475,
+      "sha256": "1e504f3bba91129af68816c1500c41d1b3b6adb3492001486b2d8e27791165b3"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/check-fingerprint.json",
+      "bytes": 12461,
+      "sha256": "0d841978a3e9d450ffab6c0682f7aa0abd187f7871f0f60f384c9452f6707902"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/check-report.md",
+      "bytes": 9541,
+      "sha256": "dfa8d611a060e5d259bf2a49a94a40377ec97d7ecf4b6d35b12afcef42078240"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/check-upload-probe.json",
+      "bytes": 544,
+      "sha256": "f225cffe452368080d07c40f157ae5380c5e80b76a6021e8b46ef8e98afc0fe1"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/check-upload-probe.mjs",
+      "bytes": 9573,
+      "sha256": "9139a8bca15a1620a9850e5efec2cf8b027872dfef2e4827b1e654bd754ff15b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/check.jsonl",
+      "bytes": 1445,
+      "sha256": "de4cb6e5e8034084773dce40117c414747910a1260a899c6d008907c09456599"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/design.md",
+      "bytes": 2511,
+      "sha256": "056d88717f570452e7de94fb2fbc9f5388569812f5c04b381d655e793dfd1f0b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/extract-r2-css.mjs",
+      "bytes": 1114,
+      "sha256": "7895bdd4bda91c38be643909a08fae4b00bf757a3e9e5f582270ddef8d8a086a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/implement.jsonl",
+      "bytes": 1445,
+      "sha256": "de4cb6e5e8034084773dce40117c414747910a1260a899c6d008907c09456599"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/implement.md",
+      "bytes": 1809,
+      "sha256": "035974faf0c8462b8827201c94ec9d88300b68897ad3594fccdcc0a099897386"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/implementation-notes.md",
+      "bytes": 2684,
+      "sha256": "90ca54b9be87d3c8091095400ebdbf01ecaef29ad1ddf6b1f12604e4822915ca"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/layout-probe.mjs",
+      "bytes": 7008,
+      "sha256": "20092153765aa65c46cfb37773729b283738966bbe941d79b1af6eba1106d4a5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/prd.md",
+      "bytes": 2244,
+      "sha256": "becb1c6c8cec7f626ee5a8796aca430f000e96a3954e7e3100891c88d095ac3e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/reuse-map.md",
+      "bytes": 7300,
+      "sha256": "0c02016aaa728fbb5478a5bc1ab798c91df81631bf2b9db917b6b7b641a994c0"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/task.json",
+      "bytes": 769,
+      "sha256": "5096b31b3473c16e496aeb9acd4b6bc4d10ccf7a082b1b324ae95a44f8395981"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation.md",
+      "bytes": 11736,
+      "sha256": "c0e321b4356ae7e38a292ce4fb1a0f85471a2523205a0bccf479412a38dd9403"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/visual-review.md",
+      "bytes": 5141,
+      "sha256": "2a22c359007051a24d0d905b2c08b66212f6c709ead2bb80fb4a5deefadb7e41"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/final-community-focus-no-retry/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/attachments-mobile-bottom.png",
+      "bytes": 34572,
+      "sha256": "19f5e1280b0bbc38ddd5468b6894540d37e7852a3b77c72e9bed8762d89f4e41"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/author-desktop.png",
+      "bytes": 66076,
+      "sha256": "be7cf89a663b52fc3797095d853d049d2386a3498959599b7316f944a0097d52"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/community-1024.png",
+      "bytes": 76737,
+      "sha256": "00c262b7d9cf6d3853d935ba1ed0e87523678d5a5fbfe56fcbb7348338ab7800"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/community-320.png",
+      "bytes": 38106,
+      "sha256": "6e2ec0a189d08dadd4f1d4427700d006f2dbd1e4330e9e374bd44825403eb813"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/community-desktop.png",
+      "bytes": 80818,
+      "sha256": "0fc2ca31ce1b80813b601a0f09cb4c61ef49c2f15d014df6337caa312907c076"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/community-mobile.png",
+      "bytes": 39808,
+      "sha256": "84fe6754a51e500fd3c2c20228e89ee959881639ce73fb384b06e86e538ee70b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/compose-desktop.png",
+      "bytes": 57430,
+      "sha256": "f41f402b9813bea899ce0345046d56426719b33528cd012ca7107bdcd4ed4910"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/debug-failure.png",
+      "bytes": 6743,
+      "sha256": "baf4d6d2fcc5e5fe6927e683dffc8c0bfd768cfeebc586a01944dac26c60964b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/detail-desktop.png",
+      "bytes": 95272,
+      "sha256": "a3e3cc2ff5c096819aa34dc847682ebef26c00245fa9bcfa17d932e2b813b2a7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/detail-mobile.png",
+      "bytes": 42125,
+      "sha256": "fc6e300619315182e0c18da59669e919f93087871a2b0b97f276463a869007aa"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/editor-desktop.png",
+      "bytes": 100786,
+      "sha256": "3d0c01e352bdaa46e873a9c53504b3483a691d6af4a32013c76d6800dcb86cdb"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/editor-mobile.png",
+      "bytes": 40592,
+      "sha256": "089ca273a6d50ffe80460e5a059f20390b9fbfcccf95a59510b8af1f54895360"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/feed-error-fixture.png",
+      "bytes": 80818,
+      "sha256": "0fc2ca31ce1b80813b601a0f09cb4c61ef49c2f15d014df6337caa312907c076"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/measurements.json",
+      "bytes": 6575,
+      "sha256": "f15ea014527682e221aa2ecb7d011503a4326b11152c87f841b9bed023852796"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/mine-desktop.png",
+      "bytes": 65158,
+      "sha256": "ef36262632d023f6a78998ce9a5251e686b71f44d6276ac681f7e78aa9dea127"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/mine-mobile.png",
+      "bytes": 32090,
+      "sha256": "301ab395b89bc70220967faf9e72665a9edbe933de07f2d527b706d27eb8af17"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/preview-desktop.png",
+      "bytes": 100669,
+      "sha256": "c6ae46ade41494bde0b203a1c4cce932d3b681da0084b76192e04f7f99e661d3"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/preview-mobile-bottom.png",
+      "bytes": 34532,
+      "sha256": "2299be86eac066741ed7688e15000c7672457b7a59714c25747a7ec0c80299b0"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/preview-mobile.png",
+      "bytes": 40980,
+      "sha256": "c60a2275fdf51a2b2388694f4b401e62c22c0400649649a9af75e6e6678d8648"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/sources-desktop.png",
+      "bytes": 89023,
+      "sha256": "d15cd9eef070192eb84645d77203468bb6496a4b06afcd026b6392e1be6ced08"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/sources-mobile.png",
+      "bytes": 40591,
+      "sha256": "31cda8d1c208468b3f330521eb7cdab60d64f639946632918f8fe54a8010becf"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/fixture-layout/unavailable-desktop.png",
+      "bytes": 38159,
+      "sha256": "7bff8f3f80a854e4e49d986669db7f4f51e964ee45ad258b148ac0304e02f9a3"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/focus-no-retry-run-1/.last-run.json",
+      "bytes": 96,
+      "sha256": "e38b18bbbabc6a75029ee4551c87570025336995ace085238a501d77bbac63de"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/focus-no-retry-run-1/focus-alarm-恢复音频等待期间上下文关闭，反馈保留关闭原因且用户可替换上下文-chromium-desktop/error-context.md",
+      "bytes": 4085,
+      "sha256": "cce4e4868ea826689c5388543055fba7028ea1ec77d38dd061a2b88c1bf645ac"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/focus-no-retry-run-1/focus-alarm-恢复音频等待期间上下文关闭，反馈保留关闭原因且用户可替换上下文-chromium-desktop/test-failed-1.png",
+      "bytes": 60646,
+      "sha256": "eb8b5d632738681f28578de1dc2cf998def3261303a108a7d54f6f4c90211a10"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/.last-run.json",
+      "bytes": 194,
+      "sha256": "8e8cd7475a94569a29027b89a5ee6350457bcb153b023c23651b724a2c9c47de"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-lost-publish-res-e23cd-ad-and-creates-one-revision-chromium-desktop/error-context.md",
+      "bytes": 4176,
+      "sha256": "d8bac685b8ea93dc44220e158640b8b9591c6b68904de4fb86444e2923834bf5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-lost-publish-res-e23cd-ad-and-creates-one-revision-chromium-desktop/test-failed-1.png",
+      "bytes": 29080,
+      "sha256": "90ed34b2263cef228e88af03ca54649ac2f6d32c49884f79e65534a822c0a488"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-lost-publish-res-e23cd-ad-and-creates-one-revision-chromium-desktop-retry1/error-context.md",
+      "bytes": 4176,
+      "sha256": "9038512d83383e032c318909df674beb8cfab9a68ec95d35104eaf9ab83a2cd5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-lost-publish-res-e23cd-ad-and-creates-one-revision-chromium-desktop-retry1/test-failed-1.png",
+      "bytes": 78611,
+      "sha256": "4c535ae12dc024b880dc053af990742859b14dc588df6b720e4ea1828e96144d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-mobile-R2-scroll-8e148-ention-and-profile-controls-chromium-desktop/error-context.md",
+      "bytes": 3608,
+      "sha256": "9a70d07dcb4f1e91aab2dad070a86d3370f95e2dd80e08afea81f4446385a535"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-mobile-R2-scroll-8e148-ention-and-profile-controls-chromium-desktop/test-failed-1.png",
+      "bytes": 38785,
+      "sha256": "2bea7723ce71647b1e09a811ff6e75ec2a04956a41dc81c84d3b2814f6101dca"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-mobile-R2-scroll-8e148-ention-and-profile-controls-chromium-desktop-retry1/error-context.md",
+      "bytes": 3608,
+      "sha256": "9a70d07dcb4f1e91aab2dad070a86d3370f95e2dd80e08afea81f4446385a535"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-mobile-R2-scroll-8e148-ention-and-profile-controls-chromium-desktop-retry1/test-failed-1.png",
+      "bytes": 38785,
+      "sha256": "2bea7723ce71647b1e09a811ff6e75ec2a04956a41dc81c84d3b2814f6101dca"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-real-expiry-and--001e6-ay-outside-the-next-account-chromium-desktop/error-context.md",
+      "bytes": 7634,
+      "sha256": "31415d093a35db7d4e8d63c714bc5fa95b706dd2e972f1fe4f774d45dba8e821"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-real-expiry-and--001e6-ay-outside-the-next-account-chromium-desktop/test-failed-1.png",
+      "bytes": 87625,
+      "sha256": "c665611cf2cd7f541ae38b709470929f1a0d6463997e08f74e5ea3a4b766af93"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-real-expiry-and--001e6-ay-outside-the-next-account-chromium-desktop-retry1/error-context.md",
+      "bytes": 7634,
+      "sha256": "8bf9d8ecd8d38e2d4bab2f4f725c57cf0c7398bc5710c11b454b276406cfb77b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/community-real-expiry-and--001e6-ay-outside-the-next-account-chromium-desktop-retry1/test-failed-1.png",
+      "bytes": 87441,
+      "sha256": "6aafd931e46e8c6a66d6a17f52f0916c71de9aa92da48df1e31b2d456815c88b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/01-community-desktop.png",
+      "bytes": 74769,
+      "sha256": "a5bbd6f256cd3192c60da056776b893e6d4507c3bce9511716ea27eef090b3c5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/02-source-selection-desktop.png",
+      "bytes": 82682,
+      "sha256": "38ddf0de8d3c981b2161c71fc0c1c8df4946b256800bbdbb96d5256925bfdb79"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/03-editor-desktop.png",
+      "bytes": 91851,
+      "sha256": "16b5acf26f188b3e780bbfd768de73cabb0a48dd38637759cde22a6984eae2f4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/04-preview-desktop.png",
+      "bytes": 82391,
+      "sha256": "36f8e871c3a627940ff20ed9904661a9d19248bbb87b9ec4a21571884109a475"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/05-detail-desktop.png",
+      "bytes": 81880,
+      "sha256": "26999ed595f3d2fba8becabd8c0f4807f130e6c3a12c1d0b8596bec6c9e8b1b7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/06-my-publications-desktop.png",
+      "bytes": 64448,
+      "sha256": "880ce2063f9b0765f94fcb9d087935f80ff7b810ae3050ce58c045dbe3a5e886"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/07-withdraw-dialog-desktop.png",
+      "bytes": 139204,
+      "sha256": "c93a4111999de4dcc4069f21ec5376ad8968e49afe7fe34603c2e139eeca3308"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/08-author-desktop.png",
+      "bytes": 61970,
+      "sha256": "bdeca9c11023969ec491023e83ae878d2f4ae8e29fa1e743086548480e2ae9ea"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/09-login-desktop.png",
+      "bytes": 47870,
+      "sha256": "2d1777336719cbc5589f8042b786fe1a4e294a6bc86f41cf4302f773f93f3843"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/10-upload-error-desktop.png",
+      "bytes": 93640,
+      "sha256": "65c9edb76eabb239f1ed481eda6c5bf9a083c98146c6d899f05d8115cb376d79"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/12-source-selection-mobile.png",
+      "bytes": 40793,
+      "sha256": "f080634a1b20427795852c0d426c4aab9f23227c59155398454539bc76b1fa62"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/14-attachments-mobile.png",
+      "bytes": 29723,
+      "sha256": "5625a95ca8d8fd4fd4b65157134320bb637ebf34940206a40706afa06e4f1935"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/16-downloads-mobile.png",
+      "bytes": 24959,
+      "sha256": "381e9378e810a5ea2e1fb3fe994f8f017303285559803cce55aae4b4c1bdf959"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/extra-compose-desktop.png",
+      "bytes": 57634,
+      "sha256": "4c013ed118fd8bcf9f7b80256608074095a4c7c9c617c5dc276989b7cf595c3b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/extra-empty-feed-desktop.png",
+      "bytes": 74768,
+      "sha256": "78b5836e98e6e37b82e558ed65f041e2388264594c92cf46d4631b8d9fa8e208"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/extra-empty-sources-desktop.png",
+      "bytes": 85684,
+      "sha256": "b88bc8f02b53a02f8e9fdaa00c3c6b7a7055168469ca7f8a472ba094957de8c7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/extra-image-lightbox-mobile.png",
+      "bytes": 48033,
+      "sha256": "47912f19549f03113e48369404707e10a0e9e1c0a46d13ea000be81b17e21d59"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/fixture-http-403-desktop.png",
+      "bytes": 71738,
+      "sha256": "eedb485356c145fdcf9d5a6e0e14d7d3156ab451e15905007c78d04a626020ce"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-1/screenshots/fixture-http-503-desktop.png",
+      "bytes": 71714,
+      "sha256": "d9d709ccc6af04cab582a33b0b3b13549724301c936f6b65a3e999a5bd50329a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/real-community-run-2/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/.last-run.json",
+      "bytes": 145,
+      "sha256": "78a8740832ee06ceb4b60600162bed97a06034f1c9d46e8f93ca3b9456603c09"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/d9-desktop-workflow.png",
+      "bytes": 94386,
+      "sha256": "36c231f729326819cf0a450ffdd3fa73f5309730a64943baa290ac0b2c7790d2"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/error-context.md",
+      "bytes": 8819,
+      "sha256": "defb888c08c543b40dca1f3c72cce2b51ef213c0956836c6af9669b25f162e46"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-320.png",
+      "bytes": 25382,
+      "sha256": "9aae091510c3d747344899d57c2113f87e2eb1b816557ba69ce2480150e0af6b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/test-failed-1.png",
+      "bytes": 22705,
+      "sha256": "56cee40e528bd04043936ff30cda213e09d438bca06c97a80bb3b714bf66918e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop-retry1/error-context.md",
+      "bytes": 8819,
+      "sha256": "defb888c08c543b40dca1f3c72cce2b51ef213c0956836c6af9669b25f162e46"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop-retry1/records-320.png",
+      "bytes": 25453,
+      "sha256": "46caef48efef7b14c44fdc24cd96e4dd31e22b24234b9cdb0a2942707715be9e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop-retry1/test-failed-1.png",
+      "bytes": 22705,
+      "sha256": "56cee40e528bd04043936ff30cda213e09d438bca06c97a80bb3b714bf66918e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-完成对话框支持取消、空结果、多行补充与失败保留-chromium-desktop/completion-dialog-desktop.png",
+      "bytes": 126281,
+      "sha256": "4a96d6564e9e8ed96fadec4915d084a39ee919aa1cde6c318312ca39f2360c83"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-完成对话框支持取消、空结果、多行补充与失败保留-chromium-desktop/completion-dialog-mobile.png",
+      "bytes": 50935,
+      "sha256": "b1dc92f92403c981f7cbff9cff6937d48cbc963ae6a57f8ca2a5f46cab714111"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-日报周报顶部顺序和周报紧凑双卡长文本滚动-chromium-desktop/weekly-compact-desktop.png",
+      "bytes": 115332,
+      "sha256": "10575a294c460007df257e8706d292c2775b5a7f07e58eec50e365131e6087da"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-日报周报顶部顺序和周报紧凑双卡长文本滚动-chromium-desktop/weekly-compact-mobile.png",
+      "bytes": 26909,
+      "sha256": "3d5cadcffff3fb52a9b970449200518784ce5ca069a2cf6a93d6a009813025e0"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-登录眼睛按钮保留密码并支持键盘切换且不会提交表单-chromium-desktop/login-eye.png",
+      "bytes": 238003,
+      "sha256": "23cbd2e9d5cab733b35523304616105ac4644c8451a50a68d31dc4293ded7f33"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-账号菜单、管理员创建与换账号隔离-chromium-desktop/error-context.md",
+      "bytes": 1733,
+      "sha256": "69b2f0821205ee5241d04de4ef8b863354a917b8a570b03a8153c4188cd2c018"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-账号菜单、管理员创建与换账号隔离-chromium-desktop/test-failed-1.png",
+      "bytes": 17689,
+      "sha256": "a0401b8c9ff698661481cb44cebb1b8f426f5086607081273ad1038586b5ab42"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-账号菜单、管理员创建与换账号隔离-chromium-desktop-retry1/error-context.md",
+      "bytes": 1733,
+      "sha256": "b53c8cf5c3a574fe789157313b3d8c64d66ceea471f741870b7d7b5749ecb0c2"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-1/workbench-账号菜单、管理员创建与换账号隔离-chromium-desktop-retry1/test-failed-1.png",
+      "bytes": 17680,
+      "sha256": "4267b21c74f068c48a092f4da88692d5a4fda6015ab777878944575c2ce5937d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/d9-desktop-workflow.png",
+      "bytes": 94534,
+      "sha256": "e2592a822debf69d58dc2e0c21d76dd0def974a62b5bae1f59270fa19573438b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/focus-alarm-后台提醒同代次20秒续租只延长音频停止时间，不重复创建循环源-chromium-desktop/error-context.md",
+      "bytes": 4085,
+      "sha256": "cce4e4868ea826689c5388543055fba7028ea1ec77d38dd061a2b88c1bf645ac"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/focus-alarm-后台提醒同代次20秒续租只延长音频停止时间，不重复创建循环源-chromium-desktop/test-failed-1.png",
+      "bytes": 60646,
+      "sha256": "eb8b5d632738681f28578de1dc2cf998def3261303a108a7d54f6f4c90211a10"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/focus-alarm-提醒控制权到期停止循环，用户恢复只启动仍待处理的提醒-chromium-desktop/error-context.md",
+      "bytes": 4085,
+      "sha256": "cce4e4868ea826689c5388543055fba7028ea1ec77d38dd061a2b88c1bf645ac"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/focus-alarm-提醒控制权到期停止循环，用户恢复只启动仍待处理的提醒-chromium-desktop/test-failed-1.png",
+      "bytes": 60646,
+      "sha256": "eb8b5d632738681f28578de1dc2cf998def3261303a108a7d54f6f4c90211a10"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-1024.png",
+      "bytes": 148639,
+      "sha256": "76a758ff26d08112354abc510af46bc436f6f8de21179683b4d2c3982b99c7ca"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-1440.png",
+      "bytes": 162243,
+      "sha256": "17fcc31f78fe8c4debeaf7ea02ec6e9bd0058b1e039819f7c403b8f3b30dbaf7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-320.png",
+      "bytes": 15711,
+      "sha256": "647ce6644260da622210908c7bd19ad6ed8ac55120e8e49b3f957b31be8de6b8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-390.png",
+      "bytes": 31457,
+      "sha256": "db99b9ef87fa6e29ff778cd9abb2f06364058d7291de051b65233c49c9234126"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-768.png",
+      "bytes": 55079,
+      "sha256": "326593679b87d4d4cc75b602ae71bed89902dcf9cf9d2e5a6ad5c744ae542483"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-1024.png",
+      "bytes": 68689,
+      "sha256": "4e84fbbc4310db21cba7f94546bb49070ccd973c163ad419dc2ca722c3c05685"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-1440.png",
+      "bytes": 73770,
+      "sha256": "611765921319018a3fca330f5aa98798be11beb52c20c35aa1fb582cce7dde5f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-320.png",
+      "bytes": 21058,
+      "sha256": "c4dfb60518f405ed3403f1aacc636ba4ec511b88d74033e6cabfcb5a6d494e53"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-390.png",
+      "bytes": 40623,
+      "sha256": "b386a134eab801da40ad5d273b8171b89d0900c5c556fa8c672c596c8a56d615"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-768.png",
+      "bytes": 37539,
+      "sha256": "6b057be77dfe4e76b309aa703238a1c028d998276adc2db5167ce436fea7bc59"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-1024.png",
+      "bytes": 82270,
+      "sha256": "0543146869f39f39f71a69cc4c830e7a7c40120216e0fddd2dc6293c24aaa6aa"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-1440.png",
+      "bytes": 85491,
+      "sha256": "93dee85bbd759b699cfeddd32c5279c11508802b8bb94f10bbfc17554a904507"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-320.png",
+      "bytes": 25997,
+      "sha256": "2a49a7c620f220c61c0c7136dadd6a94f84d16a9433447ab873254ef6a81b89d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-390.png",
+      "bytes": 46972,
+      "sha256": "59cec38f938e5e04f7cba096534cb6f1c629ae420c8d0dd49effc1a61b127407"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-768.png",
+      "bytes": 45213,
+      "sha256": "ddb60f101db2818d01bbfae9f3817ab9cba2ba31ec8931b70dcf33c2fddfcf7f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-1024.png",
+      "bytes": 94265,
+      "sha256": "ff2a36834b18a6ade5778bf18f208605e8cc5a74106087c7f2a1eb7f79626141"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-1440.png",
+      "bytes": 99536,
+      "sha256": "c783ca0f18bec4ff4b3420ac3136b68e62d8b58cb29b97b53681f6beb9861659"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-320.png",
+      "bytes": 24506,
+      "sha256": "af4faf5e219e99261774432e4c1ef3b3cf5db0383d2806938ee3dd159f207184"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-390.png",
+      "bytes": 42207,
+      "sha256": "3891e1642738263ec4acdc06a8228c05816454aef80be64a5160dddb1f18b13f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-768.png",
+      "bytes": 40861,
+      "sha256": "cde2eecd9d9b14558456a89d85cf93e3b5e5d3ac77c86f6d5458a7783fe8ef98"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-1024.png",
+      "bytes": 70072,
+      "sha256": "9f4ea972a4c70da7d6e4d5a2339d4fa12f0778d40f4e8cfbec94bc1c5101d998"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-1440.png",
+      "bytes": 81183,
+      "sha256": "63ba25553fa6c961045db77b7379859d78b939d096dcd5febea0e7007c9563a4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-320.png",
+      "bytes": 23485,
+      "sha256": "089be63eb7aac93cfe7c97b2829242074877821a90595684221f84b377ca2a56"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-390.png",
+      "bytes": 37706,
+      "sha256": "00256d8fa5bf40384232919a13a5c0ca0c7cab7ddd309508b494742398f1eeec"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-768.png",
+      "bytes": 36523,
+      "sha256": "aa1cfe0cc5e504d115f1ec384f672f400588295cebe27be4b13e2ea7b958a464"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-完成对话框支持取消、空结果、多行补充与失败保留-chromium-desktop/completion-dialog-desktop.png",
+      "bytes": 126281,
+      "sha256": "4a96d6564e9e8ed96fadec4915d084a39ee919aa1cde6c318312ca39f2360c83"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-完成对话框支持取消、空结果、多行补充与失败保留-chromium-desktop/completion-dialog-mobile.png",
+      "bytes": 55272,
+      "sha256": "71e2248e167ade96c739a3803f04510e7a9fd6cdace737026c42d30a6a02799f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-日报周报顶部顺序和周报紧凑双卡长文本滚动-chromium-desktop/weekly-compact-desktop.png",
+      "bytes": 115423,
+      "sha256": "9806991827ff89a899e77563a3ff874c737a7d6fddf00d0c024e2e3e1154d0ee"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-日报周报顶部顺序和周报紧凑双卡长文本滚动-chromium-desktop/weekly-compact-mobile.png",
+      "bytes": 27231,
+      "sha256": "7e181ef2ca9f82189956638817f6095c563abbbda60ed3e85dfe88ba6fad384f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-run-2/workbench-登录眼睛按钮保留密码并支持键盘切换且不会提交表单-chromium-desktop/login-eye.png",
+      "bytes": 238003,
+      "sha256": "23cbd2e9d5cab733b35523304616105ac4644c8451a50a68d31dc4293ded7f33"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-1024.png",
+      "bytes": 148639,
+      "sha256": "76a758ff26d08112354abc510af46bc436f6f8de21179683b4d2c3982b99c7ca"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-1440.png",
+      "bytes": 162243,
+      "sha256": "17fcc31f78fe8c4debeaf7ea02ec6e9bd0058b1e039819f7c403b8f3b30dbaf7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-320.png",
+      "bytes": 15711,
+      "sha256": "647ce6644260da622210908c7bd19ad6ed8ac55120e8e49b3f957b31be8de6b8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-390.png",
+      "bytes": 31457,
+      "sha256": "db99b9ef87fa6e29ff778cd9abb2f06364058d7291de051b65233c49c9234126"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/drawer-768.png",
+      "bytes": 55079,
+      "sha256": "326593679b87d4d4cc75b602ae71bed89902dcf9cf9d2e5a6ad5c744ae542483"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-1024.png",
+      "bytes": 68689,
+      "sha256": "4e84fbbc4310db21cba7f94546bb49070ccd973c163ad419dc2ca722c3c05685"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-1440.png",
+      "bytes": 73770,
+      "sha256": "611765921319018a3fca330f5aa98798be11beb52c20c35aa1fb582cce7dde5f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-320.png",
+      "bytes": 21037,
+      "sha256": "42a6dc15df6dae44004a448195652741f08cff566746b39b5a6de3dc0b96e4ff"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-390.png",
+      "bytes": 40623,
+      "sha256": "b386a134eab801da40ad5d273b8171b89d0900c5c556fa8c672c596c8a56d615"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/projects-768.png",
+      "bytes": 37539,
+      "sha256": "6b057be77dfe4e76b309aa703238a1c028d998276adc2db5167ce436fea7bc59"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-1024.png",
+      "bytes": 86085,
+      "sha256": "c54c2d800627d140f8bbcefbee8853cdd271b3cb04ffb17138261aa124a99460"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-1440.png",
+      "bytes": 89053,
+      "sha256": "faceddbef0a0459e3b5f64a24cd5d28fef6e9f9371314ae6afb620cc70db3489"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-320.png",
+      "bytes": 26534,
+      "sha256": "e4f0499ce9452f25d6fb85dc09794b0042961af41247d12ce248b98e3af69f9a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-390.png",
+      "bytes": 44768,
+      "sha256": "e58e7b8166c87cc32c215db1864089c0e679f04ea35b34c361a0fb0a2b0e1838"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/records-768.png",
+      "bytes": 47432,
+      "sha256": "5b95eaf8fb38cd4e9d9323f002a0bc45e6e6e898b3f3841fd3eb57d162717133"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-1024.png",
+      "bytes": 94193,
+      "sha256": "964437b16e0899513462b54a488c4636b702a08e38561b4c9d571504956cc399"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-1440.png",
+      "bytes": 99445,
+      "sha256": "d5c3230c7f0eb7610a1f2f5e780c25c631668fe231554ec0686eace03ab5aac5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-320.png",
+      "bytes": 24500,
+      "sha256": "b39459dcf38a646b93c437eec2f781a02caf8eb0a8754b5a83cf12fc473f1bc7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-390.png",
+      "bytes": 42136,
+      "sha256": "91e1525014fe59f91f9fa9cbb3790664a25dc3896f83b3175bdc670430cfcf7f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/reports-768.png",
+      "bytes": 40838,
+      "sha256": "6f5514d111b9db1322f6b075c10f5d23789412b48e009c19fc019454d310b71d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-1024.png",
+      "bytes": 70072,
+      "sha256": "9f4ea972a4c70da7d6e4d5a2339d4fa12f0778d40f4e8cfbec94bc1c5101d998"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-1440.png",
+      "bytes": 81183,
+      "sha256": "63ba25553fa6c961045db77b7379859d78b939d096dcd5febea0e7007c9563a4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-320.png",
+      "bytes": 23485,
+      "sha256": "089be63eb7aac93cfe7c97b2829242074877821a90595684221f84b377ca2a56"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-390.png",
+      "bytes": 37706,
+      "sha256": "00256d8fa5bf40384232919a13a5c0ca0c7cab7ddd309508b494742398f1eeec"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/regression-targeted/workbench-四区单屏滚动与编辑抽屉在桌面、手机和矮窗口可用-chromium-desktop/tasks-768.png",
+      "bytes": 36523,
+      "sha256": "aa1cfe0cc5e504d115f1ec384f672f400588295cebe27be4b13e2ea7b958a464"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/01-community-desktop.json",
+      "bytes": 179,
+      "sha256": "88a4c27cb93d1d869112eb83b72ce885508543e19091b7be4cf4836a1b2428f5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/01-community-desktop.png",
+      "bytes": 74769,
+      "sha256": "a5bbd6f256cd3192c60da056776b893e6d4507c3bce9511716ea27eef090b3c5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/02-source-selection-desktop.json",
+      "bytes": 188,
+      "sha256": "17a91f5ff66662eb79e5da934c48bcfa751cb7dbf21995c88a8c37c2afbc977b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/02-source-selection-desktop.png",
+      "bytes": 82682,
+      "sha256": "38ddf0de8d3c981b2161c71fc0c1c8df4946b256800bbdbb96d5256925bfdb79"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/03-editor-desktop.json",
+      "bytes": 189,
+      "sha256": "a3acfd13bb15f22c18712675d92292ed564dd014e579c9c4426dac1d52437984"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/03-editor-desktop.png",
+      "bytes": 91851,
+      "sha256": "16b5acf26f188b3e780bbfd768de73cabb0a48dd38637759cde22a6984eae2f4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/04-preview-desktop.json",
+      "bytes": 231,
+      "sha256": "de9aecc2bb61ca692b373a2a4ba6b0a49e659d7c8788b4b8e59a15ccfb7e3fa9"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/04-preview-desktop.png",
+      "bytes": 82391,
+      "sha256": "36f8e871c3a627940ff20ed9904661a9d19248bbb87b9ec4a21571884109a475"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/05-detail-desktop.json",
+      "bytes": 222,
+      "sha256": "06adb1af05bda88cb037b4d5658b1c562fff95a6da68d2285cffd26473d418d4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/05-detail-desktop.png",
+      "bytes": 61560,
+      "sha256": "e72da1a5b3001896e093165dea9c850391569b5226924ea2ed52e6ac3708de1e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/06-my-publications-desktop.json",
+      "bytes": 180,
+      "sha256": "1075d0f0d5fbce572d9a3e343ded3a165eaf66122a7354b3f5bf4c8ab2bb1f2e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/06-my-publications-desktop.png",
+      "bytes": 64392,
+      "sha256": "ab74082ea581189d6fb4ff40914c117e95d41c51a4ad37b1941432be592baf66"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/07-withdraw-dialog-desktop.json",
+      "bytes": 180,
+      "sha256": "1075d0f0d5fbce572d9a3e343ded3a165eaf66122a7354b3f5bf4c8ab2bb1f2e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/07-withdraw-dialog-desktop.png",
+      "bytes": 139161,
+      "sha256": "08a2fadcc2a9317bfb2c0e6e0a846063d3458169c9c2caee6974b02f6ac72af9"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/08-author-desktop.json",
+      "bytes": 224,
+      "sha256": "345351f9bf6dda0f44e4936e9451dac1bc0b3df6ab7b2fb284c20fb2b6e2dc1b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/08-author-desktop.png",
+      "bytes": 61949,
+      "sha256": "645bd0ec57b6704646845cde65bbb1bf4f0d1a9eba6f3702e73e82e7299a8bc1"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/09-login-desktop.json",
+      "bytes": 222,
+      "sha256": "06adb1af05bda88cb037b4d5658b1c562fff95a6da68d2285cffd26473d418d4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/09-login-desktop.png",
+      "bytes": 102230,
+      "sha256": "16fbaa40158b2c7f621983b772cd83072a8652b62c3099e3c4f6c45d5da22a30"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/10-upload-error-desktop.json",
+      "bytes": 191,
+      "sha256": "323b413ba8faf30fb47600e7063e2c722b5fbec01914bce80ab786cb007de229"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/10-upload-error-desktop.png",
+      "bytes": 93640,
+      "sha256": "65c9edb76eabb239f1ed481eda6c5bf9a083c98146c6d899f05d8115cb376d79"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/11-community-mobile.json",
+      "bytes": 175,
+      "sha256": "ed83694982287ac22284eac1888896c2d3b6768f893989bcfc1a0dd6aee64e2a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/11-community-mobile.png",
+      "bytes": 38785,
+      "sha256": "2bea7723ce71647b1e09a811ff6e75ec2a04956a41dc81c84d3b2814f6101dca"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/12-source-selection-mobile.json",
+      "bytes": 184,
+      "sha256": "443afd69e5971915bbb56ab445fcf20a36bb38d108033a221e8fdee4307cf694"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/12-source-selection-mobile.png",
+      "bytes": 40793,
+      "sha256": "f080634a1b20427795852c0d426c4aab9f23227c59155398454539bc76b1fa62"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/13-editor-mobile.json",
+      "bytes": 219,
+      "sha256": "443ffe62f0982f84e75d66688902f969034fcba3e9b61e19a4efeea8beb865b8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/13-editor-mobile.png",
+      "bytes": 40680,
+      "sha256": "dc99fb6f5c7029aaae62560a38079b4ff496eff69f26a3316db205e50265154e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/14-attachments-mobile.json",
+      "bytes": 221,
+      "sha256": "2d53f244262da79bb1e9b5b2042ff04f566b9f34ae044b62d4a72d442994318c"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/14-attachments-mobile.png",
+      "bytes": 35574,
+      "sha256": "d67f56fe0816eba5d959a26f4ba7eaf9351835b0a2e0bdb5d31a267ddefb37a8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/15-detail-mobile.json",
+      "bytes": 218,
+      "sha256": "6e1bc93cf5993caadc1b5802eb5985e565297f858f3c5cc96bc1c0ec11e95a04"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/15-detail-mobile.png",
+      "bytes": 23167,
+      "sha256": "0cf5174f04602638e4aa548966911da3ee8d2a5da3356f39f1ec0c0eb6c8f4b2"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/16-downloads-mobile.json",
+      "bytes": 220,
+      "sha256": "e5ed9deaaf22039f17a9a724bdd95a7302e85ee5495bbbb568d3d54e4e905545"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/16-downloads-mobile.png",
+      "bytes": 26410,
+      "sha256": "29fc6d4b83a10e8afa7f7763cb8b1fddc270b2dca51db8ee8c5a99cb9a45c57e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/17-my-publications-mobile.json",
+      "bytes": 176,
+      "sha256": "bde36458f263b6cf5d4f8687b47fa1cf429aa91e1ae77a3a2bc851b077777239"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/17-my-publications-mobile.png",
+      "bytes": 32107,
+      "sha256": "ead7bf42cc20cdd893df974f557faabcd1c5f3c2ed30ee947f5616a845088856"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-compose-desktop.json",
+      "bytes": 184,
+      "sha256": "62e9cc588b630c92d1b898105ab492d66756791a00b3e25840c436eaa737213d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-compose-desktop.png",
+      "bytes": 57634,
+      "sha256": "4c013ed118fd8bcf9f7b80256608074095a4c7c9c617c5dc276989b7cf595c3b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-compose-mobile.json",
+      "bytes": 180,
+      "sha256": "3344914673919bd2a4f1cbfbd9ade4bf25d9b6e26bb07466526a3d23f2048105"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-compose-mobile.png",
+      "bytes": 34730,
+      "sha256": "99241b33b27d8487bda9e62fe294e00f43ddc57d1f238120d037f42108544689"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-empty-feed-desktop.json",
+      "bytes": 179,
+      "sha256": "88a4c27cb93d1d869112eb83b72ce885508543e19091b7be4cf4836a1b2428f5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-empty-feed-desktop.png",
+      "bytes": 74768,
+      "sha256": "78b5836e98e6e37b82e558ed65f041e2388264594c92cf46d4631b8d9fa8e208"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-empty-sources-desktop.json",
+      "bytes": 188,
+      "sha256": "17a91f5ff66662eb79e5da934c48bcfa751cb7dbf21995c88a8c37c2afbc977b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-empty-sources-desktop.png",
+      "bytes": 85684,
+      "sha256": "b88bc8f02b53a02f8e9fdaa00c3c6b7a7055168469ca7f8a472ba094957de8c7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-image-lightbox-mobile.json",
+      "bytes": 220,
+      "sha256": "9239aebd31ddd9e4f72f16c32771287fc9fe89b940fa6ca9d16bdc00a873d851"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-image-lightbox-mobile.png",
+      "bytes": 38718,
+      "sha256": "3d57f67e3066cf780bd4e3eb9635fbc88bc8c8c83a19d15d22590ad709ac02c6"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-preview-mobile.json",
+      "bytes": 230,
+      "sha256": "491866a5c810625d40c8b309e34a193679ef4656da215ee5d7e5a325a360b11c"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/extra-preview-mobile.png",
+      "bytes": 35075,
+      "sha256": "992521c7cfb3dd15355a22859072f55bf71584758fa51ca306b9baaa9dc6569b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/fixture-http-403-desktop.json",
+      "bytes": 188,
+      "sha256": "dec5034b7b1174d3a01a3a53ed95a7570e9c674d956d52ba46b4fbbd4c1d8159"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/fixture-http-403-desktop.png",
+      "bytes": 71738,
+      "sha256": "eedb485356c145fdcf9d5a6e0e14d7d3156ab451e15905007c78d04a626020ce"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/fixture-http-503-desktop.json",
+      "bytes": 188,
+      "sha256": "dec5034b7b1174d3a01a3a53ed95a7570e9c674d956d52ba46b4fbbd4c1d8159"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/fixture-http-503-desktop.png",
+      "bytes": 71714,
+      "sha256": "d9d709ccc6af04cab582a33b0b3b13549724301c936f6b65a3e999a5bd50329a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-desktop-bottom.json",
+      "bytes": 181,
+      "sha256": "dd241410f4d602981204174915d86ff4d279626ebd7e3d1de21c97b462a5c720"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-desktop-bottom.png",
+      "bytes": 96750,
+      "sha256": "c1f6a85f1d8b122b6d594e4dc827201bc9fee90ff46aa9a3f5a966c43ec083a1"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-desktop.json",
+      "bytes": 179,
+      "sha256": "88a4c27cb93d1d869112eb83b72ce885508543e19091b7be4cf4836a1b2428f5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-desktop.png",
+      "bytes": 98779,
+      "sha256": "9933bad63a365bccfe4fa9e0c5793095647cf1604222982512763da08ea4fed4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-mobile-bottom.json",
+      "bytes": 177,
+      "sha256": "5f2a3d0d168490cfa2bb64a899dd26290b474956712a9bf6daee317aad61bbc7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-mobile-bottom.png",
+      "bytes": 39094,
+      "sha256": "acf9c0421851f81a0a29e1e2f7026b63737222815f77b5a240122ec2cead53ef"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-mobile.json",
+      "bytes": 175,
+      "sha256": "ed83694982287ac22284eac1888896c2d3b6768f893989bcfc1a0dd6aee64e2a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/populated-feed-mobile.png",
+      "bytes": 44991,
+      "sha256": "7e2f41e4bebc5ad8f84e82f2e13061af4f10e16f81fcae1db97e844a70173008"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/saved-editor-desktop-top.json",
+      "bytes": 223,
+      "sha256": "a5562361e8e94618ff92842c57c9991b6e3fb885efe0b47932782aa444397c45"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-ui/validation/screenshots/saved-editor-desktop-top.png",
+      "bytes": 96569,
+      "sha256": "f4b82db9d90e9651f0b47045e1611fc754b460ca22884823fb907d0559361779"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/check.jsonl",
+      "bytes": 2207,
+      "sha256": "d284625f578853f9db3aaf725c09cbffccdec5e6ccc5b039c66e98a4290ea3e5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/commit-plan.json",
+      "bytes": 10254,
+      "sha256": "513a5cbff337803f8d66967d3a5d9fe69af9672232e26de1a5be2cded90b6887"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/commit-plan.md",
+      "bytes": 9786,
+      "sha256": "3178e5d48576ae5428141148da26119a23fd356c683253e833c0be18b87b508b"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/completion-audit.md",
+      "bytes": 6529,
+      "sha256": "33edd9f1e5374f7e345617b9c6fde282ab195930a47663cd46e7c8a4a108bfe6"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/design.md",
+      "bytes": 22545,
+      "sha256": "3032bca79433d3d2ca2d05fa37809613060f01aee43412e0157d1319ef8ecd52"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/execution-state.md",
+      "bytes": 1590,
+      "sha256": "0df27bff2f238a9e8c6ac3f37e12fb9e77fc261170fdd7e72b8f42169f8b3891"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/implement.jsonl",
+      "bytes": 2207,
+      "sha256": "d284625f578853f9db3aaf725c09cbffccdec5e6ccc5b039c66e98a4290ea3e5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/implement.md",
+      "bytes": 11671,
+      "sha256": "ba006a0ac44499dcaac8ac3241f7b5ebe51fa3f1aca18b65c9588dd108427dd8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/planning-review.md",
+      "bytes": 5942,
+      "sha256": "825acb3feeb4c9f43f1e17f72a22a5d804661a5eb8c326885a6a0701d19cc546"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/prd.md",
+      "bytes": 9749,
+      "sha256": "09650adb19b3d119a6ffacaa0bdc512a0a7f7d747fe75b251de43a99336c8529"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/task.json",
+      "bytes": 1070,
+      "sha256": "5a520c4c647426116106c5020e38e1a2eaed798821853971e25244acebd34ecf"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/validation.md",
+      "bytes": 10802,
+      "sha256": "15439bbd3ef6216d052e4683527a6bbeb09bd0ce2e77b244b74135a1eb6753e4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/approval-gate-audit.md",
+      "bytes": 13025,
+      "sha256": "014df625882300ecc6b38dec9920a0c5f9e233d5e2c0e3e47588c682ac82dac5"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/backend-review.md",
+      "bytes": 12257,
+      "sha256": "92df931cdd65bfd4c92d6cabf2f880aff3766ee4ec262a332954c12dd88a6e67"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/backend.md",
+      "bytes": 32884,
+      "sha256": "adcc5e5db5601578e4431bbd18bba09d72e73690c3dac268dd2818bd9ac7b33d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/execution-approval.json",
+      "bytes": 2536,
+      "sha256": "4824d3658cc55889d1180b4e1a5c2e37b2d46cba872469cc100b74e638706ebf"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/finish-scope-audit.md",
+      "bytes": 2513,
+      "sha256": "afedabf3d64c43f960cbb24eedf709833c162d9c74b2e0aeb11c006602c03cc8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/frontend-review.md",
+      "bytes": 13352,
+      "sha256": "fe080c39098b9e533efc0351de5bc57ec75a73d1b6c0858c5bc6a8da57dc32fe"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/frontend.md",
+      "bytes": 29697,
+      "sha256": "ae26b95da0fbd4924543b9c08dc066a5cd6ec490aeafb808bcce69ac86c33327"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/git-approval.json",
+      "bytes": 343,
+      "sha256": "9797b20d9c191c3f3bdc94c676366bebfaebf33a527bee03be7f6e550d9a418f"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff-check.md",
+      "bytes": 5813,
+      "sha256": "00b5a51d4912be26fa09d6a2b759455060c14b3929df57935efff1c07ccc1f1d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/package-verification.json",
+      "bytes": 7902,
+      "sha256": "2805366596716919c2688d533858f9d5e854e18ec356f85fdc058c906fa3af67"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/planning-validation.json",
+      "bytes": 4679,
+      "sha256": "24c1399d8ee990f0961dee052fc2e2bf49496ad3c37aee83aab78f6119f51f7d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/runtime-delivery.md",
+      "bytes": 4657,
+      "sha256": "ed3dd1fc243537a0b47ad4d7d109e310ae2a7bad79310e6223f0564832b77fa7"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/storage-review.md",
+      "bytes": 4803,
+      "sha256": "be42bc0b290e7caf15f29739eeeee7b64556555115dd39f83826967e3c9e0725"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/storage.md",
+      "bytes": 32753,
+      "sha256": "5680ee0b523b67d70431c262e5a6d90144b5e3ec8f54ca4bf377550c6bff847a"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/verify_handoff.py",
+      "bytes": 4554,
+      "sha256": "01c804772ca2e6d2237b804ae2ac4fa8ec8eee0bb15c72f2d75130f07c446bce"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/acceptance.md",
+      "bytes": 18285,
+      "sha256": "5b19407ea7c5577c43a567d5f3535563148cedd64b4bac97f9a20a58bfcf5f31"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/HANDOFF.md",
+      "bytes": 21909,
+      "sha256": "c778cfa3cc8c1becb73520068c5d91ed3773a1517362cf1b05b34d6e1d22c5f2"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/PACKAGE-CHECKS.md",
+      "bytes": 4397,
+      "sha256": "c46c35789a0bcc7bcdfbfbe36501fc7c1b9561f3edca08af0755e92fa558b146"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/requirements.md",
+      "bytes": 19921,
+      "sha256": "3ca7419978a1276c667a8391c5e1b523d24086a9bb172110f2817a0968c52fd8"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/SHA256SUMS.txt",
+      "bytes": 3768,
+      "sha256": "693070a4523859bca8d31145979797217ce48008943a7bc07aa2cbc06cc7f746"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/solution.md",
+      "bytes": 25204,
+      "sha256": "adf72483e4679984b551b159f2877d2871a5dd304127daac2efa4b2822fe97ba"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/build.py",
+      "bytes": 1280,
+      "sha256": "e40417f0ed81c9ac9481cbcd4df8f66fc9510e6775852173d08b463408d97cbb"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/CHECKS.md",
+      "bytes": 2927,
+      "sha256": "7ecb949743962bdcf46ab3b595cc6f908c8a5c3551382f6184642b7652b9e24e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/index.html",
+      "bytes": 93136,
+      "sha256": "6ef3c1b373f4c14a6c65f4f5d2ec5819d90f9aa217c7473a61c86f8cd91fcb65"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/mobile-overview.png",
+      "bytes": 192313,
+      "sha256": "f39fbeb9d91c650a845e8af47df8adf52d1af0dad9d69bb9ed0e12ff9b7f1e34"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/preview-gallery.html",
+      "bytes": 6002,
+      "sha256": "3bcd1ad54c97e779277d304475fd7dc194d05421c3bdb84a3eda710dead0ec77"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/README.md",
+      "bytes": 5492,
+      "sha256": "18e141c950aa21069131e1ab1272c228ec206f2f3c7983488368b4b11c379e44"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/review-notes.md",
+      "bytes": 8968,
+      "sha256": "4e9f9d3824e1d0d26f5182f04dcdfafa734d3d1cd6c6bbde6a5f50b4742ce2b4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/SHA256SUMS.txt",
+      "bytes": 2686,
+      "sha256": "ed7c7e7f1eb1593af16e460f76af5406f364b71f91575f171e1eafe46e1173d6"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/checks/results.json",
+      "bytes": 5671,
+      "sha256": "e6af857148088e1e1e7e7fbbc27c660864994566a231913a3c0db0cfe02b601d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/checks/smoke.py",
+      "bytes": 12840,
+      "sha256": "118ca9d05efb1db195ce88bf3592c9c16b4e7022278473e4ab38f5c0f940b5c2"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/01-community-desktop.png",
+      "bytes": 195855,
+      "sha256": "e781b1abffb13f12674cfffd419e77abe834dea0adec08f86efad7d69c4cd914"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/02-source-selection-desktop.png",
+      "bytes": 192529,
+      "sha256": "df4fd15a5c275118775345f8885fbf19eba1c3672fb1222c5321ed12bb67f2a6"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/03-editor-desktop.png",
+      "bytes": 214324,
+      "sha256": "ad1671e208845e7e1f827c678bddea7d1cec5a4a2aba731dbaf4f22b5ce87dc1"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/04-publish-preview-desktop.png",
+      "bytes": 216353,
+      "sha256": "55a8d1bc0bc53ff3f00fb491479ad0759f0788571297f3c8a0b2344e67c73e9e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/05-article-desktop.png",
+      "bytes": 188873,
+      "sha256": "8bbe6faadf94e738005153d0231b0617b5e579ad446c441473c0d465429c3f30"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/06-my-posts-desktop.png",
+      "bytes": 137416,
+      "sha256": "51d923942ef2d9dd541283c0ce96c9406a676b4aaf3cc1962c5f681adf8a99f9"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/07-withdraw-confirm-desktop.png",
+      "bytes": 191499,
+      "sha256": "95b433d654f688e6cd4fa4123545d1951b87ae1609bd68b8e39e60723e7f09a2"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/08-author-profile-desktop.png",
+      "bytes": 104539,
+      "sha256": "6cc3ae014aadf8a1fc2f70e398a48c505e06ad4255bd9327c645a8c6c0d2f06e"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/09-login-gate-desktop.png",
+      "bytes": 77219,
+      "sha256": "1ae0db6ac022e644e035364a2eadf40f3b52378f6b0c5c7eae8793b74e074aac"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/10-upload-error-desktop.png",
+      "bytes": 222010,
+      "sha256": "1a420a8b5855834d40db5fd07c8bf4e0a0f9896f849f03f6a9ff5fb7c84d97cd"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/11-community-mobile.png",
+      "bytes": 61473,
+      "sha256": "d1a84a2cbd01a887f26072f8f11abc3cd7775878ddcebc262788ec41697e82d1"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/12-source-selection-mobile.png",
+      "bytes": 75412,
+      "sha256": "325462156351b43a41f0679c41757cb761aa8bdb662102a1f3f2576a5ab338cb"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/13-editor-mobile.png",
+      "bytes": 65091,
+      "sha256": "af626629c46756de272773d2ea66aeb4fa48199de116c058130d712e32d5f6f4"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/14-attachments-mobile.png",
+      "bytes": 61736,
+      "sha256": "7b54b9d5494d86d442e4599e41f4d01a0daa372b5eb7b7a7e2390239de1bc291"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/15-article-mobile.png",
+      "bytes": 64213,
+      "sha256": "646fee57aed0f016e703aff69a526b280c388f3e13d58d437687a87f17902f07"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/16-downloads-mobile.png",
+      "bytes": 52917,
+      "sha256": "6c0df7369095a3c15325075a4fb2fc565d9045a41cf3534949030b5b38a25c19"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/previews/17-my-posts-mobile.png",
+      "bytes": 58191,
+      "sha256": "0b36331f87c6926af1f5d94fc4b89c53bb8f3af3e1a224ab32fbe62d4e344e5d"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/src/app.js",
+      "bytes": 55293,
+      "sha256": "c199783296e543776a07d77031a634d55f4d6700f1a4ce3d840da3a9766341c9"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/src/fixtures.js",
+      "bytes": 6291,
+      "sha256": "bf3871376e90fca8c1265cc1e3b74131fcbec1764192eda7c5b445e320f2a708"
+    },
+    {
+      "path": ".trellis/tasks/10-03-community-oss/research/handoff/r3/assets/prototype-r2/src/styles.css",
+      "bytes": 30828,
+      "sha256": "02d0542ac69de8ccee9976aa8896002a297ec7bb7dd93aa6194192d86c4d3cd8"
+    }
+  ],
+  "managedTaskFilesSha256": "2c5f3b219a82a3d69bd4feacc803755488c64509d02951dc87eb72bf1ca18e0a",
+  "knownCredentialTextScan": {
+    "files": 219,
+    "newMatches": 0,
+    "unchangedHeadPublicDefaults": [
+      {
+        "path": ".env.example",
+        "matchedPublicDefaultCount": 1,
+        "headOccurrenceCountUnchanged": true
+      },
+      {
+        "path": "backend/src/main/resources/application.yml",
+        "matchedPublicDefaultCount": 1,
+        "headOccurrenceCountUnchanged": true
+      },
+      {
+        "path": "compose.yaml",
+        "matchedPublicDefaultCount": 1,
+        "headOccurrenceCountUnchanged": true
+      }
+    ],
+    "claim": "Only known local credential matches, with narrowly verified existing public defaults; not a general secret certification"
+  },
+  "taskRawTraceVideoCacheCount": 0,
+  "businessWhitespaceFindings": 0,
+  "gitStagedFiles": 0,
+  "existingMigrationDiffEmpty": true,
+  "acceptedJarSha256": "63b7df371897bd1cede8bc1c11169655f914f4854c70cff5ef2cac55b0d0c74a",
+  "excludedUnrelated": [
+    "docs/dev-sop/REVIEW-SKILLS.md",
+    "docs/dev-sop/SOP.md",
+    "docs/dev-sop/SOURCES.md",
+    "docs/dev-sop/WEB-PROMPTS.md",
+    "docs/dev-sop/WORKBENCH-CHECKLIST.md"
+  ],
+  "initialReviewBusinessSha256": "69d7f791814983c53ba015a03d8586b55b3f29de01609d030dbe0d47feee3659",
+  "postApprovalChanges": {
+    "cssEofNormalization": {
+      "path": "frontend/src/features/community/community.css",
+      "issue": "git diff --cached --check discovered an extra blank line at EOF in newly added extracted CSS",
+      "scope": "Only terminal newline normalization; all CSS rule bytes unchanged",
+      "beforeSha256": "fd74df5f18992d80bb17c32411d1d6dc5309e2713473d77d7d78291e087f4307",
+      "afterSha256": "e0c5a38a21313e035793c233ba3be9c6f57d315ca32ded21e23481a259164c98",
+      "frontendReverification": {
+        "lintSession": 79040,
+        "lintExit": 0,
+        "buildSession": 59573,
+        "buildExit": 0,
+        "productionAssetNamesUnchanged": true
+      }
+    },
+    "deliveryActualCodeShaUpdate": "Required planned update before third documentation commit"
+  },
+  "actualWorkCommits": [
+    {
+      "sha": "bff403f142793d9f30c039f7036604d368946085",
+      "message": "feat(community): add member publications and private RustFS attachments",
+      "fileCount": 76
+    },
+    {
+      "sha": "5180ff121a2e5e0f1e81d48bdf9307a7c3bd416f",
+      "message": "feat(community): reuse R2 publishing views and protected attachments",
+      "fileCount": 28
+    },
+    {
+      "sha": "9df38313f64bf57e0446ca40dc7e9803af1ff56c",
+      "message": "docs(community): record delivery and publication contracts",
+      "fileCount": 11
+    }
+  ],
+  "managedTaskFilesAreHistoricalPreArchiveSnapshot": true,
+  "childArchives": [
+    {
+      "task": "10-03-community-publishing",
+      "path": ".trellis/tasks/archive/2026-10/10-03-community-publishing",
+      "sha": "d536cf78ce1eff986079f2899e5ede114649d06a",
+      "fileCount": 11,
+      "status": "completed",
+      "commitMethod": "Native lifecycle; exact destination commit after confirmed native pathspec issue"
+    },
+    {
+      "task": "10-03-community-storage",
+      "path": ".trellis/tasks/archive/2026-10/10-03-community-storage",
+      "sha": "d9e01d2ac759fc8db33c86a282996bdabe200540",
+      "fileCount": 10,
+      "status": "completed",
+      "commitMethod": "Native archive --no-commit lifecycle; exact destination commit"
+    },
+    {
+      "task": "10-03-community-ui",
+      "path": ".trellis/tasks/archive/2026-10/10-03-community-ui",
+      "sha": "f807031b6eed803ed4d37409f30f9a58dac6a4e0",
+      "fileCount": 214,
+      "status": "completed",
+      "commitMethod": "Native archive --no-commit lifecycle; exact destination commit"
+    }
+  ],
+  "nativeArchiveCommitIssue": {
+    "issue": "Native archive moved/status-completed/staged correctly, but automatic git commit included a missing never-tracked source path; dry-run confirms pathspec failure",
+    "resolution": "Keep native lifecycle result; commit exact archived destination. Remaining archives use existing --no-commit then exact destination commit. No Trellis code edit, no broader scope"
+  }
+}

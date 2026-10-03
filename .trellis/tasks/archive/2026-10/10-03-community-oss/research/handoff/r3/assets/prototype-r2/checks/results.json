@@ -1,0 +1,244 @@
+{
+  "scope": "仅独立静态交互原型；不是仓库、后端、会话安全或 OSS 验证",
+  "browser": "Chromium via Playwright page.set_content; inline HTML only",
+  "results": [
+    {
+      "name": "广场初始展示三类已发布内容，未显示草稿",
+      "status": "PASS"
+    },
+    {
+      "name": "博客分类只展示博客",
+      "status": "PASS"
+    },
+    {
+      "name": "今日素材默认不勾选",
+      "status": "PASS"
+    },
+    {
+      "name": "跨页选择素材保持选中",
+      "status": "PASS"
+    },
+    {
+      "name": "草稿仅带入选中素材，不带私有项目名或未选记录",
+      "status": "PASS"
+    },
+    {
+      "name": "发布预览默认需要明确确认",
+      "status": "PASS"
+    },
+    {
+      "name": "明确发布后形成发布版本",
+      "status": "PASS"
+    },
+    {
+      "name": "切换读者后可读取新发布内容",
+      "status": "PASS"
+    },
+    {
+      "name": "读者不可进入他人草稿编辑器",
+      "status": "PASS"
+    },
+    {
+      "name": "保存修改草稿不修改读者发布版本",
+      "status": "PASS"
+    },
+    {
+      "name": "撤回后原详情地址不显示正文与附件",
+      "status": "PASS"
+    },
+    {
+      "name": "PDF与MD只有下载按钮，没有预览入口或iframe",
+      "status": "PASS"
+    },
+    {
+      "name": "下载按钮明确反馈是模拟且没有文件传输",
+      "status": "PASS"
+    },
+    {
+      "name": "图片大图对话框可打开、Escape关闭",
+      "status": "PASS"
+    },
+    {
+      "name": "未登录页面不显示原文章题名或附件",
+      "status": "PASS"
+    },
+    {
+      "name": "模拟登录后返回原目标详情",
+      "status": "PASS"
+    },
+    {
+      "name": "页面导航提醒未保存修改",
+      "status": "PASS"
+    },
+    {
+      "name": "原型简化Markdown转义脚本文本和不安全链接",
+      "status": "PASS"
+    },
+    {
+      "name": "不支持GIF扩展名时显示本地错误",
+      "status": "PASS"
+    },
+    {
+      "name": "伪造PNG扩展名的基本文件头校验失败",
+      "status": "PASS"
+    },
+    {
+      "name": "MD上限多1字节拒绝",
+      "status": "PASS"
+    },
+    {
+      "name": "MD恰好1MiB在本地模型可用",
+      "status": "PASS"
+    },
+    {
+      "name": "单篇50MiB允许、超过1字节拒绝、11个拒绝",
+      "status": "PASS"
+    },
+    {
+      "name": "附件未就绪阻止进入发布确认",
+      "status": "PASS"
+    },
+    {
+      "name": "模拟重试不重复增加附件条目",
+      "status": "PASS"
+    },
+    {
+      "name": "加载错误与登录失效分开呈现",
+      "status": "PASS"
+    },
+    {
+      "name": "错误状态重试恢复列表",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1440×1040 /community",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1440×1040 /sources",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1440×1040 /editor/draft-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1440×1040 /post/blog-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1440×1040 /mine",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1440×1040 /profile/b",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1024×768 /community",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1024×768 /sources",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1024×768 /editor/draft-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1024×768 /post/blog-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1024×768 /mine",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 1024×768 /profile/b",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 768×1024 /community",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 768×1024 /sources",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 768×1024 /editor/draft-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 768×1024 /post/blog-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 768×1024 /mine",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 768×1024 /profile/b",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 390×844 /community",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 390×844 /sources",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 390×844 /editor/draft-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 390×844 /post/blog-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 390×844 /mine",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 390×844 /profile/b",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 320×740 /community",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 320×740 /sources",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 320×740 /editor/draft-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 320×740 /post/blog-1",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 320×740 /mine",
+      "status": "PASS"
+    },
+    {
+      "name": "无水平溢出 320×740 /profile/b",
+      "status": "PASS"
+    },
+    {
+      "name": "无浏览器JS异常",
+      "status": "PASS"
+    },
+    {
+      "name": "未发起外部HTTP请求",
+      "status": "PASS"
+    }
+  ],
+  "page_errors": [],
+  "external_http_requests": []
+}

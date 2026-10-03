@@ -1,0 +1,53 @@
+{
+  "userApproval": "User explicitly replied 确认 to the concrete local commit/archive/journal plan on 2026-10-03 Asia/Shanghai",
+  "workCommits": [
+    {
+      "sha": "bff403f142793d9f30c039f7036604d368946085",
+      "message": "feat(community): add member publications and private RustFS attachments",
+      "fileCount": 76
+    },
+    {
+      "sha": "5180ff121a2e5e0f1e81d48bdf9307a7c3bd416f",
+      "message": "feat(community): reuse R2 publishing views and protected attachments",
+      "fileCount": 28
+    },
+    {
+      "sha": "9df38313f64bf57e0446ca40dc7e9803af1ff56c",
+      "message": "docs(community): record delivery and publication contracts",
+      "fileCount": 11
+    }
+  ],
+  "childArchiveCommits": [
+    {
+      "task": "10-03-community-publishing",
+      "path": ".trellis/tasks/archive/2026-10/10-03-community-publishing",
+      "sha": "d536cf78ce1eff986079f2899e5ede114649d06a",
+      "fileCount": 11,
+      "status": "completed",
+      "commitMethod": "Native lifecycle; exact destination commit after confirmed native pathspec issue"
+    },
+    {
+      "task": "10-03-community-storage",
+      "path": ".trellis/tasks/archive/2026-10/10-03-community-storage",
+      "sha": "d9e01d2ac759fc8db33c86a282996bdabe200540",
+      "fileCount": 10,
+      "status": "completed",
+      "commitMethod": "Native archive --no-commit lifecycle; exact destination commit"
+    },
+    {
+      "task": "10-03-community-ui",
+      "path": ".trellis/tasks/archive/2026-10/10-03-community-ui",
+      "sha": "f807031b6eed803ed4d37409f30f9a58dac6a4e0",
+      "fileCount": 214,
+      "status": "completed",
+      "commitMethod": "Native archive --no-commit lifecycle; exact destination commit"
+    }
+  ],
+  "parentArchive": "NEXT, native lifecycle plus exact destination commit",
+  "journal": "NEXT, actual 3 work SHAs; idempotency-key WB-20261003-community-oss-r3-delivery",
+  "nativeArchiveCommitIssue": {
+    "issue": "Native archive moved/status-completed/staged correctly, but automatic git commit included a missing never-tracked source path; dry-run confirms pathspec failure",
+    "resolution": "Keep native lifecycle result; commit exact archived destination. Remaining archives use existing --no-commit then exact destination commit. No Trellis code edit, no broader scope"
+  },
+  "scope": "No push/amend, five SOP excluded, bootstrap stays active"
+}

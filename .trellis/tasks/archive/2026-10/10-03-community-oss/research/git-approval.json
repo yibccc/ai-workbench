@@ -1,0 +1,5 @@
+{
+  "approval": "User explicitly replied 确认 to the concrete local commit/archive/journal plan on 2026-10-03 Asia/Shanghai",
+  "scope": "Only exact approved three work groups, four named task archives and journal; no push/amend/PR/cloud operation",
+  "previousGate": "Satisfied by actual user message, not by automatic continuation"
+}

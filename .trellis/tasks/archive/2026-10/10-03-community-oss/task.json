@@ -1,0 +1,34 @@
+{
+  "id": "community-oss",
+  "name": "community-oss",
+  "title": "站内广场与私有附件：R3 正式规划",
+  "description": "核对 WB-20261003-community-oss-3f9aaa-r3，复用 R2 原型，完成站内广场、发布快照与本地 RustFS 附件规划，预留阿里云配置切换。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kira",
+  "assignee": "kira",
+  "createdAt": "2026-10-03",
+  "completedAt": "2026-10-03",
+  "branch": "codex/community-oss",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-03-community-publishing",
+    "10-03-community-storage",
+    "10-03-community-ui"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "handoff_id": "WB-20261003-community-oss-3f9aaa",
+    "handoff_revision": "3",
+    "implementation_approval": "User explicitly replied 开工 and 批准并连续执行 after the final planning summary on 2026-10-03."
+  }
+}
