@@ -22,11 +22,13 @@
 ```bash
 test -f .env || cp .env.example .env
 chmod 600 .env
-# 编辑 .env，设置数据库密码、首位管理员引导账号密码和 DeepSeek API Key
+# 编辑 .env，设置数据库密码、首位管理员引导账号密码，以及分离的 RustFS 管理/应用随机凭据。
+docker compose up -d --wait postgres redis rustfs
+python3 scripts/local/initialize-storage.py --env-file .env --endpoint http://127.0.0.1:9000 --bucket workbench-community
 docker compose up -d --build --wait
 ```
 
-Compose 启动 PostgreSQL、Redis、Java 后端和 Nginx 前端，构建所需的 Java、Node 均由镜像提供。后端镜像构建使用 [阿里云 Maven 公共镜像](https://developer.aliyun.com/mirror/maven)，配置在 `backend/maven-settings-aliyun.xml`；本机 Maven 构建慢时可在 `backend/` 运行 `mvn -s maven-settings-aliyun.xml clean verify`。首次构建还需要访问 Docker 镜像源和 npm。
+Compose 启动 PostgreSQL、Redis、RustFS、Java 后端和 Nginx 前端，构建所需的 Java、Node 均由镜像提供。后端镜像构建使用 [阿里云 Maven 公共镜像](https://developer.aliyun.com/mirror/maven)，配置在 `backend/maven-settings-aliyun.xml`；本机 Maven 构建慢时可在 `backend/` 运行 `mvn -s maven-settings-aliyun.xml clean verify`。首次构建还需要访问 Docker 镜像源和 npm。
 
 从无账号版本升级且旧库已有业务行时，先备份并在隔离环境制定旧数据归属；迁移会拒绝无归属业务行，不能自动分配给首位管理员，也不能用旧应用访问已启用多人归属的新库。
 
@@ -105,7 +107,9 @@ docker compose up -d --build --wait
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Docker 位于 WSL Ubuntu 时，按实际仓库位置调整 --cd
-wsl.exe -d Ubuntu --cd /mnt/e/projects/workbench -- docker compose up -d --wait postgres redis
+# 先按 .env.example 配置独立的 RustFS 管理身份与应用身份（随机凭据）。
+wsl.exe -d Ubuntu --cd /mnt/e/projects/workbench -- docker compose up -d --wait postgres redis rustfs
+python scripts/local/initialize-storage.py --env-file .env --endpoint http://127.0.0.1:9000 --bucket workbench-community
 Push-Location backend
 mvn -s maven-settings-aliyun.xml -DskipTests package
 Pop-Location
@@ -116,7 +120,11 @@ Pop-Location
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local/start.ps1
 ```
 
-若 Docker CLI 安装在 Windows，依赖启动命令为 `docker compose up -d --wait postgres redis`。
+若 Docker CLI 安装在 Windows，依赖启动命令为 `docker compose up -d --wait postgres redis rustfs`，随后同样执行初始化命令。初始化只访问明确指定的本地桶，校验私有权限和应用 Put/Get/Delete；冲突策略或公开 ACL 会失败，不清空桶。Compose 应用使用 `http://rustfs:9000`，Windows JVM 使用 `.env` 中的 loopback 端点。
+
+社区附件仅支持 JPEG/PNG/WebP、PDF、UTF-8 MD，全部经后端上传与鉴权读取。图片 5 MiB、PDF 20 MiB、MD 1 MiB，每篇最多 10 个且当前集合合计 50 MiB；历史引用保留。PDF/MD 只下载，不导入或在线执行。上传失败保留正文，逾期未完成上传需作者显式恢复；清理只删除无草稿或任何历史引用的孤立对象，不设按日自动删除。
+
+当前仅实现 RustFS。未来阿里云适配沿用 `ObjectStorage`、附件 ID 和对象 key；需申请资源后实现/验收适配器、按相同 key 复制并核对原字节长度/SHA256，再切配置。本轮没有阿里云 API、自动搬迁、双读或云回退。
 
 首次启动前也须在 `.env` 设置首位管理员引导账号密码，登录成功后移除引导密码。打开 <http://127.0.0.1:5173>，通过应用登录。本机模式运行打包 JAR 和 Vite 开发服务器，模型配置由启动脚本从 `.env` 加载；日志和进程记录保存在 `.local-runtime/`。
 
