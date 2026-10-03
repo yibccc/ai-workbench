@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.mapper.CommunityPostMapper">
+    <resultMap id="post" type="com.aiworkbench.entity.community.CommunityRows$Post">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/>
+            <arg column="owner_id" javaType="java.util.UUID"/>
+            <arg column="type" javaType="com.aiworkbench.enums.CommunityPostType"/>
+            <arg column="status" javaType="com.aiworkbench.enums.CommunityPostStatus"/>
+            <arg column="version" javaType="_long"/>
+            <arg column="current_revision_id" javaType="java.util.UUID"/>
+            <arg column="first_published_at" javaType="java.time.Instant"/>
+            <arg column="created_at" javaType="java.time.Instant"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="draft" type="com.aiworkbench.entity.community.CommunityRows$Draft">
+        <constructor>
+            <arg column="post_id" javaType="java.util.UUID"/>
+            <arg column="owner_id" javaType="java.util.UUID"/>
+            <arg column="type" javaType="com.aiworkbench.enums.CommunityPostType"/>
+            <arg column="business_date" javaType="java.time.LocalDate"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="summary" javaType="java.lang.String"/>
+            <arg column="body_markdown" javaType="java.lang.String"/>
+            <arg column="source_selection" javaType="java.lang.String"/>
+            <arg column="saved_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="revision" type="com.aiworkbench.entity.community.CommunityRows$Revision">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/>
+            <arg column="post_id" javaType="java.util.UUID"/>
+            <arg column="owner_id" javaType="java.util.UUID"/>
+            <arg column="revision_no" javaType="_int"/>
+            <arg column="type" javaType="com.aiworkbench.enums.CommunityPostType"/>
+            <arg column="business_date" javaType="java.time.LocalDate"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="summary" javaType="java.lang.String"/>
+            <arg column="body_markdown" javaType="java.lang.String"/>
+            <arg column="source_selection" javaType="java.lang.String"/>
+            <arg column="request_id" javaType="java.util.UUID"/>
+            <arg column="request_fingerprint" javaType="java.lang.String"/>
+            <arg column="result_version" javaType="_long"/>
+            <arg column="published_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="publicPost" type="com.aiworkbench.entity.community.CommunityRows$PublicPost">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID"/>
+            <arg column="owner_id" javaType="java.util.UUID"/>
+            <arg column="type" javaType="com.aiworkbench.enums.CommunityPostType"/>
+            <arg column="business_date" javaType="java.time.LocalDate"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="summary" javaType="java.lang.String"/>
+            <arg column="body_markdown" javaType="java.lang.String"/>
+            <arg column="first_published_at" javaType="java.time.Instant"/>
+            <arg column="published_at" javaType="java.time.Instant"/>
+            <arg column="revision_id" javaType="java.util.UUID"/>
+            <arg column="revision_no" javaType="_int"/>
+            <arg column="nickname" javaType="java.lang.String"/>
+            <arg column="bio" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="ownerCard" type="com.aiworkbench.entity.community.CommunityRows$OwnerCard">
+        <constructor>
+            <arg column="post_id" javaType="java.util.UUID"/>
+            <arg column="type" javaType="com.aiworkbench.enums.CommunityPostType"/>
+            <arg column="status" javaType="com.aiworkbench.enums.CommunityPostStatus"/>
+            <arg column="version" javaType="_long"/>
+            <arg column="business_date" javaType="java.time.LocalDate"/>
+            <arg column="title" javaType="java.lang.String"/>
+            <arg column="summary" javaType="java.lang.String"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+            <arg column="first_published_at" javaType="java.time.Instant"/>
+            <arg column="current_revision_id" javaType="java.util.UUID"/>
+            <arg column="current_revision_no" javaType="java.lang.Integer"/>
+            <arg column="has_unpublished_changes" javaType="_boolean"/>
+            <arg column="moderation_reason" javaType="java.lang.String"/>
+            <arg column="moderated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="moderation" type="com.aiworkbench.entity.community.CommunityRows$Moderation">
+        <constructor>
+            <arg column="reason" javaType="java.lang.String"/>
+            <arg column="occurred_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <insert id="insertPost">
+        INSERT INTO community_posts(id, owner_id, type, status, version, created_at, updated_at)
+        VALUES (#{row.id}, #{row.ownerId}, #{row.type}, #{row.status}, #{row.version}, #{row.createdAt}, #{row.updatedAt})
+    </insert>
+    <insert id="insertDraft">
+        INSERT INTO community_post_drafts(post_id, owner_id, type, business_date, title, summary, body_markdown, source_selection, saved_at)
+        VALUES (#{row.postId}, #{row.ownerId}, #{row.type}, #{row.businessDate}, #{row.title}, #{row.summary},
+            #{row.bodyMarkdown}, CAST(#{row.sourceSelection} AS JSONB), #{row.savedAt})
+    </insert>
+    <update id="updateDraft">
+        UPDATE community_post_drafts SET business_date=#{row.businessDate}, title=#{row.title}, summary=#{row.summary},
+            body_markdown=#{row.bodyMarkdown}, source_selection=CAST(#{row.sourceSelection} AS JSONB), saved_at=#{row.savedAt}
+        WHERE post_id=#{row.postId} AND owner_id=#{row.ownerId} AND type=#{row.type}
+    </update>
+    <select id="findOwned" resultMap="post">
+        SELECT * FROM community_posts WHERE id=#{postId} AND owner_id=#{ownerId}
+    </select>
+    <select id="lockOwned" resultMap="post">
+        SELECT * FROM community_posts WHERE id=#{postId} AND owner_id=#{ownerId} FOR UPDATE
+    </select>
+    <select id="lockForModeration" resultMap="post">
+        SELECT * FROM community_posts WHERE id=#{postId} FOR UPDATE
+    </select>
+    <select id="findDraft" resultMap="draft">
+        SELECT * FROM community_post_drafts WHERE post_id=#{postId} AND owner_id=#{ownerId}
+    </select>
+    <select id="findRevision" resultMap="revision">
+        SELECT * FROM community_post_revisions WHERE post_id=#{postId} AND owner_id=#{ownerId} AND id=#{revisionId}
+    </select>
+    <select id="findPublishResult" resultMap="revision">
+        SELECT * FROM community_post_revisions WHERE post_id=#{postId} AND owner_id=#{ownerId} AND request_id=#{requestId}
+    </select>
+    <select id="nextRevisionNo" resultType="int">
+        SELECT COALESCE(MAX(revision_no),0)+1 FROM community_post_revisions WHERE post_id=#{postId} AND owner_id=#{ownerId}
+    </select>
+    <insert id="insertRevision">
+        INSERT INTO community_post_revisions(id,post_id,owner_id,revision_no,type,business_date,title,summary,
+            body_markdown,source_selection,request_id,request_fingerprint,result_version,published_at)
+        VALUES (#{row.id},#{row.postId},#{row.ownerId},#{row.revisionNo},#{row.type},#{row.businessDate},#{row.title},
+            #{row.summary},#{row.bodyMarkdown},CAST(#{row.sourceSelection} AS JSONB),#{row.requestId},
+            #{row.requestFingerprint},#{row.resultVersion},#{row.publishedAt})
+    </insert>
+    <update id="updateAggregate">
+        UPDATE community_posts SET status=#{status},current_revision_id=#{revisionId},first_published_at=#{firstPublishedAt},
+            version=version+1,updated_at=#{updatedAt}
+        WHERE id=#{postId} AND owner_id=#{ownerId} AND version=#{version}
+    </update>
+    <sql id="publicProjection">
+        SELECT p.id,p.owner_id,r.type,r.business_date,r.title,r.summary,r.body_markdown,p.first_published_at,
+            r.published_at,r.id AS revision_id,r.revision_no,
+            COALESCE(profile.nickname,'未设置昵称') AS nickname,COALESCE(profile.bio,'') AS bio
+        FROM community_posts p
+        JOIN community_post_revisions r ON r.id=p.current_revision_id AND r.post_id=p.id AND r.owner_id=p.owner_id
+        LEFT JOIN community_public_profiles profile ON profile.owner_id=p.owner_id
+        WHERE p.status='PUBLISHED'
+    </sql>
+    <select id="findPublishedPage" resultMap="publicPost">
+        <include refid="publicProjection"/>
+        <if test="type != null">AND r.type=#{type}</if>
+        <if test="authorId != null">AND p.owner_id=#{authorId}</if>
+        ORDER BY p.first_published_at DESC,p.id DESC
+    </select>
+    <select id="findPublished" resultMap="publicPost">
+        <include refid="publicProjection"/> AND p.id=#{postId}
+    </select>
+    <select id="findOwnedPage" resultMap="ownerCard">
+        SELECT p.id AS post_id,p.type,p.status,p.version,d.business_date,d.title,d.summary,p.updated_at,
+            p.first_published_at,p.current_revision_id,r.revision_no AS current_revision_no,
+            (r.id IS NULL OR ROW(d.business_date,d.title,d.summary,d.body_markdown)
+                IS DISTINCT FROM ROW(r.business_date,r.title,r.summary,r.body_markdown)
+                OR ARRAY(SELECT attachment_id FROM community_draft_attachments WHERE post_id=p.id AND owner_id=p.owner_id ORDER BY position)
+                    IS DISTINCT FROM ARRAY(SELECT attachment_id FROM community_revision_attachments WHERE revision_id=r.id AND post_id=p.id AND owner_id=p.owner_id ORDER BY position)) AS has_unpublished_changes,
+            moderation.reason AS moderation_reason,moderation.occurred_at AS moderated_at
+        FROM community_posts p
+        JOIN community_post_drafts d ON d.post_id=p.id AND d.owner_id=p.owner_id
+        LEFT JOIN community_post_revisions r ON r.id=p.current_revision_id AND r.post_id=p.id AND r.owner_id=p.owner_id
+        LEFT JOIN LATERAL (SELECT reason,occurred_at FROM community_moderation_audit
+            WHERE post_id=p.id AND owner_id=p.owner_id ORDER BY occurred_at DESC,id DESC LIMIT 1) moderation ON TRUE
+        WHERE p.owner_id=#{ownerId}
+        <if test="status != null">AND p.status=#{status}</if>
+        <if test="type != null">AND p.type=#{type}</if>
+        ORDER BY p.updated_at DESC,p.id DESC
+    </select>
+    <select id="findModeration" resultMap="moderation">
+        SELECT reason,occurred_at FROM community_moderation_audit WHERE post_id=#{postId} AND owner_id=#{ownerId}
+        ORDER BY occurred_at DESC,id DESC LIMIT 1
+    </select>
+    <insert id="insertModeration">
+        INSERT INTO community_moderation_audit(id,post_id,owner_id,actor_id,action,reason,revision_id,occurred_at)
+        VALUES (#{id},#{postId},#{ownerId},#{actorId},'HIDE',#{reason},#{revisionId},#{occurredAt})
+    </insert>
+</mapper>

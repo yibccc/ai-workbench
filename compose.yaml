@@ -24,10 +24,24 @@ services:
       WORKBENCH_BOOTSTRAP_USERNAME: ${WORKBENCH_BOOTSTRAP_USERNAME:-}
       WORKBENCH_BOOTSTRAP_PASSWORD: ${WORKBENCH_BOOTSTRAP_PASSWORD:-}
       WORKBENCH_COOKIE_SECURE: ${WORKBENCH_COOKIE_SECURE:-false}
+      WORKBENCH_STORAGE_PROVIDER: rustfs
+      WORKBENCH_STORAGE_ENDPOINT: http://rustfs:9000
+      WORKBENCH_STORAGE_REGION: ${WORKBENCH_STORAGE_REGION:-us-east-1}
+      WORKBENCH_STORAGE_BUCKET: ${WORKBENCH_STORAGE_BUCKET:-workbench-community}
+      WORKBENCH_STORAGE_ACCESS_KEY: ${WORKBENCH_STORAGE_ACCESS_KEY:-}
+      WORKBENCH_STORAGE_SECRET_KEY: ${WORKBENCH_STORAGE_SECRET_KEY:-}
+      WORKBENCH_STORAGE_PATH_STYLE: "true"
+      WORKBENCH_STORAGE_CONNECT_TIMEOUT: ${WORKBENCH_STORAGE_CONNECT_TIMEOUT:-PT2S}
+      WORKBENCH_STORAGE_READ_TIMEOUT: ${WORKBENCH_STORAGE_READ_TIMEOUT:-PT30S}
+      WORKBENCH_STORAGE_API_CALL_ATTEMPT_TIMEOUT: ${WORKBENCH_STORAGE_API_CALL_ATTEMPT_TIMEOUT:-PT60S}
+      WORKBENCH_STORAGE_API_CALL_TIMEOUT: ${WORKBENCH_STORAGE_API_CALL_TIMEOUT:-PT120S}
+      WORKBENCH_STORAGE_RESERVATION_DURATION: ${WORKBENCH_STORAGE_RESERVATION_DURATION:-PT5M}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rustfs:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/actuator/health"]
@@ -71,6 +85,26 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  rustfs:
+    image: rustfs/rustfs:1.0.0
+    command: ["/data"]
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?Set a separate RustFS management access key}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?Set a separate RustFS management secret key}
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "127.0.0.1:${RUSTFS_PORT:-9000}:9000"
+      - "127.0.0.1:${RUSTFS_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      test: ["CMD", "/usr/bin/curl", "--fail", "--silent", "--show-error", "--noproxy", "127.0.0.1", "http://127.0.0.1:9000/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
   redis:
     image: redis:7.4.2-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -89,3 +123,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  rustfs-data:

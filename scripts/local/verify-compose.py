@@ -44,6 +44,8 @@ if offline_dir:
     networks: [offline]
   redis:
     networks: [offline]
+  rustfs:
+    networks: [offline]
   frontend:
     networks: [default, offline]
 networks:
@@ -55,6 +57,10 @@ env = dict(os.environ, POSTGRES_PORT="15439", REDIS_PORT="16389", APP_PORT=str(P
            POSTGRES_PASSWORD=secrets.token_hex(24), WORKBENCH_BOOTSTRAP_USERNAME="validation",
            WORKBENCH_BOOTSTRAP_PASSWORD=secrets.token_urlsafe(24), WORKBENCH_COOKIE_SECURE="false",
            DEEPSEEK_API_KEY="",
+           RUSTFS_PORT="19009", RUSTFS_CONSOLE_PORT="19010",
+           RUSTFS_ACCESS_KEY="validation-root-"+secrets.token_hex(12), RUSTFS_SECRET_KEY=secrets.token_hex(32),
+           WORKBENCH_STORAGE_ACCESS_KEY="validation-app-"+secrets.token_hex(12), WORKBENCH_STORAGE_SECRET_KEY=secrets.token_hex(32),
+           WORKBENCH_STORAGE_ENDPOINT="http://127.0.0.1:19009", WORKBENCH_STORAGE_BUCKET="d10deployvalidation-community",
            WORKBENCH_WS_ALLOWED_ORIGINS=f"http://127.0.0.1:{PORT}")
 cmd = ["docker", "compose"]
 if offline_compose:
@@ -71,6 +77,18 @@ def docker(*args):
 def require(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+def browser_environment(values, input_id):
+    """Browser restart test needs synthetic login only, never backend/storage identities."""
+    prefixes = ("RUSTFS_", "WORKBENCH_STORAGE_", "AWS_", "POSTGRES_", "REDIS_", "DEEPSEEK_", "REPORT_AI_",
+                "OPENAI_", "ANTHROPIC_", "GEMINI_", "WORKBENCH_BOOTSTRAP_")
+    urls = {"DATABASE_URL", "TEST_DATABASE_URL", "E2E_DATABASE_URL", "LIVE_ACCEPTANCE_DATABASE_URL"}
+    clean = {key: value for key, value in values.items() if not key.upper().startswith(prefixes) and key.upper() not in urls}
+    clean["WORKBENCH_BOOTSTRAP_USERNAME"] = values["WORKBENCH_BOOTSTRAP_USERNAME"]
+    clean["WORKBENCH_BOOTSTRAP_PASSWORD"] = values["WORKBENCH_BOOTSTRAP_PASSWORD"]
+    clean["D10_INPUT_ID"] = input_id
+    return clean
 
 
 def scalar(sql):
@@ -287,8 +305,12 @@ try:
     else:
         # Rebuild under this project so old images cannot mask the current config.
         docker("build")
-    docker("up", "-d", "--no-build", "--wait", "--wait-timeout", "180")
-    print("Four services healthy")
+    docker("up", "-d", "--no-build", "--wait", "--wait-timeout", "180", "postgres", "redis", "rustfs")
+    import runpy
+    storage_setup = runpy.run_path(str(Path(__file__).with_name("initialize-storage.py")))
+    storage_setup["initialize"](env, env["WORKBENCH_STORAGE_ENDPOINT"], env["WORKBENCH_STORAGE_BUCKET"])
+    docker("up", "-d", "--no-build", "--wait", "--wait-timeout", "180", "backend", "frontend")
+    print("Five services healthy; private RustFS application identity verified")
     if options.offline_password_check:
         offline_topology()
     require(request("/")[0] == 200, "SPA root did not return 200")
@@ -318,6 +340,8 @@ try:
     require(missing_origin_status != 101 and not missing_origin_accept,
             "Missing Origin unexpectedly upgraded the WebSocket")
     print("Application authentication, SPA/API routing and WebSocket origin checks passed")
+    storage_smoke = runpy.run_path(str(Path(__file__).with_name("storage-smoke.py")))
+    storage_smoke["storage_cases"](http, f"http://127.0.0.1:{PORT}", csrf_token, request, require, docker, scalar)
     if options.browser_node:
         input_id = str(uuid.uuid4())
         scalar("INSERT INTO capture_inputs (id, content, captured_at, client_request_id, reference_at, "
@@ -325,12 +349,14 @@ try:
                f"('{input_id}', 'Isolated browser restart fixture', now(), '{input_id}', now(), "
                f"'Asia/Shanghai', 'PROCESSING', now() + interval '1 day', '{account_id}');")
         script = Path("frontend/e2e/compose-restart.mjs").resolve()
-        browser_env = dict(env, D10_INPUT_ID=input_id)
+        browser_guard = Path(__file__).with_name("browser-env-check.mjs").resolve()
+        browser_env = browser_environment(env, input_id)
         if options.browser_node.lower().endswith(".exe"):
             script = subprocess.check_output(["wslpath", "-w", str(script)], text=True).strip()
+            browser_guard = subprocess.check_output(["wslpath", "-w", str(browser_guard)], text=True).strip()
             browser_env["WSLENV"] = ":".join(filter(None, [browser_env.get("WSLENV"),
                 "WORKBENCH_BOOTSTRAP_USERNAME/w", "WORKBENCH_BOOTSTRAP_PASSWORD/w", "D10_INPUT_ID/w"]))
-        subprocess.run([options.browser_node, str(script)],
+        subprocess.run([options.browser_node, str(browser_guard), str(script)],
                        env=browser_env, check=True)
         print("Same-browser backend restart, STOMP reconnect, fallback GET and browser storage passed")
     status, body = request("/api/projects", {"name": "Deployment persistence fixture"})

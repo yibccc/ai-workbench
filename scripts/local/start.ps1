@@ -24,7 +24,11 @@ foreach ($service in @(@{name='backend';port=8080}, @{name='frontend';port=5173}
     if ($service.name -eq 'backend') {
         $prior = @{}
         try {
-            foreach ($key in $envValues.Keys) { $prior[$key] = [Environment]::GetEnvironmentVariable($key, 'Process'); [Environment]::SetEnvironmentVariable($key, $envValues[$key], 'Process') }
+            foreach ($key in $envValues.Keys | Where-Object { $_ -notmatch '^RUSTFS_' }) { $prior[$key] = [Environment]::GetEnvironmentVariable($key, 'Process'); [Environment]::SetEnvironmentVariable($key, $envValues[$key], 'Process') }
+            foreach ($item in Get-ChildItem Env: | Where-Object { $_.Name -match '^RUSTFS_' }) {
+                $prior[$item.Name] = $item.Value
+                [Environment]::SetEnvironmentVariable($item.Name, $null, 'Process')
+            }
             $process = Start-Process -FilePath $java -ArgumentList @('-jar', "`"$jar`"", '--spring.profiles.active=default', '--server.address=127.0.0.1', '--server.port=8080') -WorkingDirectory $RepoRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$Runtime/backend.log" -RedirectStandardError "$Runtime/backend-error.log"
         } finally { foreach ($key in $prior.Keys) { [Environment]::SetEnvironmentVariable($key, $prior[$key], 'Process') } }
         Save-OwnedProcess $process.Id 'backend' $RepoRoot
@@ -32,7 +36,7 @@ foreach ($service in @(@{name='backend';port=8080}, @{name='frontend';port=5173}
         $oldTarget = $env:VITE_API_TARGET
         $backendEnv = @{}
         try {
-            foreach ($item in Get-ChildItem Env: | Where-Object { $_.Name -match '^(DEEPSEEK_|POSTGRES_|REDIS_|REPORT_AI_|DATABASE_URL$)' }) {
+            foreach ($item in Get-ChildItem Env: | Where-Object { $_.Name -match '^(DEEPSEEK_|POSTGRES_|REDIS_|REPORT_AI_|WORKBENCH_STORAGE_|RUSTFS_|AWS_|WORKBENCH_BOOTSTRAP_|DATABASE_URL$)' }) {
                 $backendEnv[$item.Name] = $item.Value
                 [Environment]::SetEnvironmentVariable($item.Name, $null, 'Process')
             }

@@ -1,0 +1,45 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "跳转到主要内容" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - link "工作台 ." [ref=e7] [cursor=pointer]:
+        - /url: "#/community"
+        - img [ref=e8] [cursor=pointer]
+        - text: 工作台
+        - generic [ref=e11] [cursor=pointer]: .
+      - generic [ref=e12]:
+        - link "工作台" [ref=e13] [cursor=pointer]:
+          - /url: "#records"
+        - button "账号菜单：e2e_user_4e9b6677" [ref=e15] [cursor=pointer]:
+          - text: e2e_user_4e9b6677
+          - generic [ref=e16] [cursor=pointer]: ⌄
+    - main "社区内容滚动区" [active] [ref=e17]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - img [ref=e23]
+          - heading "内容暂不可访问" [level=2] [ref=e25]
+          - paragraph [ref=e26]: 内容可能已撤回、下架，或当前账号没有访问权限。这里不会回显原内容。
+        - link "返回广场" [ref=e28] [cursor=pointer]:
+          - /url: "#/community"
+  - navigation "移动端导航" [ref=e29]:
+    - link "广场" [ref=e30] [cursor=pointer]:
+      - /url: "#/community"
+      - img [ref=e31] [cursor=pointer]
+      - text: 广场
+    - link "发布" [ref=e36] [cursor=pointer]:
+      - /url: "#/publishing/new"
+      - img [ref=e37] [cursor=pointer]
+      - text: 发布
+    - link "我的发布" [ref=e39] [cursor=pointer]:
+      - /url: "#/publishing"
+      - img [ref=e40] [cursor=pointer]
+      - text: 我的发布
+    - link "我的" [ref=e42] [cursor=pointer]:
+      - /url: "#/community/authors/9216b960-23fc-447f-a4de-385ccfd37631"
+      - img [ref=e43] [cursor=pointer]
+      - text: 我的
+```

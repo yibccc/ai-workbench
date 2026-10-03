@@ -1,0 +1,96 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "跳转到主要内容" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary "工作区导航" [ref=e5]:
+    - link "工作台首页" [ref=e6] [cursor=pointer]:
+      - /url: "#/community"
+      - img [ref=e8] [cursor=pointer]
+      - generic [ref=e10] [cursor=pointer]:
+        - strong [ref=e11] [cursor=pointer]:
+          - text: 工作台
+          - generic [ref=e12] [cursor=pointer]: .
+        - generic [ref=e13] [cursor=pointer]:
+          - text: PERSONAL
+          - text: WORKBENCH
+    - generic [ref=e14]:
+      - button "工作台" [ref=e15] [cursor=pointer]
+      - button "广场" [ref=e16] [cursor=pointer]
+    - generic [ref=e17]: 分享与沉淀
+    - navigation "站内空间" [ref=e18]:
+      - link "内容广场" [ref=e19] [cursor=pointer]:
+        - /url: "#/community"
+        - img [ref=e20] [cursor=pointer]
+        - text: 内容广场
+      - link "我的发布" [ref=e25] [cursor=pointer]:
+        - /url: "#/publishing"
+        - img [ref=e26] [cursor=pointer]
+        - text: 我的发布
+      - link "我的主页" [ref=e28] [cursor=pointer]:
+        - /url: "#/community/authors/6acac3f4-0109-440d-a8bd-a612d17432c5"
+        - img [ref=e29] [cursor=pointer]
+        - text: 我的主页
+    - generic [ref=e32]:
+      - img [ref=e33]
+      - strong [ref=e36]: 记录属于自己，分享由你选择
+      - paragraph [ref=e37]:
+        - text: 把日常的一点进展，
+        - text: 留成彼此可见的收获。
+    - button "账号菜单：e2e_admin" [ref=e40] [cursor=pointer]:
+      - text: e2e_admin
+      - generic [ref=e41] [cursor=pointer]: ⌄
+  - generic [ref=e42]:
+    - banner [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: 站内空间
+        - generic [ref=e46]: /
+        - strong [ref=e47]: 内容详情
+      - button "账号菜单：e2e_admin" [ref=e50] [cursor=pointer]:
+        - text: e2e_admin
+        - generic [ref=e51] [cursor=pointer]: ⌄
+    - main "社区内容滚动区" [active] [ref=e52]:
+      - generic [ref=e54]:
+        - link "返回广场" [ref=e55] [cursor=pointer]:
+          - /url: "#/community"
+          - img [ref=e56] [cursor=pointer]
+          - text: 返回广场
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - article [ref=e60]:
+              - generic [ref=e61]:
+                - generic [ref=e62]: 动态
+                - generic [ref=e63]:
+                  - img [ref=e64]
+                  - text: 站内可见
+              - heading "一点想法，留给今天" [level=1] [ref=e67]
+              - generic [ref=e68]:
+                - generic [ref=e69]: 未
+                - generic [ref=e70]:
+                  - link "未设置昵称" [ref=e71] [cursor=pointer]:
+                    - /url: "#/community/authors/6acac3f4-0109-440d-a8bd-a612d17432c5"
+                  - generic [ref=e72]: 10/3 05:01 · 发布版本 v1
+              - generic [ref=e74]: 动态发布幂等正文
+              - generic [ref=e75]:
+                - generic [ref=e76]: 仅分享作者确认的内容，不开放原始工作记录。
+                - button "复制站内链接" [ref=e78] [cursor=pointer]:
+                  - img [ref=e79] [cursor=pointer]
+                  - text: 复制站内链接
+            - button "管理员下架" [ref=e83] [cursor=pointer]
+          - complementary [ref=e84]:
+            - generic [ref=e85]:
+              - generic [ref=e86]: 未
+              - heading "未设置昵称" [level=3] [ref=e87]
+              - paragraph
+              - link "查看作者主页" [ref=e89] [cursor=pointer]:
+                - /url: "#/community/authors/6acac3f4-0109-440d-a8bd-a612d17432c5"
+                - text: 查看作者主页
+                - img [ref=e90] [cursor=pointer]
+            - heading "文章脉络" [level=3] [ref=e93]
+            - generic [ref=e94]:
+              - text: 发布者可以撤回内容。
+              - text: 已下载的文件副本无法收回。
+            - link "编辑这篇内容" [ref=e95] [cursor=pointer]:
+              - /url: "#/publishing/posts/1f40839a-6082-4d7a-b704-7a8e9d91e3da"
+```

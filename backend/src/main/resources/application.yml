@@ -24,6 +24,12 @@ spring:
     redis:
       repository-type: indexed
       namespace: workbench:session
+  servlet:
+    multipart:
+      max-file-size: 22020096B
+      max-request-size: 23068672B
+      file-size-threshold: 0B
+      resolve-lazily: true
 
 server:
   address: 127.0.0.1
@@ -47,6 +53,19 @@ management:
       show-details: always
 
 workbench:
+  storage:
+    provider: ${WORKBENCH_STORAGE_PROVIDER:rustfs}
+    endpoint: ${WORKBENCH_STORAGE_ENDPOINT:http://127.0.0.1:9000}
+    region: ${WORKBENCH_STORAGE_REGION:us-east-1}
+    bucket: ${WORKBENCH_STORAGE_BUCKET:workbench-community}
+    access-key: ${WORKBENCH_STORAGE_ACCESS_KEY:}
+    secret-key: ${WORKBENCH_STORAGE_SECRET_KEY:}
+    path-style: ${WORKBENCH_STORAGE_PATH_STYLE:true}
+    connect-timeout: ${WORKBENCH_STORAGE_CONNECT_TIMEOUT:PT2S}
+    read-timeout: ${WORKBENCH_STORAGE_READ_TIMEOUT:PT30S}
+    api-call-attempt-timeout: ${WORKBENCH_STORAGE_API_CALL_ATTEMPT_TIMEOUT:PT60S}
+    api-call-timeout: ${WORKBENCH_STORAGE_API_CALL_TIMEOUT:PT120S}
+    reservation-duration: ${WORKBENCH_STORAGE_RESERVATION_DURATION:PT5M}
   auth:
     bootstrap-username: ${WORKBENCH_BOOTSTRAP_USERNAME:}
     bootstrap-password: ${WORKBENCH_BOOTSTRAP_PASSWORD:}

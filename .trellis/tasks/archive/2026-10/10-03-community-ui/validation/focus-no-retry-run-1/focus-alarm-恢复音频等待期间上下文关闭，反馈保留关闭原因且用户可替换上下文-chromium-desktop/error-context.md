@@ -1,0 +1,93 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "跳转到主要内容" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - complementary "工作区导航" [ref=e5]:
+    - link "工作台首页" [ref=e6] [cursor=pointer]:
+      - /url: "#records"
+      - img [ref=e8] [cursor=pointer]
+      - generic [ref=e11] [cursor=pointer]:
+        - strong [ref=e12] [cursor=pointer]:
+          - text: 工作台
+          - generic [ref=e13] [cursor=pointer]: .
+        - generic [ref=e14] [cursor=pointer]: LOCAL WORKBENCH
+    - generic [ref=e15]:
+      - generic [ref=e16]: W
+      - generic [ref=e17]:
+        - strong [ref=e18]: 个人工作区
+        - generic [ref=e19]: 记录 · 执行 · 汇报
+    - generic [ref=e20]:
+      - link "工作台" [ref=e21] [cursor=pointer]:
+        - /url: "#records"
+      - link "广场" [ref=e22] [cursor=pointer]:
+        - /url: "#/community"
+    - paragraph [ref=e23]: 我的工作
+    - navigation "主导航" [ref=e24]:
+      - link "工作记录" [ref=e25] [cursor=pointer]:
+        - /url: "#records"
+        - img [ref=e26] [cursor=pointer]
+        - generic [ref=e29] [cursor=pointer]: 工作记录
+      - link "待办任务" [ref=e30] [cursor=pointer]:
+        - /url: "#tasks"
+        - img [ref=e31] [cursor=pointer]
+        - generic [ref=e34] [cursor=pointer]: 待办任务
+      - link "专注" [ref=e35] [cursor=pointer]:
+        - /url: "#focus"
+        - img [ref=e36] [cursor=pointer]
+        - generic [ref=e39] [cursor=pointer]: 专注
+      - link "工作汇报" [ref=e40] [cursor=pointer]:
+        - /url: "#reports"
+        - img [ref=e41] [cursor=pointer]
+        - generic [ref=e44] [cursor=pointer]: 工作汇报
+      - link "项目管理" [ref=e45] [cursor=pointer]:
+        - /url: "#projects"
+        - img [ref=e46] [cursor=pointer]
+        - generic [ref=e48] [cursor=pointer]: 项目管理
+    - generic [ref=e49]:
+      - img [ref=e51]
+      - strong [ref=e54]: 少一点整理，多一点专注
+      - paragraph [ref=e55]: 记下进展与计划，AI 帮你拆分，再整理成有来源的汇报。
+      - link "去整理汇报" [ref=e56] [cursor=pointer]:
+        - /url: "#reports"
+        - text: 去整理汇报
+        - img [ref=e57] [cursor=pointer]
+    - button "账号菜单：e2e_admin" [ref=e61] [cursor=pointer]:
+      - text: e2e_admin
+      - generic [ref=e62] [cursor=pointer]: ⌄
+  - generic [ref=e63]:
+    - banner [ref=e64]:
+      - generic [ref=e65]:
+        - generic [ref=e66]: 个人工作区
+        - generic [ref=e67]: /
+        - strong [ref=e68]: 专注
+      - time [ref=e70]:
+        - img [ref=e71]
+        - text: 10月3日星期六
+    - main [ref=e74]:
+      - generic [ref=e76]:
+        - generic [ref=e78]:
+          - paragraph [ref=e79]: 记录会话时长
+          - heading "专注" [level=1] [ref=e80]
+          - paragraph [ref=e81]: 切换页面或设备睡眠时仍会计时；停工时请手动暂停或结束。净时长排除暂停与微休息。
+        - tablist "专注页面内容" [ref=e82]:
+          - tab "计时" [selected] [ref=e83] [cursor=pointer]
+          - tab "重复规则" [ref=e84] [cursor=pointer]
+          - tab "今日汇总" [ref=e85] [cursor=pointer]
+        - region "专注内容" [ref=e86]:
+          - region "专注计时" [ref=e87]:
+            - generic [ref=e88]:
+              - paragraph [ref=e89]: 专注中
+              - heading "后台提醒回归" [level=2] [ref=e91]
+              - paragraph [ref=e92]: 09:55
+              - paragraph [ref=e93]: 已累计会话净时长 00:00 / 目标 10:00
+              - generic [ref=e94]:
+                - button "暂停" [ref=e95] [cursor=pointer]
+                - button "关闭本段提醒" [ref=e96] [cursor=pointer]
+                - button "提前结束并保存投入" [ref=e97] [cursor=pointer]
+              - generic [ref=e98]:
+                - button "试听声音" [active] [ref=e99] [cursor=pointer]
+                - generic [ref=e100]: 声音已启用
+              - paragraph [ref=e101]: 任务状态不会因结束专注而自动变为完成。
+```

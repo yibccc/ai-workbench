@@ -16,6 +16,7 @@ This directory contains guidelines for frontend development. Fill in each file w
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Features, shared components/API/hooks, and pagination state ownership | Active |
 | [Identity and Session UI](./identity-session.md) | Login, account view, CSRF/401, explicit activity, STOMP and cross-user state cleanup | Active |
+| [Community and Publishing UI](./community-publishing.md) | R2 reuse, protected routes, inspected snapshots, Blob and durable upload retries | Active |
 | [Focus Page](./focus-page.md) | Account-scoped timer, task handoff, global reminder, and browser recovery | Active |
 | [Viewport Layout](./viewport-layout.md) | Single-screen shell, fixed controls, and reachable inner scrolling | Active |
 | [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | To fill |

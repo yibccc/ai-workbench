@@ -30,13 +30,15 @@ function Confirmation({ options, onClose }: { options: DialogOptions; onClose: (
     catch (caught) { setError(caught instanceof Error ? caught.message : '操作失败，请重试') }
     finally { pending.current = false; setBusy(false) }
   }
-  return <Dialog titleId="confirmation-title" descriptionId="confirmation-description" busy={busy} onClose={() => onClose(false)}>
-    <form onSubmit={event => void submit(event)} aria-busy={busy}>
+  const community = options.className === 'community-dialog'
+  return <Dialog className={options.className} titleId="confirmation-title" descriptionId="confirmation-description" busy={busy} onClose={() => onClose(false)}>
+    <form className={community ? 'dialog' : undefined} onSubmit={event => void submit(event)} aria-busy={busy}>
+      {community && <div className="eyebrow">WORKBENCH / COMMUNITY</div>}
       <div className="completion-heading"><span className={`completion-icon ${options.danger ? 'dialog-danger-icon' : ''}`} aria-hidden="true">{options.danger ? '!' : '✎'}</span><h2 id="confirmation-title">{options.title}</h2></div>
       <p id="confirmation-description" className="completion-description dialog-description">{options.description}</p>
       {options.input && <label>{options.input.label}<input autoFocus data-dialog-autofocus required maxLength={options.input.maxLength} value={value} disabled={busy} onChange={event => setValue(event.target.value)} /></label>}
       {error && <p className="inline-notice inline-error" role="alert">{error}</p>}
-      <div className="actions completion-actions"><button autoFocus={!options.input} data-dialog-autofocus={!options.input ? true : undefined} type="button" className="secondary" disabled={busy} onClick={() => onClose(false)}>取消</button><button type="submit" className={options.danger ? 'dialog-danger-button' : ''} disabled={busy || (!!options.input && !value.trim())}>{busy ? '正在保存…' : options.confirmLabel ?? '确认'}</button></div>
+      <div className={`actions completion-actions ${community ? 'dialog-actions' : ''}`}><button autoFocus={!options.input} data-dialog-autofocus={!options.input ? true : undefined} type="button" className={community ? 'btn secondary' : 'secondary'} disabled={busy} onClick={() => onClose(false)}>取消</button><button type="submit" className={community ? `btn ${options.danger ? 'danger' : ''}` : options.danger ? 'dialog-danger-button' : ''} disabled={busy || (!!options.input && !value.trim())}>{busy ? '正在保存…' : options.confirmLabel ?? '确认'}</button></div>
     </form>
   </Dialog>
 }

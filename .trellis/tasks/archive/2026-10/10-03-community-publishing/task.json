@@ -1,0 +1,28 @@
+{
+  "id": "community-publishing",
+  "name": "community-publishing",
+  "title": "站内发布核心与公开作者资料",
+  "description": "实现本人素材选择、私有草稿、发布快照和保留历史、站内读者投影、撤回与 ADMIN 下架审计。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kira",
+  "assignee": "kira",
+  "createdAt": "2026-10-03",
+  "completedAt": "2026-10-03",
+  "branch": "codex/community-oss",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-03-community-oss",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "deliverable": "publishing"
+  }
+}

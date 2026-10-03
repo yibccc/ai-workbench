@@ -1,0 +1,140 @@
+{
+  "reviewedAt": "2026-10-03T03:43:52+08:00",
+  "baselineHead": "1a7928c2b2fa15ce0d3148af187770d85aca96f7",
+  "branch": "codex/community-oss",
+  "scope": "publishing core; all tracked modifications and untracked publishing files reviewed; frontend and V18 excluded",
+  "files": [
+    {
+      "file": "backend/src/main/java/com/aiworkbench/config/CommunityCacheControlFilter.java",
+      "sha256": "27f5a342338fc774ee3b19f15d3bd3f74156f3716e6c9c01024ff98a4d566cf8"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/controller/CommunityController.java",
+      "sha256": "bd3e118f03dce82788191cd3b1a8eae0170f37cb32125dafb94b97c47a2d2b77"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/controller/CommunityModerationController.java",
+      "sha256": "f5f9e87eeeece0507183c1e71ec7bebcc991e915afefbf8d8c884331ad709cf2"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/controller/CommunityProfileController.java",
+      "sha256": "617e2acc11cac5f02c75f4eda08f59b1c620c1eadc8bc83fed31b408051bb896"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/controller/PublishingController.java",
+      "sha256": "5e2a3655765883d37f82c6ff85617c99d9bf436aedc6a940fee16b25ae43b4d5"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/dto/community/CommunityModels.java",
+      "sha256": "8bf73793ccd5d2e5496069b1c99bc3268b06dc9c543b7750c5341a97419b01d1"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/dto/publishing/PublishingModels.java",
+      "sha256": "78a09a5bf1feed8fcf2942544235df90311464074bbdb904cd4643d060e7650d"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/entity/community/CommunityRows.java",
+      "sha256": "bcc8b34433313a39b89f4c9361c4b52da6c6f5f5bfe100c5f9ab0a59bc7e9073"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/enums/CommunityPostStatus.java",
+      "sha256": "ff711286ba02904741ec15adce11a3b25943ac45b62b45712175aad8a99a418c"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/enums/CommunityPostType.java",
+      "sha256": "3dcbbcc539fe14cc4b3c80976833a41778a545dd755b4e77967b75316ec37844"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/exception/ApiExceptionHandler.java",
+      "sha256": "43f432611f377e1057ecf393c02cfa1fa1ef5e6428f7418ae708dc5388efe691"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/mapper/CommunityPostMapper.java",
+      "sha256": "093af5958107c57a67978841f9169c6709b2183bed817a964bb2de49e2f7cca0"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/mapper/CommunityProfileMapper.java",
+      "sha256": "522e61319773de799b48dcfdda84134cdbbaa2b4beaab1a2bcaf09c195ffa483"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/mapper/WorkRecordMapper.java",
+      "sha256": "1c4062604e23ce1604a55d0f299ab243ca304b634792c4a8c22c1480778fae59"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/CommunityModerationService.java",
+      "sha256": "2373d5c141026b03ff0ba143f9705badd27e4b9970f60ba8bf9ed1ebd0a69efb"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/CommunityProfileService.java",
+      "sha256": "74e973cb72042a92eecd5d8590095d417a269012f32cfd43a3877c848c779820"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/CommunityService.java",
+      "sha256": "20b54dbaad35b675fb065bfdd900213af921356c1776075deaa8ffc5f184d1f0"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/PublishingService.java",
+      "sha256": "9a2980f26a396dfaead85aadb5e625a2160713dba1e6517d61330becad4aec36"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/impl/CommunityModerationServiceImpl.java",
+      "sha256": "fe1aa02a069007d092a4ce06d3c357ea54605d6d65a1df637dfd9c954781ff9f"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/impl/CommunityProfileServiceImpl.java",
+      "sha256": "2f319f223efef3045fade99047af174a1481ea9d0343e9f02b6e7be5f3b1a480"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/impl/CommunityServiceImpl.java",
+      "sha256": "7ba61bc7e9f34f1b632016621029de874d650400514210e641614549a8934827"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/impl/E2eMaintenanceServiceImpl.java",
+      "sha256": "c431315635139b5047311446e71d36c717ed0db169a3c43e00fb2b9772b6f064"
+    },
+    {
+      "file": "backend/src/main/java/com/aiworkbench/service/impl/PublishingServiceImpl.java",
+      "sha256": "ccfa2846d0694a1a9e6bfeeb95d164112599cdf16c717904926ab68a49563e76"
+    },
+    {
+      "file": "backend/src/main/resources/db/migration/V17__community_publishing.sql",
+      "sha256": "01bcd2871797dea029fce19e4fe053a40ca0c71b10056d686b364973f34fd61e"
+    },
+    {
+      "file": "backend/src/main/resources/mapper/CommunityPostMapper.xml",
+      "sha256": "36e2dee0fd93f0954d14a15731b549ec33c6f649a617311363dc9e6da1d8f848"
+    },
+    {
+      "file": "backend/src/main/resources/mapper/CommunityProfileMapper.xml",
+      "sha256": "0d96908560fc7754ccd39d86d5821d933c408b8f1a1d2300469611cc676f169e"
+    },
+    {
+      "file": "backend/src/main/resources/mapper/WorkRecordMapper.xml",
+      "sha256": "cf9bd007a1093832cd3f8f347705053fbb9c05d135e14b5b96183a890b0a5540"
+    },
+    {
+      "file": "backend/src/test/java/com/aiworkbench/community/CommunityHttpIntegrationTest.java",
+      "sha256": "51cbc2e45befc4abd8ae8301964cca560a40b6e406d20f8e9ddbddb32fd7e402"
+    },
+    {
+      "file": "backend/src/test/java/com/aiworkbench/community/CommunityMigrationIntegrationTest.java",
+      "sha256": "6bd82d0ce770cc4972a67106410b75fe7ba6cd698b575c90d6b850c4d1174501"
+    },
+    {
+      "file": "backend/src/test/java/com/aiworkbench/community/CommunityPublishingIntegrationTest.java",
+      "sha256": "77c9154b48bfef6b38eaab3bed5ccf67216d4ba5105d136203c8de2dbc6dbe8e"
+    },
+    {
+      "file": "backend/src/test/java/com/aiworkbench/community/CommunitySourcesIntegrationTest.java",
+      "sha256": "7a6d5b0e6685129df628aa2281a74e63c90a9c6d71111cc9f9c64a157a60cfab"
+    },
+    {
+      "file": "backend/src/test/java/com/aiworkbench/community/CommunityTestData.java",
+      "sha256": "eb4f58225406f324ec50e359b93127e9f3df1de610932bf1e80dd2a94322f4bd"
+    },
+    {
+      "file": "backend/src/test/java/com/aiworkbench/e2e/E2eResetControllerTest.java",
+      "sha256": "5f248b9efc40e4304a2d9309cfc408dfae1202a634dc55ba659c5539787c5b04"
+    }
+  ]
+}

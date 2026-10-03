@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/identity-isolation.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/pagination.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-oss/research/handoff-check.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-oss/research/backend.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-oss/research/backend-review.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}

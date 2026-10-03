@@ -1,0 +1,12 @@
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/identity-isolation.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/runtime-integration.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/local-delivery.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/linux-deployment.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-oss/research/handoff-check.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-oss/research/storage.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-oss/research/storage-review.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-oss/research/backend-review.md", "reason": "Relevant verified spec/research; parent design supersedes historical review findings."}
+{"file": ".trellis/tasks/10-03-community-publishing/storage-handoff.md", "reason": "Verified same-transaction integration and current DTO/fixture ownership."}
+{"file": ".trellis/tasks/10-03-community-publishing/research/storage-preflight.md", "reason": "Do not invent parser subtype caps or unproven decoder/crypto checks; check actual scope and protocol."}

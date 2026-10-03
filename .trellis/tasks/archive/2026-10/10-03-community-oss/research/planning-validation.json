@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-03",
+  "baseline_head": "1a7928c2b2fa15ce0d3148af187770d85aca96f7",
+  "validation_evidence": "Actual task.py validate run for all four tasks exited 0; this record adds artifact/context existence and digest checks, does not claim engineering validation.",
+  "tasks": [
+    {
+      "task": ".trellis/tasks/10-03-community-oss",
+      "status": "planning",
+      "validate_command_exit_code": 0,
+      "observed_validate_result": "All validations passed",
+      "manifests": {
+        "implement": 14,
+        "check": 14
+      },
+      "injection_truncation_warnings": [
+        ".trellis/spec/backend/database-guidelines.md",
+        ".trellis/tasks/10-03-community-oss/research/backend.md"
+      ],
+      "artifacts": [
+        {
+          "file": ".trellis/tasks/10-03-community-oss/prd.md",
+          "bytes": 9574,
+          "sha256": "6a5a59514de11fbd035b421b74c4af1ce5d5b3207997a2b9e16ffb93938bbf9f"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-oss/design.md",
+          "bytes": 22438,
+          "sha256": "c55b02c677a270d1c744bbfddaa44732f6a437d2f7faa846d79ab7558f088114"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-oss/implement.md",
+          "bytes": 10619,
+          "sha256": "bd614f876d7bd5810db3af4f53d407c607b892bccda0a2dbbf5c7e31d15e64c5"
+        }
+      ]
+    },
+    {
+      "task": ".trellis/tasks/10-03-community-publishing",
+      "status": "planning",
+      "validate_command_exit_code": 0,
+      "observed_validate_result": "All validations passed",
+      "manifests": {
+        "implement": 8,
+        "check": 8
+      },
+      "injection_truncation_warnings": [
+        ".trellis/spec/backend/database-guidelines.md",
+        ".trellis/tasks/10-03-community-oss/research/backend.md"
+      ],
+      "artifacts": [
+        {
+          "file": ".trellis/tasks/10-03-community-publishing/prd.md",
+          "bytes": 2143,
+          "sha256": "556a72d3cd66ed56b8cd7ed501cd07164c7b15a75524e1ea1ac371e627cf1aaf"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-publishing/design.md",
+          "bytes": 1473,
+          "sha256": "21db19dd2637b765359a0e0ce57f8ed7d9840005ede2c6cad9ce9de635f03ff8"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-publishing/implement.md",
+          "bytes": 1543,
+          "sha256": "87e010fa62ade250ef9d247af139c4f39045124fc1400ad49053b47386dc1051"
+        }
+      ]
+    },
+    {
+      "task": ".trellis/tasks/10-03-community-storage",
+      "status": "planning",
+      "validate_command_exit_code": 0,
+      "observed_validate_result": "All validations passed",
+      "manifests": {
+        "implement": 10,
+        "check": 10
+      },
+      "injection_truncation_warnings": [],
+      "artifacts": [
+        {
+          "file": ".trellis/tasks/10-03-community-storage/prd.md",
+          "bytes": 1935,
+          "sha256": "4af3f387009935f66cce3626c2255a7e4dc1b19577a66c70ba6a821a11c93046"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-storage/design.md",
+          "bytes": 1649,
+          "sha256": "9d4503698df2cf01e4682fe323e48760ef3d318e3cd0406b074a51a00fa2aedc"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-storage/implement.md",
+          "bytes": 2085,
+          "sha256": "6a15e47717f87a41dc0d46ab6d446cf3cd58071b230cf080ac0fddf765c96b12"
+        }
+      ]
+    },
+    {
+      "task": ".trellis/tasks/10-03-community-ui",
+      "status": "planning",
+      "validate_command_exit_code": 0,
+      "observed_validate_result": "All validations passed",
+      "manifests": {
+        "implement": 9,
+        "check": 9
+      },
+      "injection_truncation_warnings": [
+        ".trellis/tasks/10-03-community-oss/research/backend.md"
+      ],
+      "artifacts": [
+        {
+          "file": ".trellis/tasks/10-03-community-ui/prd.md",
+          "bytes": 2129,
+          "sha256": "d77640a4cea1c4d4ab2092fc57b9d65359f427718ca6ab8bcbffaa8f01084b9c"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-ui/design.md",
+          "bytes": 2511,
+          "sha256": "056d88717f570452e7de94fb2fbc9f5388569812f5c04b381d655e793dfd1f0b"
+        },
+        {
+          "file": ".trellis/tasks/10-03-community-ui/implement.md",
+          "bytes": 1809,
+          "sha256": "035974faf0c8462b8827201c94ec9d88300b68897ad3594fccdcc0a099897386"
+        }
+      ]
+    }
+  ],
+  "product_implementation_started": false,
+  "engineering_acceptance": "NOT_RUN",
+  "aliyun_integration": "DEFERRED",
+  "input_snapshot_files": 36
+}

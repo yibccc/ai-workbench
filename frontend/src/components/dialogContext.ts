@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react'
 
 export type DialogOptions = {
   title: string; description: string; confirmLabel?: string; danger?: boolean
+  className?: string
   input?: { label: string; value: string; maxLength: number }
   onConfirm?: (value: string) => Promise<void>
 }

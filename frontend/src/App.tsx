@@ -4,7 +4,9 @@ import { currentRequestIdentity, setRequestIdentity, setUnauthorizedHandler } fr
 import { closeRealtime } from './hooks/realtime'
 import { fetchProjects, type Project } from './api/projects'
 import { AppShell } from './components/layout/AppShell'
-import { navigation, type PageId } from './components/layout/navigation'
+import { isCommunityView, parseHash, routeTitle, type ViewId } from './components/layout/routes'
+import { CommunityWorkspace } from './features/community/CommunityWorkspace'
+import type { NavigationGuard } from './features/publishing/PublishingEditor'
 import { RetainedView } from './components/RetainedView'
 import { RecordsPage } from './features/records/RecordsPage'
 import { TasksPanel, type TaskEditRequest } from './features/tasks/TasksPanel'
@@ -20,15 +22,13 @@ import { LoginPage } from './features/auth/LoginPage'
 import { PasswordDialog } from './features/auth/PasswordDialog'
 import { UsersPage } from './features/auth/UsersPage'
 
-type ViewId = PageId | 'users'
 const readPage = (account: Account | null): ViewId => {
-  const value = window.location.hash.slice(1)
-  if (value === 'users' && account?.role === 'ADMIN') return 'users'
-  return navigation.some(item => item.id === value) ? value as PageId : 'records'
+  const value = parseHash(window.location.hash)
+  return value === 'users' && account && account.role !== 'ADMIN' ? 'unavailable' : value
 }
 const normalizedPage = (account: Account): ViewId => {
   const page = readPage(account)
-  if (window.location.hash.slice(1) !== page) window.history.replaceState(null, '', `#${page}`)
+  if (!window.location.hash) window.history.replaceState(null, '', `#${page}`)
   return page
 }
 
@@ -36,7 +36,7 @@ function App() {
   const [account, setAccount] = useState<Account | null>(null)
   const [loading, setLoading] = useState(true)
   const [startupError, setStartupError] = useState<string | null>(null)
-  const [page, setPage] = useState<ViewId>('records')
+  const [page, setPage] = useState<ViewId>(() => readPage(null))
   const started = useRef(false)
   const load = useCallback(async () => {
     setLoading(true); setStartupError(null)
@@ -122,7 +122,7 @@ function AuthenticatedApp({ account, page, setPage, setAccount }: {
       window.removeEventListener('keydown', key)
     }
   }, [account, onInteraction])
-  if (!account) return <LoginPage onLogin={onLogin} />
+  if (!account) return isCommunityView(readPage(null)) ? <AppShell page={readPage(null)} hasDirtyReports={false} account={null} onPassword={() => undefined} onLogout={() => undefined} onUsers={() => undefined}><div className="page-main"><div className="login-wrap"><LoginPage gated onLogin={onLogin} /></div></div></AppShell> : <LoginPage onLogin={onLogin} />
   return <Workspace key={account.id} account={account} page={page} setPage={setPage} onLogout={() => void onLogout()}
     onSelfRevoked={() => leaveAuthenticatedView('账号权限或密码已变更，请重新登录', 'info')} showToast={showToast} />
 }
@@ -139,6 +139,12 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
   const [focusDraft, setFocusDraft] = useState<FocusDraft | null>(null)
   const [focusFillError, setFocusFillError] = useState<string | null>(null)
   const firstNavigation = useRef(true)
+  const communityGuard = useRef<NavigationGuard | null>(null)
+  const routeRef = useRef(page)
+  useEffect(() => { routeRef.current = page }, [page])
+  const changingRoute = useRef(false)
+  const registerGuard = useCallback((guard: NavigationGuard | null) => { communityGuard.current = guard }, [])
+  const navigate = useCallback((next: ViewId) => { window.location.hash = next }, [])
   const refreshProjects = useCallback(async () => {
     const items = await fetchProjects(true)
     setProjects(items); setProjectError(null)
@@ -151,14 +157,29 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     return () => controller.abort()
   }, [])
   useEffect(() => {
-    const change = () => setPage(normalizedPage(account))
+    const change = async () => {
+      const next = normalizedPage(account)
+      if (changingRoute.current) { window.history.replaceState(null, '', `#${routeRef.current}`); return }
+      if (next === routeRef.current) return
+      const previous = routeRef.current
+      if (communityGuard.current) {
+        window.history.replaceState(null, '', `#${previous}`)
+        changingRoute.current = true
+        const accepted = await communityGuard.current(next)
+        changingRoute.current = false
+        if (!accepted || currentRequestIdentity() !== account.id) return
+        window.history.replaceState(null, '', `#${next}`)
+      }
+      routeRef.current = next; setPage(next)
+    }
     window.addEventListener('hashchange', change)
     return () => window.removeEventListener('hashchange', change)
   }, [account, setPage])
   useEffect(() => {
-    document.title = `${page === 'users' ? '用户管理' : navigation.find(item => item.id === page)!.label} · 工作台`
+    document.title = `${routeTitle(page)} · 工作台`
     if (firstNavigation.current) { firstNavigation.current = false; return }
     document.getElementById('main-content')?.focus({ preventScroll: true })
+    if (isCommunityView(page)) document.getElementById('main-content')?.scrollTo({ top: 0 })
     document.querySelector('#main-content > .retained-view:not([hidden]) .workspace-scroll')?.scrollTo({ top: 0 })
     document.querySelectorAll('#main-content > .retained-view:not([hidden]) .reports-page > .retained-view:not([hidden]) :is(.report-scroll, .report-document, .source-rows)')
       .forEach(region => region.scrollTo({ top: 0 }))
@@ -192,7 +213,7 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     <span>{focus.soundError}</span><div className="focus-sound-alert-actions"><a href="#focus">返回专注</a><button type="button" className="text-button" onClick={() => void focus.enableSound()}>{focus.soundAction}</button></div>
   </div>
   return <><AppShell page={page} hasDirtyReports={dirtyReports} focusStatus={focusStatus} focusToggle={focusToggle} account={account} onPassword={() => setPasswordOpen(true)} onLogout={onLogout}
-    onUsers={() => { window.location.hash = 'users'; setPage('users') }}>
+    onUsers={() => { window.location.hash = 'users' }}>
     {projectError && <div className="notice error" role="alert"><span>项目列表读取失败：{projectError}</span><button className="text-button" type="button" onClick={() => void refreshProjects().catch((caught: unknown) => setProjectError(caught instanceof Error ? caught.message : '加载失败'))}>重新加载</button></div>}
     {focusFillError && <div className="notice error" role="alert"><span>今日重复任务检查失败：{focusFillError}</span><button className="text-button" type="button" onClick={() => void fillToday().then(result => { setFocusFillError(null); if (result.blocked.length) showToast(`有 ${result.blocked.length} 条规则未生成：${result.blocked.map(item => item.reason).join('；')}`, 'info'); void refreshContent() }).catch((caught: unknown) => setFocusFillError(caught instanceof Error ? caught.message : '重试失败'))}>重试</button></div>}
     {page !== 'focus' && !breakOverlayVisible && !focus.alarmActive && soundAlert}
@@ -201,6 +222,7 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     <RetainedView active={page === 'focus'}><FocusPage projects={projects} draft={focusDraft} control={focus} revision={revision} onTasksChanged={() => { void refreshContent() }} /></RetainedView>
     <RetainedView active={page === 'reports'}><ReportsPage onDirtyChange={setDirtyReports} /></RetainedView>
     <RetainedView active={page === 'projects'}><ProjectsPanel onProjectsChanged={async () => { await refreshProjects(); await refreshContent() }} /></RetainedView>
+    <RetainedView active={isCommunityView(page)}><CommunityWorkspace account={account} page={page} navigate={navigate} registerGuard={registerGuard} /></RetainedView>
     {page === 'users' && account.role === 'ADMIN' && <UsersPage currentId={account.id} onSelfRevoked={onSelfRevoked} />}
   </AppShell>
     {focus.alarmActive && <div className="focus-completion-alarm" role="alert" data-testid="focus-completion-alarm">

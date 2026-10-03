@@ -1,0 +1,257 @@
+{
+  "package": ".workbench/inbox/WB-20261003-community-oss-3f9aaa-r3",
+  "file_count": 36,
+  "prototype_file_count": 30,
+  "manifests": [
+    {
+      "file": "SHA256SUMS.txt",
+      "entries": 35,
+      "all_match": true,
+      "missing": [],
+      "extra": []
+    },
+    {
+      "file": "assets/prototype-r2/SHA256SUMS.txt",
+      "entries": 29,
+      "all_match": true,
+      "missing": [],
+      "extra": []
+    }
+  ],
+  "ac_ids": [
+    "AC-01",
+    "AC-02",
+    "AC-03",
+    "AC-04",
+    "AC-05",
+    "AC-06",
+    "AC-07",
+    "AC-08",
+    "AC-09",
+    "AC-10",
+    "AC-11",
+    "AC-12",
+    "AC-13",
+    "AC-14",
+    "AC-15",
+    "AC-16",
+    "AC-17",
+    "AC-18",
+    "AC-19",
+    "AC-20",
+    "AC-21",
+    "AC-22"
+  ],
+  "tc_ids": [
+    "TC-01",
+    "TC-02",
+    "TC-03",
+    "TC-04",
+    "TC-05",
+    "TC-06",
+    "TC-07",
+    "TC-08",
+    "TC-09",
+    "TC-10",
+    "TC-11",
+    "TC-12",
+    "TC-13",
+    "TC-14",
+    "TC-15",
+    "TC-16",
+    "TC-17",
+    "TC-18",
+    "TC-19",
+    "TC-20",
+    "TC-21"
+  ],
+  "acs_without_acceptance_reference": [],
+  "failures": [],
+  "inventory": [
+    {
+      "file": "acceptance.md",
+      "bytes": 18285,
+      "sha256": "5b19407ea7c5577c43a567d5f3535563148cedd64b4bac97f9a20a58bfcf5f31"
+    },
+    {
+      "file": "assets/prototype-r2/build.py",
+      "bytes": 1280,
+      "sha256": "e40417f0ed81c9ac9481cbcd4df8f66fc9510e6775852173d08b463408d97cbb"
+    },
+    {
+      "file": "assets/prototype-r2/checks/results.json",
+      "bytes": 5671,
+      "sha256": "e6af857148088e1e1e7e7fbbc27c660864994566a231913a3c0db0cfe02b601d"
+    },
+    {
+      "file": "assets/prototype-r2/checks/smoke.py",
+      "bytes": 12840,
+      "sha256": "118ca9d05efb1db195ce88bf3592c9c16b4e7022278473e4ab38f5c0f940b5c2"
+    },
+    {
+      "file": "assets/prototype-r2/CHECKS.md",
+      "bytes": 2927,
+      "sha256": "7ecb949743962bdcf46ab3b595cc6f908c8a5c3551382f6184642b7652b9e24e"
+    },
+    {
+      "file": "assets/prototype-r2/index.html",
+      "bytes": 93136,
+      "sha256": "6ef3c1b373f4c14a6c65f4f5d2ec5819d90f9aa217c7473a61c86f8cd91fcb65"
+    },
+    {
+      "file": "assets/prototype-r2/mobile-overview.png",
+      "bytes": 192313,
+      "sha256": "f39fbeb9d91c650a845e8af47df8adf52d1af0dad9d69bb9ed0e12ff9b7f1e34"
+    },
+    {
+      "file": "assets/prototype-r2/preview-gallery.html",
+      "bytes": 6002,
+      "sha256": "3bcd1ad54c97e779277d304475fd7dc194d05421c3bdb84a3eda710dead0ec77"
+    },
+    {
+      "file": "assets/prototype-r2/previews/01-community-desktop.png",
+      "bytes": 195855,
+      "sha256": "e781b1abffb13f12674cfffd419e77abe834dea0adec08f86efad7d69c4cd914"
+    },
+    {
+      "file": "assets/prototype-r2/previews/02-source-selection-desktop.png",
+      "bytes": 192529,
+      "sha256": "df4fd15a5c275118775345f8885fbf19eba1c3672fb1222c5321ed12bb67f2a6"
+    },
+    {
+      "file": "assets/prototype-r2/previews/03-editor-desktop.png",
+      "bytes": 214324,
+      "sha256": "ad1671e208845e7e1f827c678bddea7d1cec5a4a2aba731dbaf4f22b5ce87dc1"
+    },
+    {
+      "file": "assets/prototype-r2/previews/04-publish-preview-desktop.png",
+      "bytes": 216353,
+      "sha256": "55a8d1bc0bc53ff3f00fb491479ad0759f0788571297f3c8a0b2344e67c73e9e"
+    },
+    {
+      "file": "assets/prototype-r2/previews/05-article-desktop.png",
+      "bytes": 188873,
+      "sha256": "8bbe6faadf94e738005153d0231b0617b5e579ad446c441473c0d465429c3f30"
+    },
+    {
+      "file": "assets/prototype-r2/previews/06-my-posts-desktop.png",
+      "bytes": 137416,
+      "sha256": "51d923942ef2d9dd541283c0ce96c9406a676b4aaf3cc1962c5f681adf8a99f9"
+    },
+    {
+      "file": "assets/prototype-r2/previews/07-withdraw-confirm-desktop.png",
+      "bytes": 191499,
+      "sha256": "95b433d654f688e6cd4fa4123545d1951b87ae1609bd68b8e39e60723e7f09a2"
+    },
+    {
+      "file": "assets/prototype-r2/previews/08-author-profile-desktop.png",
+      "bytes": 104539,
+      "sha256": "6cc3ae014aadf8a1fc2f70e398a48c505e06ad4255bd9327c645a8c6c0d2f06e"
+    },
+    {
+      "file": "assets/prototype-r2/previews/09-login-gate-desktop.png",
+      "bytes": 77219,
+      "sha256": "1ae0db6ac022e644e035364a2eadf40f3b52378f6b0c5c7eae8793b74e074aac"
+    },
+    {
+      "file": "assets/prototype-r2/previews/10-upload-error-desktop.png",
+      "bytes": 222010,
+      "sha256": "1a420a8b5855834d40db5fd07c8bf4e0a0f9896f849f03f6a9ff5fb7c84d97cd"
+    },
+    {
+      "file": "assets/prototype-r2/previews/11-community-mobile.png",
+      "bytes": 61473,
+      "sha256": "d1a84a2cbd01a887f26072f8f11abc3cd7775878ddcebc262788ec41697e82d1"
+    },
+    {
+      "file": "assets/prototype-r2/previews/12-source-selection-mobile.png",
+      "bytes": 75412,
+      "sha256": "325462156351b43a41f0679c41757cb761aa8bdb662102a1f3f2576a5ab338cb"
+    },
+    {
+      "file": "assets/prototype-r2/previews/13-editor-mobile.png",
+      "bytes": 65091,
+      "sha256": "af626629c46756de272773d2ea66aeb4fa48199de116c058130d712e32d5f6f4"
+    },
+    {
+      "file": "assets/prototype-r2/previews/14-attachments-mobile.png",
+      "bytes": 61736,
+      "sha256": "7b54b9d5494d86d442e4599e41f4d01a0daa372b5eb7b7a7e2390239de1bc291"
+    },
+    {
+      "file": "assets/prototype-r2/previews/15-article-mobile.png",
+      "bytes": 64213,
+      "sha256": "646fee57aed0f016e703aff69a526b280c388f3e13d58d437687a87f17902f07"
+    },
+    {
+      "file": "assets/prototype-r2/previews/16-downloads-mobile.png",
+      "bytes": 52917,
+      "sha256": "6c0df7369095a3c15325075a4fb2fc565d9045a41cf3534949030b5b38a25c19"
+    },
+    {
+      "file": "assets/prototype-r2/previews/17-my-posts-mobile.png",
+      "bytes": 58191,
+      "sha256": "0b36331f87c6926af1f5d94fc4b89c53bb8f3af3e1a224ab32fbe62d4e344e5d"
+    },
+    {
+      "file": "assets/prototype-r2/README.md",
+      "bytes": 5492,
+      "sha256": "18e141c950aa21069131e1ab1272c228ec206f2f3c7983488368b4b11c379e44"
+    },
+    {
+      "file": "assets/prototype-r2/review-notes.md",
+      "bytes": 8968,
+      "sha256": "4e9f9d3824e1d0d26f5182f04dcdfafa734d3d1cd6c6bbde6a5f50b4742ce2b4"
+    },
+    {
+      "file": "assets/prototype-r2/SHA256SUMS.txt",
+      "bytes": 2686,
+      "sha256": "ed7c7e7f1eb1593af16e460f76af5406f364b71f91575f171e1eafe46e1173d6"
+    },
+    {
+      "file": "assets/prototype-r2/src/app.js",
+      "bytes": 55293,
+      "sha256": "c199783296e543776a07d77031a634d55f4d6700f1a4ce3d840da3a9766341c9"
+    },
+    {
+      "file": "assets/prototype-r2/src/fixtures.js",
+      "bytes": 6291,
+      "sha256": "bf3871376e90fca8c1265cc1e3b74131fcbec1764192eda7c5b445e320f2a708"
+    },
+    {
+      "file": "assets/prototype-r2/src/styles.css",
+      "bytes": 30828,
+      "sha256": "02d0542ac69de8ccee9976aa8896002a297ec7bb7dd93aa6194192d86c4d3cd8"
+    },
+    {
+      "file": "HANDOFF.md",
+      "bytes": 21909,
+      "sha256": "c778cfa3cc8c1becb73520068c5d91ed3773a1517362cf1b05b34d6e1d22c5f2"
+    },
+    {
+      "file": "PACKAGE-CHECKS.md",
+      "bytes": 4397,
+      "sha256": "c46c35789a0bcc7bcdfbfbe36501fc7c1b9561f3edca08af0755e92fa558b146"
+    },
+    {
+      "file": "requirements.md",
+      "bytes": 19921,
+      "sha256": "3ca7419978a1276c667a8391c5e1b523d24086a9bb172110f2817a0968c52fd8"
+    },
+    {
+      "file": "SHA256SUMS.txt",
+      "bytes": 3768,
+      "sha256": "693070a4523859bca8d31145979797217ce48008943a7bc07aa2cbc06cc7f746"
+    },
+    {
+      "file": "solution.md",
+      "bytes": 25204,
+      "sha256": "adf72483e4679984b551b159f2877d2871a5dd304127daac2efa4b2822fe97ba"
+    }
+  ],
+  "limitations": [
+    "Static package checks only.",
+    "Secret scan covers limited formats; no secret values are printed.",
+    "No incoming HTML, scripts, engineering tests or cloud operations executed."
+  ]
+}

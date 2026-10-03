@@ -17,8 +17,10 @@ Use these contracts for `scripts/local` operational scripts and local delivery d
 ## 3. Contracts
 
 - Start uses the built backend JAR and installed Vite, resolves the actual JVM executable, and launches hidden processes on loopback ports 8080/5173.
+- Private RustFS setup has separate root/application credentials, a new dependency volume and explicit private-bucket initialization; see [Private Attachments](./private-attachments.md). Native application endpoint is localhost9000, while container endpoint is rustfs9000.
 - Persist PID, creation time, full command and repository root under ignored `.local-runtime`; stop/reuse only a matching identity. Refuse unrelated port occupants.
 - By default, `.env` values are injected into the backend process without logging them. `-EnvFile` changes only the source file for that invocation; it must exist, and a missing explicit file fails before launch. Do not pass database/model credentials to the frontend process. Restore the caller environment after process creation.
+- Exclude RUSTFS management values from the native backend child. Exclude DB/model/report/storage/RUSTFS/AWS/bootstrap credentials from Vite, and exclude DB/model/storage/root credentials from the trusted file-validation process. Browser verification drivers receive only their explicitly required synthetic login, not storage/admin credentials. Never use expanded Compose output or command-line secret values as diagnostic evidence.
 - For local auth smoke tests, use an ignored synthetic EnvFile with `DEEPSEEK_API_KEY` empty and a verified absent dedicated PostgreSQL schema; never replace or read values from the user's `.env` into output. Run the existing `stop.ps1` in `finally`, then verify 8080/5173 listeners and owned PID files are gone and the original `.env` hash is unchanged.
 - Stop application processes without deleting database containers or volumes. Restart verification must use a new JVM and read existing stored data.
 - Use PostgreSQL custom archives through `pg_dump` and `pg_restore`; store sensitive dumps under ignored `.local-backups` and validate readability/checksum.
