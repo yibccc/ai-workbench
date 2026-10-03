@@ -1,0 +1,28 @@
+{
+  "id": "community-storage",
+  "name": "community-storage",
+  "title": "RustFS 私有附件与统一存储合同",
+  "description": "实现后端格式/额度校验、WSL Docker RustFS 存取、引用鉴权和安全孤立对象清理，后续阿里云扩展不改业务接口。",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kira",
+  "assignee": "kira",
+  "createdAt": "2026-10-03",
+  "completedAt": "2026-10-03",
+  "branch": "codex/community-oss",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "10-03-community-oss",
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "deliverable": "storage"
+  }
+}
