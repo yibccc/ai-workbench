@@ -545,3 +545,40 @@ R3正式规划获批后实现发布快照、RustFS私有附件和R2复用界面�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 20: AI面试原型整合与私有简历完整交付
+<!-- trellis-session: v=2 fp=a604d97771a10650 -->
+
+**Date**: 2026-10-04
+**Task**: AI面试原型整合与私有简历完整交付
+**Branch**: `codex/ai-interview`
+
+### Summary
+
+已按最终批准连续完成简历、固定2N面试、JD、报告、原型工作区、RustFS私有对象及联合备份恢复，独立审查修复与真实隔离工程验收通过，四任务原生归档，本地提交未推送；原有六项用户改动及bootstrap任务保留。
+
+### Main Changes
+
+- 新增V19/V20、单调版本与快照、持久任务/手动重试、SDK单尝试和System/User隔离；复用原型与现有工作台基础。
+- 双前缀RustFS IAM、Nginx导入额度、可证实原生启动身份、事先证明新卷的DB+对象联合恢复；更新三份私有业务spec及相关约束。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7e71e39636977b2b24eb8ca0e31150156db45162` | feat(interview): integrate private resumes and text interviews |
+| `b408f5e4e2d4bc8097eb24a2c0d95d82c8a830b0` | docs(interview): record verified handoff delivery |
+
+### Testing
+
+- [OK] 后端Java17 clean verify 271 tests，0失败/错误/跳过；前端lint/strictTS/Vite构建通过。
+- [OK] 完整浏览器117 PASS，0失败/flaky/retry；ops33 PASS；真实代理29 HTTP+4匿名访问、2对象/31表SHA联合恢复及6负例通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 阿里云适配器/API资源/同key迁移和真实付费模型质量、最大上下文、延迟、费用测量按批准延期；主产物约563KB为非阻塞构建提示。
