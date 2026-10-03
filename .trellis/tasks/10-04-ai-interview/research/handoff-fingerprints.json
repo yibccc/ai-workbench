@@ -1,0 +1,72 @@
+[
+  {
+    "file": "HANDOFF.md",
+    "bytes": 10940,
+    "sha256": "b23cb0b5f484d1727170a230f4cbdb2d1b2552a26edf770ff5691a2f51fa8962"
+  },
+  {
+    "file": "acceptance.md",
+    "bytes": 4789,
+    "sha256": "7de7ada4b828cf20d6c6c506f9a6b3b989dcaef559c120ff4d7277d33c2eb98f"
+  },
+  {
+    "file": "core-code-map.md",
+    "bytes": 5430,
+    "sha256": "1904d83815ce25d2b273a71c83ce3273fcfeedb0998420c563a2409b1ec7ea9e"
+  },
+  {
+    "file": "prototype/ai-interview-prototype.html",
+    "bytes": 27248,
+    "sha256": "85982103ea08e4c128add8feebf8b0f523a00f5d58985aa70eed98f9e807e39f"
+  },
+  {
+    "file": "prototype/design-notes.md",
+    "bytes": 5566,
+    "sha256": "67666efd8e805483ae00464156e5963b512b594f531b03e2b82c8922ef7bba04"
+  },
+  {
+    "file": "prototype/previews/answer.png",
+    "bytes": 136955,
+    "sha256": "ab2dc59d5c3fd7d818a815fbd691955ad54009e8d69128effd89b6d71a275909"
+  },
+  {
+    "file": "prototype/previews/create.png",
+    "bytes": 133743,
+    "sha256": "b288fb667c0703ac008fac0848d76236f279d07840fa1aceece1b98a6dc4ab5c"
+  },
+  {
+    "file": "prototype/previews/delete.png",
+    "bytes": 44534,
+    "sha256": "b2d170eb121c4b916c3c1505c747cdca3d466ab80aec9dcf99371366fe393cf1"
+  },
+  {
+    "file": "prototype/previews/history.png",
+    "bytes": 122893,
+    "sha256": "12df679a4c62d306e6df74ee944eed768101bcf18b0c2cfa6c1cdbfd173f4b26"
+  },
+  {
+    "file": "prototype/previews/report.png",
+    "bytes": 141319,
+    "sha256": "3e1a701f00a9b994ca7cd4d2b8d187bfb1ed1f154f748ea5998bdfb0991917fa"
+  },
+  {
+    "file": "prototype/previews/resume.png",
+    "bytes": 125781,
+    "sha256": "fd3c370cc5bf2628f17d4e48f877a6cd0464299a9286b19e9e057b76ce34f667"
+  },
+  {
+    "file": "requirements.md",
+    "bytes": 13872,
+    "sha256": "e91605cfcd9df38995f4d4f822040aa2abb30f8fb29e3fa6289c84487f455000"
+  },
+  {
+    "file": "solution.md",
+    "bytes": 9843,
+    "sha256": "5d0e68f010638f49dce16beb4b05824eaf9ef0becd4b154e95b629e00f87c39b"
+  },
+  {
+    "file": "MANIFEST.txt",
+    "bytes": 328,
+    "sha256": "c7b01404da20309cbc3cc319e0542dc9b32889dcd153efd877c9090b15774c0a"
+  }
+]

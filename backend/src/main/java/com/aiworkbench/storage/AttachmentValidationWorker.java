@@ -2,7 +2,7 @@ package com.aiworkbench.storage;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.charset.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.zip.CRC32;
@@ -21,22 +21,12 @@ public final class AttachmentValidationWorker {
     }
     static void validate(Path path,String extension) throws IOException {
         switch(extension) {
-            case "md"->markdown(path);
+            case "md"->MarkdownText.decode(path);
             case "pdf"->PdfStructureValidator.validate(path);
             case "webp"->{ WebPStructureValidator.validate(path); image(path,"WebP"); }
             case "png"->{ png(path); image(path,"png"); }
             case "jpg","jpeg"->image(path,"JPEG");
             default->throw new IOException();
-        }
-    }
-    private static void markdown(Path path) throws IOException {
-        CharsetDecoder decoder=StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT);
-        try(Reader reader=new InputStreamReader(Files.newInputStream(path),decoder)) {
-            char[] buffer=new char[4096]; int count;
-            while((count=reader.read(buffer))!=-1) for(int i=0;i<count;i++) {
-                char value=buffer[i];
-                if((Character.isISOControl(value) && value!='\n' && value!='\r' && value!='\t') || value==0) throw new IOException();
-            }
         }
     }
     private static void image(Path path,String expected) throws IOException {

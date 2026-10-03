@@ -1,0 +1,14 @@
+HANDOFF.md
+acceptance.md
+core-code-map.md
+prototype/ai-interview-prototype.html
+prototype/design-notes.md
+prototype/previews/answer.png
+prototype/previews/create.png
+prototype/previews/delete.png
+prototype/previews/history.png
+prototype/previews/report.png
+prototype/previews/resume.png
+requirements.md
+solution.md
+MANIFEST.txt

@@ -2,7 +2,7 @@
 
 ## Scope
 
-The five workspaces (`records`, `tasks`, `focus`, `reports`, `projects`) occupy one visible browser viewport. The document must not grow vertically with workspace content. Navigation, the topbar, each page title, and compact page controls remain in the viewport. Long forms, lists, report bodies, and evidence scroll in bounded content regions. Desktop main content uses the available width with modest top/side padding; avoid restoring the former centered 1170px cap.
+The six workspaces (`records`, `tasks`, `focus`, `reports`, `projects`, `interview`) occupy one visible browser viewport; private `profile` is an account-menu auxiliary view in the same bounded shell. The document must not grow vertically with workspace content. Navigation, the topbar, each page title, and compact page controls remain in the viewport. Long forms, lists, report bodies, and evidence scroll in bounded content regions. Desktop main content uses the available width with modest top/side padding; avoid restoring the former centered 1170px cap. Interview/profile specifics and four-size original-prototype checks follow [Private UI](./private-interviews.md).
 
 ## Height chain
 

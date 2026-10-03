@@ -7,8 +7,14 @@ export type DialogOptions = {
   onConfirm?: (value: string) => Promise<void>
 }
 export const DialogContext = createContext<((options: DialogOptions) => Promise<boolean>) | null>(null)
+export const DismissDialogsContext = createContext<(() => void) | null>(null)
 export function useDialog() {
   const show = useContext(DialogContext)
   if (!show) throw new Error('DialogProvider is required')
   return show
+}
+export function useDismissDialogs() {
+  const dismiss = useContext(DismissDialogsContext)
+  if (!dismiss) throw new Error('DialogProvider is required')
+  return dismiss
 }

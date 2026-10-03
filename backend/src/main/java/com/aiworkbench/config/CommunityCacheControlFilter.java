@@ -19,6 +19,7 @@ public class CommunityCacheControlFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String path = request.getServletPath();
         if (path.startsWith("/api/community/") || path.startsWith("/api/me/posts")
+                || path.equals("/api/me/resume") || path.startsWith("/api/me/resume/")
                 || path.startsWith("/api/me/community/") || path.startsWith("/api/admin/community/")) {
             response.setHeader("Cache-Control", "no-store, private");
             response.setHeader("X-Content-Type-Options", "nosniff");

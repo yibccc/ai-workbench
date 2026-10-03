@@ -1,0 +1,33 @@
+{
+  "id": "ai-interview",
+  "name": "ai-interview",
+  "title": "AI 面试原生整合与交接规划",
+  "description": "接入 AIW-INTERVIEW-20261003-cf4cf8fc-r1，核验真实代码与原型，规划账号私有简历、固定文字面试和报告，复用 RustFS/OSS 存储边界，等待最终批准。",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "kira",
+  "assignee": "kira",
+  "createdAt": "2026-10-04",
+  "completedAt": null,
+  "branch": "codex/ai-interview",
+  "base_branch": "master",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "10-04-interview-resume",
+    "10-04-interview-engine",
+    "10-04-interview-ui"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "handoff_id": "AIW-INTERVIEW-20261003-cf4cf8fc",
+    "handoff_revision": "1"
+  }
+}

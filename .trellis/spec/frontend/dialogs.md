@@ -10,6 +10,7 @@ All in-app confirmations and text prompts use `components/Dialog` and `DialogPro
 - `DialogOptions.className` may apply a feature theme (community uses `community-dialog`) without replacing the native primitive or changing default workbench behavior. An asynchronously loaded profile form autofocuses its first real input when mounted, while closing restores its original trigger.
 - Restore the trigger focus after closing when the element still exists.
 - Cancel and Escape resolve without mutation or navigation. Ignore cancellation during an in-flight submit.
+- Owner invalidation is a stronger boundary than ordinary busy cancellation: `useDismissDialogs()` synchronously resolves the active promise with false on401/logout/login account change. Dialog generations reject an old callback attempting to close a new account's confirmation. A dialog above the account root must never let a captured Profile DELETE run under the next account's Cookie.
 - Await the user's decision before changing a date, report version, page, or page size. Avoid duplicate parent/child confirmations.
 - Destructive actions have a red confirm button and explain impact; cancellation is the initial focus for destructive confirmation.
 - Prompt inputs retain their value on validation/network failure. Task results permit empty text, multiple lines and at most 4000 characters; Enter inserts a newline and Ctrl+Enter submits.
