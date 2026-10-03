@@ -108,6 +108,14 @@ async function focusServer(context: BrowserContext) {
   return server
 }
 
+async function enableRunningSound(page: Page, server: Awaited<ReturnType<typeof focusServer>>) {
+  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  // The UI label changes before the lease request completes. Confirm that the
+  // initial running claim is acknowledged before injecting another transition.
+  await expect.poll(() => server.session.controllerId).not.toBeNull()
+  await expect(page.getByRole('button', { name: '暂停', exact: true })).toBeEnabled()
+}
+
 async function sync(page: Page) { await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))) }
 
 test('后台提醒超过五分钟仍携带启声标签和代次续租，查看页面不能抢占', async ({ page, context }) => {
@@ -117,7 +125,7 @@ test('后台提醒超过五分钟仍携带启声标签和代次续租，查看�
   await openFocus(page)
   await expect.poll(() => server.claims.length).toBeGreaterThan(0)
   expect(server.claims.every(claim => claim.controllerId === null)).toBe(true)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   await expect.poll(() => server.session.controllerId).not.toBeNull()
   const owner = server.session.controllerId
   const generation = server.session.controllerGeneration
@@ -159,7 +167,7 @@ test('后台提醒完成检测不受可见性限制，终态续租且刷新不�
   const server = await focusServer(context)
   server.session = { ...server.session, targetMs: 1200 }
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   await page.evaluate(() => Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' }))
   server.settle = true
   await expect(page.getByTestId('focus-completion-alarm')).toBeVisible()
@@ -177,7 +185,7 @@ for (const state of ['suspended', 'interrupted'] as const) {
     await audioProbe(context)
     const server = await focusServer(context)
     await openFocus(page)
-    await page.getByRole('button', { name: '启用并试听声音' }).click()
+    await enableRunningSound(page, server)
     const resumesBeforePause = await page.evaluate(() => window.__alarmAudio.resumes)
     await page.evaluate(state => window.__alarmAudio.contexts[0].changeState(state), state)
     await expect(page.getByRole('button', { name: '恢复声音' })).toBeVisible()
@@ -196,7 +204,7 @@ test('恢复音频失败分类准确，关闭上下文由用户动作替换并�
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   await page.evaluate(() => { window.__alarmAudio.failResume = true; window.__alarmAudio.contexts[0].changeState('interrupted') })
   server.settle = true
   await sync(page)
@@ -220,7 +228,7 @@ test('恢复音频等待中点击结束，迟到resume不能重启提醒', async
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   await page.evaluate(() => { window.__alarmAudio.holdResume = true; window.__alarmAudio.contexts[0].changeState('suspended') })
   server.settle = true
   await sync(page)
@@ -240,7 +248,7 @@ test('提醒控制权校准等待中点击结束，迟到checkpoint不能重启�
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   server.settle = true
   await sync(page)
   const alarm = page.getByTestId('focus-completion-alarm')
@@ -265,7 +273,7 @@ test('提醒控制权409终态校准和过期接管，账户卸载停止循环',
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   server.session = { ...server.session, phase: 'ENDED', focusMs: server.session.targetMs, endedAt: new Date().toISOString(), controllerId: 'd9600000-0000-4000-8000-000000000099', controllerGeneration: 8, controllerExpiresAt: new Date(Date.now() - 1).toISOString(), version: 10 }
   server.conflict = true
   await sync(page)
@@ -281,7 +289,7 @@ test('提醒控制权到期停止循环，用户恢复只启动仍待处理的�
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   server.leaseMs = 1500; server.settle = true
   await sync(page)
   const alarm = page.getByTestId('focus-completion-alarm')
@@ -302,7 +310,7 @@ test('后台提醒同代次20秒续租只延长音频停止时间，不重复创
   const server = await focusServer(context)
   await page.clock.install()
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   server.settle = true
   await sync(page)
   await expect.poll(() => page.evaluate(() => window.__alarmAudio.active)).toBe(1)
@@ -320,7 +328,7 @@ test('恢复音频永远pending会超时，用户仍可恢复且迟到旧promise
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   await page.evaluate(() => { window.__alarmAudio.holdResume = true; window.__alarmAudio.contexts[0].changeState('suspended') })
   server.settle = true
   await sync(page)
@@ -345,7 +353,7 @@ test('恢复音频系统statechange恢复待处理提醒，已点击结束则不
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   server.settle = true
   await sync(page)
   await expect.poll(() => page.evaluate(() => window.__alarmAudio.active)).toBe(1)
@@ -365,7 +373,7 @@ test('恢复音频等待期间上下文关闭，反馈保留关闭原因且用�
   await audioProbe(context)
   const server = await focusServer(context)
   await openFocus(page)
-  await page.getByRole('button', { name: '启用并试听声音' }).click()
+  await enableRunningSound(page, server)
   server.settle = true
   await sync(page)
   await expect.poll(() => page.evaluate(() => window.__alarmAudio.active)).toBe(1)

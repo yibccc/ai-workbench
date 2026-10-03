@@ -7,6 +7,21 @@ let identityId: string | null = null
 let onUnauthorized: (() => void) | null = null
 const activeRequests = new Set<AbortController>()
 
+/** Keep only the server's documented, safe ProblemDetail fields for feature decisions. */
+export class ApiError extends Error {
+  readonly status: number
+  readonly code?: string
+  readonly currentVersion?: number
+  constructor(status: number, problem: unknown) {
+    const value = problem && typeof problem === 'object' ? problem as Record<string, unknown> : {}
+    super(typeof value.detail === 'string' ? value.detail : typeof value.title === 'string' ? value.title : `请求失败（${status}）`)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = typeof value.code === 'string' ? value.code : undefined
+    this.currentVersion = typeof value.currentVersion === 'number' && Number.isSafeInteger(value.currentVersion) && value.currentVersion >= 0 ? value.currentVersion : undefined
+  }
+}
+
 export function setUnauthorizedHandler(handler: (() => void) | null) { onUnauthorized = handler }
 
 /** Invalidates responses from a previous account and aborts its outstanding requests. */
@@ -40,7 +55,7 @@ export async function getCsrfToken(): Promise<string> {
   return csrfPromise
 }
 
-export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function decodedRequest<T>(path: string, init: RequestInit | undefined, decode: (response: Response) => Promise<T>): Promise<T> {
   const epoch = identityEpoch
   const controller = new AbortController()
   activeRequests.add(controller)
@@ -59,14 +74,28 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
       // Remove the authenticated view as soon as the server confirms expiry;
       // reading an error body can be delayed or fail independently.
       if (response.status === 401 && identityId && !path.startsWith('/api/auth/login')) onUnauthorized?.()
-      const problem = await response.json().catch(() => null) as { detail?: string; title?: string } | null
-      throw Object.assign(new Error(problem?.detail ?? problem?.title ?? `请求失败（${response.status}）`), { status: response.status })
+      const problem: unknown = await response.json().catch(() => null)
+      if (epoch !== identityEpoch && response.status !== 401) throw new DOMException('账号已切换', 'AbortError')
+      throw new ApiError(response.status, problem)
     }
-    if (response.status === 204 || response.headers.get('content-length') === '0') return undefined as T
-    const body = await response.text()
-    return (body ? JSON.parse(body) : undefined) as T
+    if (response.status === 204) return undefined as T
+    const body = await decode(response)
+    if (epoch !== identityEpoch || controller.signal.aborted) throw new DOMException('账号已切换或请求已取消', 'AbortError')
+    return body
   } finally {
     activeRequests.delete(controller)
     init?.signal?.removeEventListener('abort', callerAbort)
   }
+}
+
+export function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return decodedRequest(path, init, async response => {
+    const body = await response.text()
+    return (body ? JSON.parse(body) : undefined) as T
+  })
+}
+
+/** Binary reads use the same Cookie, cancellation, expiry and post-decode epoch checks. */
+export function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
+  return decodedRequest(path, init, response => response.blob())
 }

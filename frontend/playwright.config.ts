@@ -46,7 +46,7 @@ export default defineConfig({
       },
     },
     {
-      command: 'npm run dev -- --host 127.0.0.1 --port 15173',
+      command: 'node e2e/start-vite.mjs',
       url: 'http://127.0.0.1:15173',
       timeout: 60_000,
       reuseExistingServer: false,

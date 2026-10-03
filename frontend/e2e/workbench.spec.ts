@@ -2243,6 +2243,14 @@ test('账号菜单、管理员创建与换账号隔离', async ({ page, request 
   await page.getByLabel('密码', { exact: true }).fill(password)
   await page.getByRole('button', { name: '登录', exact: true }).click()
   await expect(page.getByTestId('workbench')).toBeVisible()
+  // The strict allowed-target contract retains #users; USER sees the denied
+  // destination instead of silently falling back to another current route.
+  await expect(page.getByRole('heading', { name: '内容暂不可访问' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '用户管理', exact: true })).toHaveCount(0)
+  await expect(page.locator('.account-trigger:visible').first()).toHaveAttribute('aria-label', `账号菜单：${username}`)
+  await expect(page).toHaveURL(/#users$/)
+  await page.getByRole('link', { name: '工作台', exact: true }).click()
+  await expect(page).toHaveURL(/#records$/)
   await page.getByRole('group', { name: '记录方式' }).getByRole('button', { name: '手工记录' }).click()
   await expect(page.getByTestId('record-content')).not.toHaveValue('管理员未保存草稿')
   await expect(page.getByText('仅管理员可见的工作记录')).toHaveCount(0)
