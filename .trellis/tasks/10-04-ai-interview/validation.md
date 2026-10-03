@@ -1,6 +1,6 @@
 # 最终整合验证
 
-状态：工程验收完成，等待已批准本地提交与归档。用户已批准连续实现/审查/隔离验证/规范和本地提交归档；本记录只写实际结果，阿里云和真实付费模型测量延期。
+状态：工程验收完成，业务提交 `7e71e39636977b2b24eb8ca0e31150156db45162` 已生成；交付文档及原生归档/日志接续。用户已批准连续实现/审查/隔离验证/规范和本地提交归档；本记录只写实际结果，阿里云和真实付费模型测量延期。
 
 ## 后端完整门禁
 
@@ -12,13 +12,13 @@
 
 ## 前端当前门禁
 
-独立UIcheck：最后27 fixture浏览器PASS，另外ACK→旧GET→权威GET1定向PASS，最终lint/strictType/Vitebuild PASS。四尺寸六屏24PNG已在UI artifacts/visual；fixture只证明UI状态/几何，不是后端事实或真实模型质量。Root已启动最终JAR的独立E2E后端18080，新wbinterview_e2e/schema d9_e2e实际V1→V20/healthPASS；Vite/Chromium控制配置限定非业务secret环境，真实链/旧回归正在执行。
+独立UIcheck：最后27 fixture浏览器PASS，另外ACK→旧GET→权威GET1定向PASS，最终lint/strictType/Vitebuild PASS。四尺寸六屏24PNG已在UI artifacts/visual；fixture只证明UI状态/几何，不是后端事实或真实模型质量。最终JAR的独立E2E后端18080、新wbinterview_e2e/schema d9_e2e实际V1→V20/healthPASS；Vite/Chromium控制配置限定非业务secret环境，真实链/旧回归117用例全部通过，进程已停止。
 
 ## 对象存储及ops
 
-已真实验证隔离RustFS双prefixPut/Get/Delete、anon/outside/admin/ACL/ListBucket拒绝；App专有policy显式维护已再实测exit0、密码不旋转/共享policy不改。ops29/31轻量tests与真实自有短进程native capture通过；native capture不可证实时只记录safeError，普通app启动继续，backup拒不明身份。
+已真实验证隔离RustFS双prefixPut/Get/Delete、anon/outside/admin/ACL/ListBucket拒绝；App专有policy显式维护已再实测exit0、密码不旋转/共享policy不改。最终33轻量ops tests与真实自有短进程native capture通过；native capture不可证实时只记录safeError，普通app启动继续，backup拒不明身份。
 
-新恢复目标wbinterviewrestoreproof20261004已通过prepare-volumes在创建前生成freshproof，随后PG25434/Redis36381/RustFS29004健康；旧stoppedrestore目标没有事后补造proof。真实defaultnative source/API数据与联合backup/restore/恢复HTTP待ops实际结果。
+新恢复目标wbinterviewrestoreproof20261004已通过prepare-volumes在创建前生成freshproof，随后PG25434/Redis36381/RustFS29004健康；旧stoppedrestore目标没有事后补造proof。真实defaultnative source/API数据与联合backup/restore/恢复HTTP已全部通过，结果如下。
 
 ## 最终整合实际结果
 
@@ -30,6 +30,8 @@
 
 ## 本地收尾
 
-仅本任务localcommit、4任务archive/session及delivery回流接续；原用户6项改动排除，bootstrap任务不归档。原始network trace可能含运行Cookie，仅本地保留并由.gitignore精准忽略；可提交合成PNG/脱敏Markdown及SHA摘要。
+业务提交7e71e39已完成，仅本任务delivery文档提交、4任务archive/session接续；原用户6项改动排除，bootstrap任务不归档。原始network trace可能含运行Cookie，仅本地保留并由.gitignore精准忽略；已提交合成PNG/脱敏Markdown及SHA摘要。
+
+自有测试应用/代理/临时WSL保活已按PID、创建时间、命令、工作目录核验后停止；隔离数据卷保留。根清理脚本首次在pwsh7中因JSON时间自动类型化拒绝身份比较，改用脚本既定Windows PowerShell 5.1入口通过身份核验完成清理，未绕过guard或停止未知进程。
 
 运行问题保留在research/issues.md/各validation，不把未执行门禁当PASS，不停止日常服务/删除源或旧用户数据，不push/PR/外部发布。

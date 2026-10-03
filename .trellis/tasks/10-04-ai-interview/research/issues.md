@@ -32,6 +32,20 @@
 | D-01 | 阿里云adapter/API申请/真实访问/同key对象迁移 | 用户有资源后独立云接入任务与配置/迁移验收 |
 | D-02 | 最大组合真实模型质量/延迟/费用/context容量 | 先fakeHTTP/fixture工程验收；真实付费调用明确授权后测量 |
 | D-03 | 外部ai-interview AGPLJava/Prompt/Skill复制 | 当前不复制；将来具体范围与许可义务核对/明确批准 |
-| D-04 | 真实执行过程中普通工程错误 | 同授权范围自主修复/审查，记录证据，交付末尾汇总 |
+| D-04 | Vite主产物约563KB的构建提示 | 构建通过，非阻塞；后续按实际性能需求评估拆包 |
+
+## 实施中已解决的问题
+
+| 问题 | 处理与最终证据 |
+|---|---|
+| 迟到put、lease到期、版本ABA及删除重放可能复活旧数据 | 持久reservation/receipt、单调version、最后wall-clock CAS；真实PG并发/到期/重启用例通过 |
+| SDK默认重试3次及非可信正文进入系统消息 | maxAttempts=1，System/User分离；本地真实HTTP线计数与完整JSON用例通过 |
+| UI旧GET覆盖ACK、失去身份后对话框和私有投影残留 | 版本与generation barrier、清理重试元组、强制dismiss；fixture与真实链通过 |
+| 报告主问题序号按turnIndex显示错误 | mainIndex/2+1；真实浏览器主问题编号与13.35报告通过 |
+| 完整后端首轮测试继承synthetic bootstrap且live URL不正确 | 窄化测试env并使用独立schema，未改变账号规则；最终271全通过 |
+| Python→WinPS模块环境与psql多行JSON解析影响真实备份 | 子进程移除PSModulePath、quiet/full JSON解析；33ops与真实2对象恢复通过 |
+| 撤销会话旧夹具点击已销毁导航，根临时清理在pwsh7时间比较拒绝 | 修复夹具时序保真实401与完整Toast；既定WinPS5.1入口严格核身份清理，117浏览器通过 |
+
+最终无开放产品阻塞或新增兼容方案。上述问题在授权范围内修复后已复审，不需要再次批准。
 
 不得把DEFERRED或静态检查写成产品PASS。真正新增产品/兼容/不可逆风险只停止依赖动作，其余已授权工作继续。

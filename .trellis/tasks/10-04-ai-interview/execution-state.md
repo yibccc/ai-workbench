@@ -1,8 +1,20 @@
-# 持续执行状态
+# 最终执行状态与实施历史
+
+## 最终状态（后续章节仅为历史）
+
+2026-10-04：简历、面试引擎、原型集成、独立审查修复及隔离工程验收均已完成，无待实现项。业务提交 `7e71e39636977b2b24eb8ca0e31150156db45162` 已生成；后端271 tests零失败、完整浏览器117 PASS、ops33 PASS及真实代理/备份恢复通过。26 INT-AC均有工程证据，阿里云及真实付费模型质量/性能测量延期。
+
+自有临时应用、代理与WSL保活进程已按身份核验停止，隔离测试数据卷保留，日常 `.env` 字节/服务/数据库未改变。原有六项工作区改动不纳入提交，bootstrap任务不归档，未push/PR/外部发布。
+
+第二个工作提交记录交付回流与本状态文档，随后仅接续已批准的原生三子/父任务归档和session journal；不重新启动实现或重复测试。实际生命周期以task.json和原生脚本返回为准。交付报告：`docs/dev-sop/AIW-INTERVIEW-20261003-cf4cf8fc/delivery.md`。
+
+---
+
+以下保留批准后中途协调历史，不代表当前阶段或未完成项。
 
 最后更新：2026-10-04。用户已在最终摘要后选择“批准并连续执行（推荐）”，具体授权见planning-review末节。业务分支codex/ai-interview，原工作区六项用户改动保留，不纳入提交。goal保持active。
 
-## 当前阶段
+## 批准后的实施阶段（历史）
 
 resume/engine/UI均已由原生task.py start置in_progress；主chat实际上下文codex:01a10293-1da5-7121-80ed-85fc1c66014d，当前指向engine。resume核心验收与snapshot独立审查通过后已启动engine。父规划任务待最终整合直接工作时再start，不手改lifecycle。
 
@@ -31,7 +43,7 @@ LinuxMaven已确认完整cache在D:/APPS/apache-maven-3.9.9/repository（非C:.m
 
 旧restore project wbinterviewrestore20261004的3容器stopped/卷保留，没有freshproof。opscheck新prepare-volumes必须在新project/volumes创建前跑，真实restore需另全新project和--fresh-volumes-record，不能对旧卷补造证明。
 
-## 接续动作
+## 当时的接续动作（现已完成）
 
 1. 等resume targeted实测结果与快照接口独立审查；空槽派trellis-check，或core验证后start engine并派trellis-implement，明确backend新interview/V20/gateway/jobs/testownership避免resume共享helper冲突。
 2. engine实际DTO与UI约定0-based/Question(type,parentMainIndex)/Answer status/三轴 Session字段及Report(turns/totalScore nullable/groups)对齐；新网关maxAttempts1需真实SDK localHTTP计数。
