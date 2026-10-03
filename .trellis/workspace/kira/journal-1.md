@@ -435,3 +435,67 @@ Saving ended linked focus progress atomically completes its task with matching r
 ### Status
 
 [OK] **Completed**
+
+
+## Session 18: 站内广场与私有RustFS附件R3交付
+<!-- trellis-session: v=2 fp=747dc19b2386f566 -->
+
+**Date**: 2026-10-03
+**Task**: 站内广场与私有RustFS附件R3交付
+**Branch**: `codex/community-oss`
+
+### Summary
+
+R3正式规划获批后实现发布快照、RustFS私有附件和R2复用界面，22AC工程通过；3work+4task归档后记录日志。
+
+### Main Changes
+
+# 站内广场与私有RustFS附件R3交付
+
+正式输入WB-20261003-community-oss-3f9aaa/r3，直接静态提取复用R2模板/CSS，保留36不可变输入与全SHA证据。最终规划由用户后续开工批准，具体Git提交批准另行记录。实际work SHA通过add_session --commit注入，不预填。
+
+## 实际交付
+
+成员三类型发布、独立public author DTO与本人素材/私有draft；完整预览tuple事务发布、immutable history/固定receipt、withdraw/ADMIN hide审计。V17/V18只追加，owner/当前引用鉴权、RustFS最小appIAM、后端受保护stream、精确额度/真实格式worker、持久reservation/fencing/recover/全引用cleanup。前端共享账号根/原五工作区及唯一focus controller，严格routes/Blob身份取消/dirty/input保留/原tuple重试，R2全部17图与源状态直接复用。
+
+## 实际验证
+
+后端最终clean verify223/0failure/0error/0skip，另18原定向与新增AC19单方法41311/1PASS，不能相加冒称新全量。社区12完整通过、原76回归exit0（2历史FLAKY如实保留），修测试初始声lease等待后最新社区12+focus13无retry25通过；额外真实R2视觉第13case52767单场景1PASS。lint/type/build PASS，515KiB advisory保留。根实际逐页原型/正式17图及filled feed/saved UUID draft/PNG-PDF-MD补图QA，父22AC全部工程PASS。
+
+官方五服务Nginx→BootJAR worker→RustFS真20/5/50MiB/+1、实际JVM KILL后新JVM恢复/cleanup及Node env guard最终56407exit0；自己d10资源清理。普通RustFS9000/9001/私有桶已准备，管理-app分离，只追加.env新键原bytesprefix保持，旧PG/Redis不重建。Windows现成start/stop/check-safety+最新JAR/Vite、独立synthetic schema/namespace，PNG/MD worker/发布/下载SHA、新JVM同session/revision/file、真实OS子环境秘密计数0，30223exit0；finally端口/PID文件gone、normal.env/infra/JAR不变。日常schema未迁移。
+
+## 审查与规范
+
+三子独立check加父跨层/视觉/文件指纹，全tracked+untracked覆盖；publication/private-attachments/community-publishing executable specs及部署/目录/Dialog索引沉淀。已修问题和原失败保留在回流delivery；236 trace/video保原SHA移至ignored runtime，后续补图原诊断也仅ignored。可提交证据不含env/secret/rawsessiontrace，5份初始无关SOP排除，00-bootstrap保持active。原生wide archive/journal pathspec通过逐步干净前置检查与commit路径复核限制本需求差异。
+
+## 范围与后续
+
+阿里云adapter/API/资源/迁移按批准范围延期，保持ObjectStorage/key/HTTP/DB合同，后续实际同key字节SHA迁移与云验收后切配置。高压缩WebP/加密PDF仅结构层证明，不保证每个bitstream或hidden内容/无病毒；用户物理声音/持续使用/人工视觉未验收。无兼容层/旧数据fallback/feature flag/默认禁用，无push/PR/远端部署/付费模型。归档与当前Git事实使用完成脚本返回值，不预填SHA。
+
+## 本次实际获批收尾
+
+用户后续明确回复“确认”，批准本地三业务提交+四本需求任务归档+journal。以下均已实际生成：
+- Work `bff403f142793d9f30c039f7036604d368946085` — feat(community): add member publications and private RustFS attachments
+- Work `5180ff121a2e5e0f1e81d48bdf9307a7c3bd416f` — feat(community): reuse R2 publishing views and protected attachments
+- Work `9df38313f64bf57e0446ca40dc7e9803af1ff56c` — docs(community): record delivery and publication contracts
+- Archive `d536cf78ce1eff986079f2899e5ede114649d06a` — `.trellis/tasks/archive/2026-10/10-03-community-publishing`，原生completed生命周期。
+- Archive `d9e01d2ac759fc8db33c86a282996bdabe200540` — `.trellis/tasks/archive/2026-10/10-03-community-storage`，原生completed生命周期。
+- Archive `f807031b6eed803ed4d37409f30f9a58dac6a4e0` — `.trellis/tasks/archive/2026-10/10-03-community-ui`，原生completed生命周期。
+- Archive `31f74f10646d58e7a47caa7295ea8f74dfc9beca` — `.trellis/tasks/archive/2026-10/10-03-community-oss`，原生completed生命周期。
+
+首次原生archive的auto commit在从未tracked旧source pathspec失败（CLI仍0），通过实际HEAD断言发现；不重做生命周期、不改工具，其余使用已有--no-commit后精确destination同名chore提交，实际范围/数量均获批。此前归档与日志范围干净，每步只有本次任务差异。CSS仅额外EOF空行规范化，lint79040/build59573实际exit0、prod assets同hash；不虚构新业务重跑。
+
+完成后只保留原5份用户SOP未跟踪，00-bootstrap保持active；未push/amend/PR/云操作。四已归档任务的最终22AC与实际源/数据/HTTP/浏览器/截图证据可直接审阅，原生journaling使用本次三个真实work SHA。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bff403f142793d9f30c039f7036604d368946085` | feat(community): add member publications and private RustFS attachments |
+| `5180ff121a2e5e0f1e81d48bdf9307a7c3bd416f` | feat(community): reuse R2 publishing views and protected attachments |
+| `9df38313f64bf57e0446ca40dc7e9803af1ff56c` | docs(community): record delivery and publication contracts |
+
+### Status
+
+[OK] **Completed**
