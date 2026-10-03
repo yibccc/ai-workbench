@@ -18,6 +18,7 @@ Use this contract for every paged list. PageHelper performs database count and p
 - Execute exactly the intended mapper select inside the paging scope. Always `PageHelper.clearPage()` in finally, including exceptions before MyBatis interception.
 - Capture `PageInfo` before converting rows to DTOs. Map DTOs after the pagination scope is cleared so any related query is not accidentally paginated.
 - Mapper list SQL owns filters and deterministic `created_at DESC, id DESC` ordering; remove manual pagination LIMIT/OFFSET and duplicate count queries replaced by the interceptor.
+- Records paging is a daily presentation projection: aggregate same-owner/task/day focus into an active same-day task-completion item and exclude absorbed focus before PageHelper counts or limits. Count visible entries, not raw ledger rows; keep raw list/detail queries available to timing statistics and report evidence.
 - Report source queries preserve frozen ordering and stable global numbering; the visible source list requests size 5, while source selection for generation is always unpaged.
 - Original array endpoints retain compatibility and must not inherit thread-local pagination from a preceding request.
 
@@ -42,6 +43,7 @@ Use this contract for every paged list. PageHelper performs database count and p
 ## 6. Tests Required
 
 - Real PostgreSQL count/filter/ordering/first-last-out-of-range page checks.
+- Records merging must return accurate totals even when the raw focus/completion pair spans a page boundary; several same-day sessions sum once, while other owners/days and reopened completions cannot hide focus rows.
 - Failure before mapper interception still clears thread-local state.
 - DTO conversion and subsequent full report-source selection run with no paging state.
 - HTTP tests cover size 5 on all paged routes, including report sources, plus default 20 and retained 10/20/50 compatibility.

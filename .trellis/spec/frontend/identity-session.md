@@ -25,6 +25,8 @@ The STOMP client receives only owner INPUT/REPORT refresh signals, not business 
 
 Account UI includes username/role, self-password change and current-session logout; only ADMIN sees an auxiliary user-management page. Forms use the existing Dialog focus/cancel/duplicate-submit rules. Creation defaults to USER and includes username, role, password and confirmation; self-change needs current/new/confirmation; admin reset needs new/confirmation. Username is immutable, there is no account delete, public signup, password recovery, search/bulk account management or notification center. The image reference is a visual guide, not runtime evidence.
 
+The login password starts hidden. Its visibility control uses shared `Icon` eye / eye-off SVGs, `type="button"`, and the current action label `显示密码` / `隐藏密码`. Keyboard activation changes only input visibility, retaining its value without submitting the form. Decorative SVGs remain hidden from assistive technology.
+
 When an ADMIN successfully changes their own role, disables their own account, or resets their own password, the success response itself proves the current UI identity is revoked. Close realtime, clear the request identity, and unmount the authenticated tree immediately. Do not wait for an account-list refresh or a later 401; that follow-up request may fail due to network loss.
 
 ## 4. Validation & Error Matrix
@@ -50,6 +52,7 @@ When an ADMIN successfully changes their own role, disables their own account, o
 
 - Run `npm run lint`, `npm run build`, and Playwright E2E against explicit isolated PostgreSQL/Redis endpoints with synthetic accounts; never point the E2E reset hook at an existing application volume. The E2E backend profile must use `d9_e2e` only.
 - Browser tests must cover desktop/mobile account entry, ADMIN and USER permissions, form fields/cancel/focus, password error and success, five-workspace regression, pagination and dirty-draft guards, 401/403/404 classification, exact 5000 ms Toast, A→B late-response/storage isolation, and user activity signal behavior. Cover focus audio/timer cleanup during A→B switches and prove passive focus synchronization does not call `/api/auth/activity`.
+- Verify the login eye toggle in both directions, including keyboard activation, correct accessible action label, retained password value and no login submission from the toggle.
 - For self-demotion, self-disable, and self-reset, force the account-list refresh to fail after a successful mutation and assert the workbench still disappears immediately.
 - Inject STOMP disconnect/reconnect and assert HTTP CRUD is usable, tracked INPUT/REPORT reaches the final database state through 15-second GET, reconnect re-subscribes, duplicate events do not write, and automatic communication does not call `/api/auth/activity`.
 - Compare real screenshots/geometry on desktop, narrow and short viewports using the viewport-layout spec. A generated concept image cannot be acceptance evidence.

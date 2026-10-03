@@ -413,3 +413,25 @@ Saving ended linked focus progress atomically completes its task with matching r
 ### Status
 
 [OK] **Completed**
+
+
+## Session 17: 登录眼睛图标与专注待办记录合并
+<!-- trellis-session: v=2 fp=a3778a0edda9bdba -->
+
+**Date**: 2026-10-02
+**Task**: 登录眼睛图标与专注待办记录合并
+**Branch**: `codex/login-focus-record-merge`
+
+### Summary
+
+实现登录密码眼睛切换与同日专注待办记录合并；保留原始计时和报告事实。后端180项、浏览器3项、前端lint/build及独立审查通过。已发布PR #12：https://github.com/yibccc/ai-workbench/pull/12。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `80cacbc` | fix: merge linked focus records and use password eye toggle |
+
+### Status
+
+[OK] **Completed**

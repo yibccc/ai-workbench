@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { login, type Account } from '../../api/auth'
+import { Icon } from '../../components/Icon'
 
 export function LoginPage({ onLogin }: { onLogin: (account: Account) => void }) {
   const [username, setUsername] = useState('')
@@ -21,7 +22,7 @@ export function LoginPage({ onLogin }: { onLogin: (account: Account) => void }) 
       <h1>登录工作台</h1><p>使用管理员创建的账号进入你的工作区。</p>
       <form onSubmit={event => void submit(event)} aria-busy={busy}>
         <label>用户名<input autoFocus autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required disabled={busy} /></label>
-        <div className="login-password"><label htmlFor="login-password">密码</label><span className="password-field"><input id="login-password" type={visible ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required disabled={busy} /><button type="button" className="text-button" aria-label={visible ? '隐藏密码' : '显示密码'} onClick={() => setVisible(value => !value)}>{visible ? '隐藏' : '显示'}</button></span></div>
+        <div className="login-password"><label htmlFor="login-password">密码</label><span className="password-field"><input id="login-password" type={visible ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required disabled={busy} /><button type="button" className="text-button" aria-label={visible ? '隐藏密码' : '显示密码'} aria-pressed={visible} onClick={() => setVisible(value => !value)}><Icon name={visible ? 'eye-off' : 'eye'} size={20} /></button></span></div>
         {error && <p className="inline-notice inline-error" role="alert">{error}</p>}
         <button type="submit" disabled={busy}>{busy ? '正在登录…' : '登录'}</button>
       </form>
