@@ -29,7 +29,10 @@ public class E2eMaintenanceServiceImpl implements E2eMaintenanceService {
                 + "d9_e2e.projects, d9_e2e.community_moderation_audit, d9_e2e.community_revision_attachments, "
                 + "d9_e2e.community_draft_attachments, d9_e2e.community_attachments, d9_e2e.community_post_revisions, "
                 + "d9_e2e.community_post_drafts, d9_e2e.community_posts, "
-                + "d9_e2e.community_public_profiles RESTART IDENTITY CASCADE");
+                + "d9_e2e.community_public_profiles, d9_e2e.interview_operation_receipts, d9_e2e.interview_evaluations, "
+                + "d9_e2e.interview_ai_jobs, d9_e2e.interview_answers, d9_e2e.interview_questions, "
+                + "d9_e2e.interview_sessions, d9_e2e.interview_jd_analyses, d9_e2e.resume_write_receipts, "
+                + "d9_e2e.user_resumes, d9_e2e.resume_objects RESTART IDENTITY CASCADE");
         gateway.ifAvailable(E2eDeterministicAiGateway::reset);
     }
 }

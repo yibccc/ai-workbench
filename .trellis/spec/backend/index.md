@@ -20,6 +20,8 @@ This directory contains guidelines for backend development. Fill in each file wi
 | [Identity and Isolation](./identity-isolation.md) | Account/session APIs, explicit idle time, owner-scoped SQL and private STOMP | Active |
 | [Community Publications](./community-publication.md) | Member snapshots, private drafts/materials, stable receipts and moderation | Active |
 | [Private Attachments](./private-attachments.md) | RustFS, exact quotas, reference authorization, durable recovery and safe cleanup | Active |
+| [Private Current Resumes](./private-resumes.md) | Singleton Markdown, exact CAS/receipts, original bytes, late-IO cleanup and snapshot contract | Active |
+| [Private Text Interviews](./private-interviews.md) | Fixed 2N questions, owner snapshots, SDK manual-only calls, durable jobs and truthful scores | Active |
 | [Error Handling](./error-handling.md) | Problem details, validation, conflicts, and safe exception translation | Active |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
 | [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |

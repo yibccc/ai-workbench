@@ -14,7 +14,7 @@ export function AppShell({ page, hasDirtyReports, focusStatus, focusToggle, acco
   const current = { label: routeTitle(page) }
   const date = new Intl.DateTimeFormat('zh-CN', { timeZone: WORKBENCH_TIME_ZONE, month: 'long', day: 'numeric', weekday: 'long' }).format(new Date())
   const weekday = new Intl.DateTimeFormat('en-US', { timeZone: WORKBENCH_TIME_ZONE, weekday: 'short' }).format(new Date())
-  const menu = account && <AccountMenu account={account} onPassword={onPassword} onLogout={onLogout} onUsers={onUsers} onCommunity={() => { window.location.hash = '/community' }} onWorkbench={() => { window.location.hash = 'records' }} />
+  const menu = account && <AccountMenu account={account} onPassword={onPassword} onLogout={onLogout} onUsers={onUsers} onProfile={() => { window.location.hash = 'profile' }} onCommunity={() => { window.location.hash = '/community' }} onWorkbench={() => { window.location.hash = 'records' }} />
   return <div className={`app-shell ${community ? 'community-shell' : ''}`} data-testid="workbench">
     <a className="skip-link" href="#main-content" onClick={event => {
       event.preventDefault()

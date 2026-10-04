@@ -476,12 +476,12 @@ test('临时专注可保存空进展并重置表单，不创建待办或遗留�
   await expect(page.getByLabel('补充进展（可选）')).toHaveValue('')
 })
 
-test('专注五项导航及规则和汇总在窄屏保持可达', async ({ page }) => {
+test('专注六项导航及规则和汇总在窄屏保持可达', async ({ page }) => {
   await openWorkbench(page)
   for (const [width, height, choice] of [[320, 520, 15], [390, 520, 25], [760, 700, 45], [1440, 900, 60]]) {
     await page.setViewportSize({ width, height })
     await navigate(page, '专注')
-    await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(5)
+    await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(6)
     await expect(page.getByTestId('focus-page').getByRole('heading', { name: '专注', exact: true })).toBeVisible()
     await page.getByRole('tab', { name: '重复规则' }).click()
     await expect(page.getByRole('heading', { name: '每日重复任务' })).toBeVisible()
@@ -2209,7 +2209,7 @@ test('账号菜单、管理员创建与换账号隔离', async ({ page, request 
   await page.getByTestId('record-content').fill('管理员未保存草稿')
   await page.getByRole('button', { name: /^账号菜单/ }).click()
   await page.getByRole('menuitem', { name: '用户管理' }).click()
-  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(5)
+  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(6)
   await page.getByRole('button', { name: '创建用户' }).click()
   const dialog = page.getByRole('dialog', { name: '创建用户' })
   await expect(dialog.getByLabel('角色')).toHaveValue('USER')
@@ -2263,7 +2263,7 @@ test('账号菜单、管理员创建与换账号隔离', async ({ page, request 
   await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '修改密码' })).toBeVisible()
   await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '退出登录' })).toBeVisible()
   await expect(page.locator('.mobile-account').getByRole('menuitem', { name: '用户管理' })).toHaveCount(0)
-  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(5)
+  await expect(page.getByRole('navigation', { name: '主导航' }).getByRole('link')).toHaveCount(6)
 })
 
 test('旧身份迟到HTTP与STOMP订阅及pending不会进入新身份', async ({ page, request }) => {
@@ -2566,9 +2566,13 @@ test('真实会话撤销立即撤出业务页并保留五秒提示', async ({ pa
   await page.getByLabel('密码', { exact: true }).fill(password)
   await page.getByRole('button', { name: '登录', exact: true }).click()
   await expect(page.getByTestId('workbench')).toBeVisible()
+  await page.waitForLoadState('networkidle')
+  const target = page.getByRole('navigation', { name: '主导航' }).getByRole('link', { name: /^项目管理/ })
+  await target.focus()
   const disabled = await request.patch(`${apiBase}/api/admin/users/${user.id}/enabled`, { data: { enabled: false } })
   expect(disabled.status()).toBe(200)
-  await navigate(page, '项目管理')
+  // Native keyboard activation still sends activity/GET, without retrying a link removed by its 401.
+  await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { name: '登录工作台' })).toBeVisible()
   await expect(page.getByTestId('workbench')).toHaveCount(0)
   await expect(page.locator('.viewport-toast')).toContainText('会话已失效')

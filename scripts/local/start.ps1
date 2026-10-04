@@ -2,7 +2,8 @@ param([string]$EnvFile)
 
 . "$PSScriptRoot/common.ps1"
 New-Item -ItemType Directory -Force -Path $Runtime | Out-Null
-$envValues = if ($PSBoundParameters.ContainsKey('EnvFile')) { Get-EnvValues -EnvFile $EnvFile } else { Get-EnvValues }
+$envConfiguration = if ($PSBoundParameters.ContainsKey('EnvFile')) { Get-EnvConfiguration -EnvFile $EnvFile } else { Get-EnvConfiguration }
+$envValues = $envConfiguration.values
 $java = if ($env:JAVA_HOME -and (Test-Path "$env:JAVA_HOME/bin/java.exe")) { "$env:JAVA_HOME/bin/java.exe" } else { (Get-Command java).Source }
 # Resolve Oracle's javapath launcher to the real JVM to keep the tracked PID stable.
 $ErrorActionPreference = 'Continue'
@@ -29,14 +30,15 @@ foreach ($service in @(@{name='backend';port=8080}, @{name='frontend';port=5173}
                 $prior[$item.Name] = $item.Value
                 [Environment]::SetEnvironmentVariable($item.Name, $null, 'Process')
             }
+            $launchIdentity = Get-BackendLaunchIdentity -Configuration $envConfiguration -WorkingDirectory $RepoRoot
             $process = Start-Process -FilePath $java -ArgumentList @('-jar', "`"$jar`"", '--spring.profiles.active=default', '--server.address=127.0.0.1', '--server.port=8080') -WorkingDirectory $RepoRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput "$Runtime/backend.log" -RedirectStandardError "$Runtime/backend-error.log"
+            Save-OwnedProcess $process.Id 'backend' $RepoRoot -LaunchIdentity $launchIdentity
         } finally { foreach ($key in $prior.Keys) { [Environment]::SetEnvironmentVariable($key, $prior[$key], 'Process') } }
-        Save-OwnedProcess $process.Id 'backend' $RepoRoot
     } else {
         $oldTarget = $env:VITE_API_TARGET
         $backendEnv = @{}
         try {
-            foreach ($item in Get-ChildItem Env: | Where-Object { $_.Name -match '^(DEEPSEEK_|POSTGRES_|REDIS_|REPORT_AI_|WORKBENCH_STORAGE_|RUSTFS_|AWS_|WORKBENCH_BOOTSTRAP_|DATABASE_URL$)' }) {
+            foreach ($item in Get-ChildItem Env: | Where-Object { Test-BackendEnvironmentName $_.Name }) {
                 $backendEnv[$item.Name] = $item.Value
                 [Environment]::SetEnvironmentVariable($item.Name, $null, 'Process')
             }

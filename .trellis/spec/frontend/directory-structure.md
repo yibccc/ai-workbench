@@ -14,6 +14,8 @@ src/
 │   ├── community/          Member feed/profile/document and directly scoped R2 layout
 │   ├── publishing/         Date-scoped material selection, draft/preview and upload state
 │   ├── auth/               Login, account menu, password dialog and ADMIN user page
+│   ├── interview/          Private fixed text interviews, answer state and persistent report views
+│   ├── profile/            Private current Markdown resume and imported-original editor
 │   ├── focus/              Focus timer, routines, daily totals and account-scoped controller
 │   ├── projects/           Project management and project picker
 │   ├── records/            Record-list presentation
@@ -33,7 +35,7 @@ src/
 - App composes feature components and coordinates editing/navigation; new feature-specific list logic belongs in its feature directory.
 - Community/publishing share the same account-root/main DOM lifetime as retained workspaces; the single strict hash parser owns both route families. Their full snapshots/Blob/retry/R2 contracts are in [Community and Publishing UI](./community-publishing.md).
 - Keep STOMP lifecycle shared so collapsing a panel does not open duplicate connections or discard same-user pending requests. Close subscriptions, fallback timers and identity-specific pending IDs on account change; see [Identity and Session UI](identity-session.md).
-- AppShell provides records/tasks/focus/reports/projects navigation plus an account menu. ADMIN user management is an auxiliary view outside the five business nav items. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions within one account; the authenticated root remounts it on account change. The focus controller and its compact shell control live at the account root so they remain active when the focus view is hidden.
+- AppShell provides records/tasks/focus/reports/projects/interview navigation plus an account menu. Private profile and ADMIN user management are auxiliary views outside the six business nav items. RetainedView mounts on first visit and hides previously visited pages, preserving drafts and realtime subscriptions within one account; the authenticated root remounts it on account change. The focus controller and its compact shell control live at the account root so they remain active when focus, interview or profile views switch. See [Private Resume and Interview UI](./private-interviews.md).
 - `ToastProvider` owns transient operation feedback across features and sits above the login/workspace switch so an expiry Toast survives the immediate redirect. Its body portal avoids clipping by the viewport-height shell; callers from retained views only notify while their view is visible. Each new event restarts the five-second timer, and the close action dismisses immediately. Keep validation, unsaved, and stored failure messages in their local context.
 
   ```tsx

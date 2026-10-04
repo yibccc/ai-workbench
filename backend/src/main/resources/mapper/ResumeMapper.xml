@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.mapper.ResumeMapper">
+    <resultMap id="current" type="com.aiworkbench.entity.resume.ResumeRows$Current">
+        <constructor>
+            <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="version" javaType="_long"/>
+            <arg column="markdown_text" javaType="java.lang.String"/>
+            <arg column="source_kind" javaType="java.lang.String"/>
+            <arg column="current_object_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="content_sha256" javaType="java.lang.String"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="object" type="com.aiworkbench.entity.resume.ResumeRows$ObjectRow">
+        <constructor>
+            <arg column="id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="request_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="storage_key" javaType="java.lang.String"/>
+            <arg column="original_filename" javaType="java.lang.String"/>
+            <arg column="content_type" javaType="java.lang.String"/>
+            <arg column="byte_size" javaType="_long"/>
+            <arg column="sha256" javaType="java.lang.String"/>
+            <arg column="status" javaType="java.lang.String"/>
+            <arg column="upload_token" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="operation_token" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="lease_expires_at" javaType="java.time.Instant"/>
+            <arg column="cleanup_after" javaType="java.time.Instant"/>
+            <arg column="io_uncertain" javaType="_boolean"/>
+            <arg column="safe_failure_code" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.Instant"/>
+            <arg column="updated_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <resultMap id="receipt" type="com.aiworkbench.entity.resume.ResumeRows$ReceiptRow">
+        <constructor>
+            <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="operation" javaType="java.lang.String"/>
+            <arg column="request_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="payload_hash" javaType="java.lang.String"/>
+            <arg column="state" javaType="java.lang.String"/>
+            <arg column="result_version" javaType="java.lang.Long"/>
+            <arg column="object_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+            <arg column="safe_failure_code" javaType="java.lang.String"/>
+            <arg column="created_at" javaType="java.time.Instant"/>
+        </constructor>
+    </resultMap>
+    <select id="lockOwner" resultType="java.util.UUID">
+        SELECT id FROM user_accounts WHERE id=#{owner} FOR UPDATE
+    </select>
+    <insert id="ensureSlot">
+        INSERT INTO user_resumes(user_id,updated_at) VALUES(#{owner},#{now}) ON CONFLICT(user_id) DO NOTHING
+    </insert>
+    <select id="current" resultMap="current">SELECT * FROM user_resumes WHERE user_id=#{owner}</select>
+    <select id="lockCurrent" resultMap="current">SELECT * FROM user_resumes WHERE user_id=#{owner} FOR UPDATE</select>
+    <select id="original" resultMap="object">
+        SELECT o.* FROM user_resumes r JOIN resume_objects o ON o.user_id=r.user_id AND o.id=r.current_object_id
+        WHERE r.user_id=#{owner} AND r.source_kind='MD_FILE' AND o.status='READY'
+    </select>
+    <select id="lockObjects" resultMap="object">SELECT * FROM resume_objects WHERE user_id=#{owner} ORDER BY id FOR UPDATE</select>
+    <select id="object" resultMap="object">SELECT * FROM resume_objects WHERE user_id=#{owner} AND id=#{id}</select>
+    <select id="receipt" resultMap="receipt">
+        SELECT * FROM resume_write_receipts WHERE user_id=#{owner} AND operation=#{operation} AND request_id=#{request}
+    </select>
+    <insert id="insertObject">
+        INSERT INTO resume_objects(id,user_id,request_id,storage_key,original_filename,content_type,byte_size,sha256,status,
+            upload_token,operation_token,lease_expires_at,cleanup_after,io_uncertain,safe_failure_code,created_at,updated_at)
+        VALUES(#{row.id},#{row.userId},#{row.requestId},#{row.storageKey},#{row.originalFilename},#{row.contentType},#{row.byteSize},
+            #{row.sha256},#{row.status},#{row.uploadToken},#{row.operationToken},#{row.leaseExpiresAt},#{row.cleanupAfter},
+            #{row.ioUncertain},#{row.safeFailureCode},#{row.createdAt},#{row.updatedAt})
+    </insert>
+    <insert id="insertReceipt">
+        INSERT INTO resume_write_receipts(user_id,operation,request_id,payload_hash,state,result_version,object_id,safe_failure_code,created_at)
+        VALUES(#{row.userId},#{row.operation},#{row.requestId},#{row.payloadHash},#{row.state},#{row.resultVersion},#{row.objectId},
+            #{row.safeFailureCode},#{row.createdAt})
+    </insert>
+    <update id="saveCurrent">
+        UPDATE user_resumes SET version=#{row.version},markdown_text=#{row.markdownText},source_kind=#{row.sourceKind},
+            current_object_id=#{row.currentObjectId},content_sha256=#{row.contentSha256},updated_at=#{row.updatedAt}
+        WHERE user_id=#{row.userId} AND version=#{expected}
+    </update>
+    <update id="objectState">
+        UPDATE resume_objects SET status=#{status},safe_failure_code=#{code},updated_at=#{now},
+            original_filename=CASE WHEN #{status}='DELETED' THEN NULL ELSE original_filename END
+        WHERE user_id=#{owner} AND id=#{id} AND status=#{oldStatus} AND operation_token=#{token}
+            AND (#{status}!='READY' OR lease_expires_at&gt;clock_timestamp())
+    </update>
+    <update id="finishReceipt">
+        UPDATE resume_write_receipts SET state=#{state},result_version=#{version},safe_failure_code=#{code}
+        WHERE user_id=#{owner} AND operation='IMPORT' AND request_id=#{request} AND state='UPLOADING'
+    </update>
+    <update id="completeIo">
+        UPDATE resume_objects SET io_uncertain=FALSE,cleanup_after=#{now},updated_at=#{now},
+            status=CASE WHEN status IN ('DELETED','DELETING') THEN 'DELETE_FAILED' ELSE status END,
+            safe_failure_code=CASE WHEN status IN ('DELETED','DELETING') THEN 'LATE_UPLOAD_CLEANUP' ELSE safe_failure_code END
+        WHERE user_id=#{owner} AND id=#{id} AND upload_token=#{uploadToken}
+    </update>
+    <update id="claimDelete">
+        UPDATE resume_objects SET status='DELETING',operation_token=#{token},lease_expires_at=#{deadline},updated_at=#{now}
+        WHERE user_id=#{owner} AND id=#{id} AND status!='UPLOADING'
+            AND NOT EXISTS(SELECT 1 FROM user_resumes r WHERE r.user_id=#{owner} AND r.current_object_id=#{id})
+    </update>
+    <select id="maintenanceOwners" resultType="java.util.UUID">
+        SELECT DISTINCT user_id FROM resume_objects WHERE status IN ('UPLOADING','FAILED','DELETING','DELETE_FAILED')
+            OR io_uncertain OR (status='READY' AND NOT EXISTS(SELECT 1 FROM user_resumes r
+                WHERE r.user_id=resume_objects.user_id AND r.current_object_id=resume_objects.id))
+    </select>
+</mapper>

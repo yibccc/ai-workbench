@@ -4,6 +4,7 @@ import { fetchOwnProfile, type AttachmentInfo, type PostType, type PublicAuthor 
 import type { Account } from '../../api/auth'
 import { ApiError } from '../../api/http'
 import type { ViewId } from '../../components/layout/routes'
+import type { NavigationGuard } from '../../components/layout/navigationGuard'
 import { Dialog } from '../../components/Dialog'
 import { useBeforeUnload } from '../../hooks/useBeforeUnload'
 import { localDate } from '../../utils/date'
@@ -12,7 +13,6 @@ import { Unavailable } from '../community/CommunityPages'
 import { Button, CommunityIcon, Heading, LoadState, Notice, Stepper } from '../community/ui'
 import { bytesLabel, errorMessage, isAborted, typeIcons, typeLabels } from '../community/model'
 
-export type NavigationGuard = (next: ViewId) => Promise<boolean>
 type LeaveChoice = { target?: ViewId; type?: PostType; resolve: (accepted: boolean) => void }
 type UploadAttempt = { postId: string; expectedVersion: number; requestId: string }
 type UploadEntry = {

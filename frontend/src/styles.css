@@ -452,7 +452,7 @@ body:has(dialog[open]) { overflow: hidden; }
   .sidebar { position: static; flex: none; width: 100%; max-height: 32%; padding: 15px 18px 0; border-right: 0; border-bottom: 1px solid var(--border); }
   .brand { margin: 0 0 15px; gap: 9px; }.brand-mark { width: 30px; height: 30px; border-radius: 8px; }.brand strong { font-size: 18px; }.brand small { margin-top: 4px; font-size: 10px; }.brand-mark svg { width: 18px; }
   .workspace-label, .nav-caption, .sidebar-guide, .sidebar-footer { display: none; }
-  .primary-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding-bottom: 10px; }
+  .primary-nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; padding-bottom: 10px; }
   .primary-nav a { justify-content: center; gap: 6px; padding: 10px 4px; font-size: 13px; min-height: 42px; }.primary-nav a > svg { width: 15px; }.primary-nav .dirty-dot { margin-left: 0; width: 4px; height: 4px; }
   .app-body { flex: 1; height: auto; margin-left: 0; }.topbar { min-height: 45px; padding: 0 22px; gap: 10px; }.topbar-date { font-size: 12px; }.breadcrumb { font-size: 12px; gap: 8px; }.mobile-account { display: block; flex: none; }.mobile-account .account-trigger { max-width: 120px; min-height: 32px; padding: 5px 9px; }.mobile-account .account-popover { left: auto; right: 0; bottom: auto; top: calc(100% + 6px); }
   .user-row { align-items: flex-start; flex-direction: column; }
@@ -466,6 +466,7 @@ body:has(dialog[open]) { overflow: hidden; }
 @media (max-width: 480px) {
   input, select, textarea { font-size: 16px; }
   .sidebar { padding: 15px 12px 0; }.brand { margin-left: 5px; }.primary-nav a { position: relative; flex-direction: column; font-size: 13px; gap: 5px; padding: 9px 2px; }.primary-nav .dirty-dot { position: absolute; top: 7px; right: 7px; }.primary-nav a > svg { width: 14px; }
+  .primary-nav a > span { min-width:0; text-align:center; overflow-wrap:anywhere; }
   .topbar { padding: 0 17px; }.topbar-date { display: none; }.breadcrumb > span:first-child, .breadcrumb > span:nth-child(2) { display: none; }
   .focus-compact { max-width: 145px; padding: 5px 7px; font-size: 11px; }
   .primary-nav a { font-size: 11px; }

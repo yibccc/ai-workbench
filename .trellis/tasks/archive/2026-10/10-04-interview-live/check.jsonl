@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/private-interviews.md", "reason": "Check real outputs, no fixture, truthful scores and calls"}
+{"file": ".trellis/spec/backend/private-resumes.md", "reason": "Check owner/current snapshot isolation"}
+{"file": ".trellis/spec/backend/local-delivery.md", "reason": "Check secrets, process identity and unchanged ordinary env"}
+{"file": ".trellis/tasks/10-04-interview-live/research/setup.md", "reason": "Privacy-safe live setup evidence"}

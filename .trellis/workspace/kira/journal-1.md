@@ -545,3 +545,113 @@ R3正式规划获批后实现发布快照、RustFS私有附件和R2复用界面�
 ### Status
 
 [OK] **Completed**
+
+
+## Session 20: AI面试原型整合与私有简历完整交付
+<!-- trellis-session: v=2 fp=a604d97771a10650 -->
+
+**Date**: 2026-10-04
+**Task**: AI面试原型整合与私有简历完整交付
+**Branch**: `codex/ai-interview`
+
+### Summary
+
+已按最终批准连续完成简历、固定2N面试、JD、报告、原型工作区、RustFS私有对象及联合备份恢复，独立审查修复与真实隔离工程验收通过，四任务原生归档，本地提交未推送；原有六项用户改动及bootstrap任务保留。
+
+### Main Changes
+
+- 新增V19/V20、单调版本与快照、持久任务/手动重试、SDK单尝试和System/User隔离；复用原型与现有工作台基础。
+- 双前缀RustFS IAM、Nginx导入额度、可证实原生启动身份、事先证明新卷的DB+对象联合恢复；更新三份私有业务spec及相关约束。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7e71e39636977b2b24eb8ca0e31150156db45162` | feat(interview): integrate private resumes and text interviews |
+| `b408f5e4e2d4bc8097eb24a2c0d95d82c8a830b0` | docs(interview): record verified handoff delivery |
+
+### Testing
+
+- [OK] 后端Java17 clean verify 271 tests，0失败/错误/跳过；前端lint/strictTS/Vite构建通过。
+- [OK] 完整浏览器117 PASS，0失败/flaky/retry；ops33 PASS；真实代理29 HTTP+4匿名访问、2对象/31表SHA联合恢复及6负例通过。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 阿里云适配器/API资源/同key迁移和真实付费模型质量、最大上下文、延迟、费用测量按批准延期；主产物约563KB为非阻塞构建提示。
+
+
+## Session 21: DeepSeek Flash真实面试与手动恢复验收
+<!-- trellis-session: v=2 fp=28833e6337dd472d -->
+
+**Date**: 2026-10-04
+**Task**: DeepSeek Flash真实面试与手动恢复验收
+**Branch**: `codex/ai-interview`
+
+### Summary
+
+以用户PDF提取的脱敏Markdown在新隔离schema/default真实网关验证Agent开发面试；生成10轮成功，一次明确业务手动retry后完整评分通过；无产品源码变更，记录首次失败、私密证据边界并本地归档，未推送。
+
+### Main Changes
+
+- 补充真实供应商验收规范和交付回流；原始简历/题单/答案/业务响应仅忽略目录，凭据只内存注入，Vite实际秘密计数0。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b9de64043a35b17f09d293098730a4360658ae6d` | docs(interview): verify real DeepSeek Flash workflow |
+
+### Testing
+
+- [OK] 真实生成10.328秒，固定5主问/5追问；初次3组成功/1结构失败/1runner中断，已修runner等待所有job终态。
+- [OK] 原生租约恢复不增加job；一次evaluation/retry仅重评6/8，成功0/2/4完整复用；21.032秒全部10轮SCORED，独立Decimal均值67.60，GET稳定/所有job终态/精确cleanup与.env/JAR摘要不变。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 首次供应商非法输出细因NOT_CAPTURED，usage/费用/wire次数NOT_MEASURED；真实JD、最大上下文、长期/全方向质量与阿里云接入另行验证；示例分数不代表用户能力。
+
+
+## Session 22: AI面试推送与PR交付收尾
+<!-- trellis-session: v=2 fp=477e8c143d76c3e3 -->
+
+**Date**: 2026-10-04
+**Task**: AI面试推送与PR交付收尾
+**Branch**: `codex/ai-interview`
+
+### Summary
+
+按用户明确要求已推送origin/codex/ai-interview并创建GitHub PR #14到master；PR open非draft、已核无合并冲突，交付报告更新真实远端状态。已归档五个面试任务，本轮不重复归档；原六项工作区改动及bootstrap任务保留。
+
+### Main Changes
+
+- PR https://github.com/yibccc/ai-workbench/pull/14，包含私有简历、AI面试工作区/固定题单/报告、RustFS与联合备份恢复及真实模型验收。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7e71e39` | feat(interview): integrate private resumes and text interviews |
+| `b408f5e` | docs(interview): record verified handoff delivery |
+| `b9de640` | docs(interview): verify real DeepSeek Flash workflow |
+| `f46c377` | docs(interview): record published pull request |
+
+### Testing
+
+- [OK] 独立复核MR范围216文件仅本需求，远端master仅新增合并提交且树与原验证基线相同；原271后端/117浏览器/33ops和真实模型一次手动retry通过证据可沿用，未重复付费或测试。
+- [OK] PR初次head652d05e/basecf6ca83，GitHub mergeable=true；初次CodeRabbit status success，未发现PR-triggered Actions runs，不冒称全远端CI。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- PR待审核/合并，未合并部署；阿里云/最大上下文/真实JD/长期质量及供应商费用测量仍留后续。

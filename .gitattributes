@@ -10,3 +10,6 @@
 *.sh text eol=lf
 **/Dockerfile text eol=lf
 deploy/*.conf text eol=lf
+
+# Immutable handoff snapshots keep their original bytes and recorded SHA-256.
+.trellis/tasks/**/research/handoff/** -text

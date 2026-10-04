@@ -1,0 +1,30 @@
+{
+  "branch": "codex/ai-interview",
+  "base": "0090d0127b0693c780aa3e587e20a6e6bae969fc",
+  "owned_files": 202,
+  "source_fingerprint_before_commit": "bb1d87a886b6888e398ce2a3caba155448865800773ee71b80b4e67202e84575",
+  "backend_tests": {
+    "tests": 271,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "browser_tests": {
+    "tests": 117,
+    "failed": 0,
+    "flaky": 0
+  },
+  "handoff_sha_verified": 14,
+  "raw_trace": "LOCAL_ONLY",
+  "original_user_changes_excluded": [
+    ".cursor/rules/no-unsolicited-compatibility.mdc",
+    "docs/dev-sop/REVIEW-SKILLS.md",
+    "docs/dev-sop/SOP.md",
+    "docs/dev-sop/SOURCES.md",
+    "docs/dev-sop/WEB-PROMPTS.md",
+    "docs/dev-sop/WORKBENCH-CHECKLIST.md"
+  ],
+  "product_files": 95,
+  "product_source_sha256": "c0ca0bf6a0f1605c5363673cbed46df209f22b0c39d3d999fed7d7a45292e2ec",
+  "all_ac": "PASS_ENGINEERING"
+}
