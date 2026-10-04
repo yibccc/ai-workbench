@@ -2,19 +2,19 @@
 
 handoff_id / revision：`AIW-INTERVIEW-20261003-cf4cf8fc` / `r1`
 
-状态：**本地工程验收完成，已本地提交，未推送**。用户已批准 P-01 及连续实施、审查修复、隔离验证、规范更新、本地提交和归档。
+状态：**已推送，PR已创建，待审核/合并**。用户已批准 P-01 及连续实施、审查修复、隔离验证、规范更新、本地提交和归档，并在2026-10-04明确要求推送、创建MR及Trellis收尾。远端为GitHub，对应[PR #14](https://github.com/yibccc/ai-workbench/pull/14)。
 
 业务 commit：`7e71e39636977b2b24eb8ca0e31150156db45162`，分支 `codex/ai-interview`。
 
 review base：`0090d0127b0693c780aa3e587e20a6e6bae969fc`；reviewed HEAD：上述业务 commit。限定95个产品源码/配置/规范文件的提交前 SHA-256 指纹为 `c0ca0bf6a0f1605c5363673cbed46df209f22b0c39d3d999fed7d7a45292e2ec`，汇总值记录于父任务 `research/final-fingerprint.json`，不是整个 Git tree 指纹。交接14文件的原始字节及 SHA 已在 Git index 核验；`.gitattributes` 保留不可变输入字节。
 
-Trellis 原实际任务：`.trellis/tasks/10-04-ai-interview`、`10-04-interview-resume`、`10-04-interview-engine`、`10-04-interview-ui`。本报告提交后接续原生归档，目标为 `.trellis/tasks/archive/2026-10/` 下的同名四目录，最终位置由脚本返回并核验。下列链接指向收尾归档位置：
+Trellis 原实际任务：`.trellis/tasks/10-04-ai-interview`、`10-04-interview-resume`、`10-04-interview-engine`、`10-04-interview-ui`。四任务均已原生归档至 `.trellis/tasks/archive/2026-10/` 下同名目录，实际返回位置和完成状态已核验。下列链接指向归档位置：
 
 - [父任务验收记录](../../../.trellis/tasks/archive/2026-10/10-04-ai-interview/validation.md)、[26项验收映射](../../../.trellis/tasks/archive/2026-10/10-04-ai-interview/research/final-acceptance.md)。
 - [简历独立审查](../../../.trellis/tasks/archive/2026-10/10-04-interview-resume/check-report.md)、[引擎独立审查](../../../.trellis/tasks/archive/2026-10/10-04-interview-engine/check-report.md)、[前端独立审查](../../../.trellis/tasks/archive/2026-10/10-04-interview-ui/check-report.md)。
 - [真实浏览器](../../../.trellis/tasks/archive/2026-10/10-04-ai-interview/research/browser-real-validation.md)、[真实备份恢复](../../../.trellis/tasks/archive/2026-10/10-04-ai-interview/research/ops-real-validation.md)、[真实代理边界](../../../.trellis/tasks/archive/2026-10/10-04-ai-interview/research/proxy-validation.md)、[最终运维审查](../../../.trellis/tasks/archive/2026-10/10-04-ai-interview/research/final-ops-review.md)。
 
-后续归档/日志 commit：本报告写入时尚待原生收尾生成，不预填不存在的 SHA；实际提交见本分支中接续的四个 `chore(task): archive ...` 与 `chore: record journal`。日志只引用业务及交付文档工作提交。
+归档/日志 commit：原交付四任务归档为`1435a2e`、`6978e56`、`3990b94`、`84d2f37`，日志`022dafc`；后续真实模型验证工作提交`b9de640`、归档`630d680`、日志`652d05e`。本轮远端交付文档及原生收尾日志另在同分支接续；日志只引用工作提交，不引用归档提交。
 
 ## 实际交付
 
@@ -94,7 +94,7 @@ AgentScope 网关采用一次模型尝试，可信规则放 SystemMessage，完�
 
 原交付的工程验收与模型延期为当时事实。本次用户明确授权配置的`deepseek-flash`，提供两页PDF简历并同意验证任务；原产品代码未改变。题单与完整评分已实际通过，其中包含一次明确业务手动重试，不能声称首轮零失败。
 
-[真实验收记录](../../../.trellis/tasks/archive/2026-10/10-04-interview-live/validation.md)与[独立复核](../../../.trellis/tasks/archive/2026-10/10-04-interview-live/check-report.md)由本次原生任务收尾归档，包含初次失败与恢复证据。输入去姓名/联系信息后3002 codepoints，仅本地忽略目录；未新增PDF导入行为。default真实AgentScope网关、模型snapshot deepseek-flash、独立schema/Redisnamespace/合成账号已核验，Vite实际进程秘密计数0，普通.env字节SHA不变。
+[真实验收记录](../../../.trellis/tasks/archive/2026-10/10-04-interview-live/validation.md)与[独立复核](../../../.trellis/tasks/archive/2026-10/10-04-interview-live/check-report.md)已原生归档，包含初次失败与恢复证据。输入去姓名/联系信息后3002 codepoints，仅本地忽略目录；未新增PDF导入行为。default真实AgentScope网关、模型snapshot deepseek-flash、独立schema/Redisnamespace/合成账号已核验，Vite实际进程秘密计数0，普通.env字节SHA不变。
 
 - 真实生成约**10.328秒**：AGENT_DEVELOPMENT/MID、5主问/5预生成追问、0..9连续和父索引全合法，紧贴Agent工程项目深度。
 - 初次五组评分：三组成功，一组MODEL_OUTPUT_INVALID，一组因验收脚本过早收尾被中断；已提交的失败轮与总分正确为null。**28.547秒是首次可读失败，不是五组完成耗时。**
@@ -106,6 +106,8 @@ AgentScope 网关采用一次模型尝试，可信规则放 SystemMessage，完�
 
 ## 发布与恢复
 
-仅本地分支与提交；未push、PR、合并或部署。所有自有临时测试应用、代理和保活进程已按身份核验停止，隔离测试数据卷保留。日常 `.env` SHA、共享RustFS策略及密码不变；日常数据库/应用进程未触。原有六项用户改动与 `00-bootstrap-guidelines` 任务保留。
+2026-10-04已推送`origin/codex/ai-interview`并创建[PR #14](https://github.com/yibccc/ai-workbench/pull/14)，目标`master`，非draft、open、未合并；创建后GitHub确认mergeable=true。首次远端head为`652d05ec90114584f844c166e1ee74d079ca56a1`，base为`cf6ca832bdfffe13628489a99e80bbd3bbe9940a`；本轮交付状态和日志接续推送到同一PR分支。
+
+获取远端后核实其新增两个合并提交的代码树与原已验证基线`0090d0127b0693c780aa3e587e20a6e6bae969fc`完全相同，未进行不必要的rebase或改树。PR范围独立核证仅为本需求，原六项工作区改动和`.local-runtime`未包含。未合并或部署。所有自有临时测试应用、代理和保活进程已按身份核验停止，隔离测试数据卷保留。日常 `.env` SHA、共享RustFS策略及密码不变；日常数据库/应用进程未触。原有六项用户改动与`00-bootstrap-guidelines`任务保留。
 
 原始trace与含凭据运行文件仅本地忽略，未入库。恢复必须先停已证明属于源的写入者并验证完整bundle，再使用prepare-volumes事先证明的新目标，核对引用对象字节/SHA和数据库；保留失败现场，不覆盖旧卷或用户数据。V19/V20撤回不能仅靠回退JAR，应依据已验证数据库+对象联合备份制定恢复操作。
