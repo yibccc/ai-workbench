@@ -6,7 +6,9 @@ import { fetchProjects, type Project } from './api/projects'
 import { AppShell } from './components/layout/AppShell'
 import { isCommunityView, parseHash, routeTitle, type ViewId } from './components/layout/routes'
 import { CommunityWorkspace } from './features/community/CommunityWorkspace'
-import type { NavigationGuard } from './features/publishing/PublishingEditor'
+import type { NavigationGuard } from './components/layout/navigationGuard'
+import { InterviewWorkspace } from './features/interview/InterviewWorkspace'
+import { ProfilePage } from './features/profile/ProfilePage'
 import { RetainedView } from './components/RetainedView'
 import { RecordsPage } from './features/records/RecordsPage'
 import { TasksPanel, type TaskEditRequest } from './features/tasks/TasksPanel'
@@ -18,6 +20,7 @@ import { ReportsPage } from './features/reports/ReportsPage'
 import { ProjectsPanel } from './features/projects/ProjectsPanel'
 import { ToastProvider } from './components/ToastProvider'
 import { useGlobalToast } from './components/toastContext'
+import { useDismissDialogs } from './components/dialogContext'
 import { LoginPage } from './features/auth/LoginPage'
 import { PasswordDialog } from './features/auth/PasswordDialog'
 import { UsersPage } from './features/auth/UsersPage'
@@ -60,18 +63,21 @@ function AuthenticatedApp({ account, page, setPage, setAccount }: {
   account: Account | null; page: ViewId; setPage: (page: ViewId) => void; setAccount: (account: Account | null) => void
 }) {
   const showToast = useGlobalToast()
+  const dismissDialogs = useDismissDialogs()
   const lastActivity = useRef(0)
   const signingOut = useRef(false)
   const leaveAuthenticatedView = useCallback((message: string, kind: 'success' | 'info' | 'error') => {
+    dismissDialogs()
     closeRealtime(); setRequestIdentity(null); setAccount(null)
     showToast(message, kind, 'login')
-  }, [setAccount, showToast])
+  }, [dismissDialogs, setAccount, showToast])
   const lost = useCallback(() => {
     if (!account || signingOut.current) return
     leaveAuthenticatedView('会话已失效，请重新登录', 'error')
   }, [account, leaveAuthenticatedView])
   useEffect(() => { setUnauthorizedHandler(lost); return () => setUnauthorizedHandler(null) }, [lost])
   const onLogin = (next: Account) => {
+    dismissDialogs()
     closeRealtime(); setRequestIdentity(next.id); setAccount(next); setPage(normalizedPage(next)); lastActivity.current = 0
   }
   const onLogout = async () => {
@@ -138,12 +144,16 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [focusDraft, setFocusDraft] = useState<FocusDraft | null>(null)
   const [focusFillError, setFocusFillError] = useState<string | null>(null)
+  const [resumeRevision, setResumeRevision] = useState(0)
   const firstNavigation = useRef(true)
-  const communityGuard = useRef<NavigationGuard | null>(null)
+  const guards = useRef(new Map<string, NavigationGuard>())
   const routeRef = useRef(page)
   useEffect(() => { routeRef.current = page }, [page])
   const changingRoute = useRef(false)
-  const registerGuard = useCallback((guard: NavigationGuard | null) => { communityGuard.current = guard }, [])
+  const registerGuard = useCallback((guard: NavigationGuard | null) => { if (guard) guards.current.set('community', guard); else guards.current.delete('community') }, [])
+  const registerProfileGuard = useCallback((guard: NavigationGuard | null) => { if (guard) guards.current.set('profile', guard); else guards.current.delete('profile') }, [])
+  const registerInterviewGuard = useCallback((guard: NavigationGuard | null) => { if (guard) guards.current.set('interview', guard); else guards.current.delete('interview') }, [])
+  const resumeChanged = useCallback(() => setResumeRevision(value => value + 1), [])
   const navigate = useCallback((next: ViewId) => { window.location.hash = next }, [])
   const refreshProjects = useCallback(async () => {
     const items = await fetchProjects(true)
@@ -162,10 +172,11 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
       if (changingRoute.current) { window.history.replaceState(null, '', `#${routeRef.current}`); return }
       if (next === routeRef.current) return
       const previous = routeRef.current
-      if (communityGuard.current) {
+      const guard = previous === 'profile' || previous === 'interview' ? guards.current.get(previous) : isCommunityView(previous) ? guards.current.get('community') : undefined
+      if (guard) {
         window.history.replaceState(null, '', `#${previous}`)
         changingRoute.current = true
-        const accepted = await communityGuard.current(next)
+        const accepted = await guard(next)
         changingRoute.current = false
         if (!accepted || currentRequestIdentity() !== account.id) return
         window.history.replaceState(null, '', `#${next}`)
@@ -222,6 +233,8 @@ function Workspace({ account, page, setPage, onLogout, onSelfRevoked, showToast 
     <RetainedView active={page === 'focus'}><FocusPage projects={projects} draft={focusDraft} control={focus} revision={revision} onTasksChanged={() => { void refreshContent() }} /></RetainedView>
     <RetainedView active={page === 'reports'}><ReportsPage onDirtyChange={setDirtyReports} /></RetainedView>
     <RetainedView active={page === 'projects'}><ProjectsPanel onProjectsChanged={async () => { await refreshProjects(); await refreshContent() }} /></RetainedView>
+    <RetainedView active={page === 'interview'}><InterviewWorkspace active={page === 'interview'} resumeRevision={resumeRevision} registerGuard={registerInterviewGuard} /></RetainedView>
+    <RetainedView active={page === 'profile'}><ProfilePage active={page === 'profile'} registerGuard={registerProfileGuard} onChanged={resumeChanged} /></RetainedView>
     <RetainedView active={isCommunityView(page)}><CommunityWorkspace account={account} page={page} navigate={navigate} registerGuard={registerGuard} /></RetainedView>
     {page === 'users' && account.role === 'ADMIN' && <UsersPage currentId={account.id} onSelfRevoked={onSelfRevoked} />}
   </AppShell>

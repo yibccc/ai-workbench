@@ -1,20 +1,26 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Dialog } from './Dialog'
-import { DialogContext, type DialogOptions } from './dialogContext'
+import { DialogContext, DismissDialogsContext, type DialogOptions } from './dialogContext'
 
 export function DialogProvider({ children }: { children: ReactNode }) {
-  const [options, setOptions] = useState<DialogOptions | null>(null)
+  const [entry, setEntry] = useState<{ options: DialogOptions; sequence: number } | null>(null)
+  const generation = useRef(0)
   const resolve = useRef<((confirmed: boolean) => void) | null>(null)
   const show = useCallback((next: DialogOptions) => {
     // A second request cannot replace an in-flight confirmation or cause another write.
     if (resolve.current) return Promise.resolve(false)
-    return new Promise<boolean>(done => { resolve.current = done; setOptions(next) })
+    return new Promise<boolean>(done => { resolve.current = done; setEntry({ options: next, sequence: ++generation.current }) })
   }, [])
-  const close = (confirmed: boolean) => {
-    const done = resolve.current; resolve.current = null; setOptions(null); done?.(confirmed)
+  const close = (sequence: number, confirmed: boolean) => {
+    if (sequence !== generation.current) return
+    const done = resolve.current; resolve.current = null; setEntry(null); done?.(confirmed)
   }
+  const dismiss = useCallback(() => {
+    generation.current++
+    const done = resolve.current; resolve.current = null; setEntry(null); done?.(false)
+  }, [])
   useEffect(() => () => { resolve.current?.(false); resolve.current = null }, [])
-  return <DialogContext.Provider value={show}>{children}{options && <Confirmation options={options} onClose={close} />}</DialogContext.Provider>
+  return <DismissDialogsContext.Provider value={dismiss}><DialogContext.Provider value={show}>{children}{entry && <Confirmation key={entry.sequence} options={entry.options} onClose={confirmed => close(entry.sequence, confirmed)} />}</DialogContext.Provider></DismissDialogsContext.Provider>
 }
 
 function Confirmation({ options, onClose }: { options: DialogOptions; onClose: (confirmed: boolean) => void }) {

@@ -18,6 +18,9 @@ frontend/playwright-report/
 .local-backups/
 .local-runtime/
 
+# Browser network traces stay available locally; they may contain runtime cookies.
+.trellis/tasks/**/artifacts/browser-real/**/trace.zip
+
 ### OS files ###
 .DS_Store
 Thumbs.db

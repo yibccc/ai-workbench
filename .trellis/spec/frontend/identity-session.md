@@ -2,7 +2,7 @@
 
 ## 1. Scope / Trigger
 
-Use this contract when changing the login root, account management, shared HTTP client, retained business views, focus controller, pending AI/report tracking, STOMP lifecycle, 5-second Toast, or active-session signaling. The five business workspaces remain the main navigation; account management is an ADMIN-only auxiliary view.
+Use this contract when changing the login root, account management, shared HTTP client, retained business views, focus controller, pending AI/report tracking, STOMP lifecycle, 5-second Toast, or active-session signaling. The six business workspaces remain the main navigation; private profile and ADMIN account management are account-menu auxiliary views.
 
 ## 2. Signatures
 
@@ -13,7 +13,7 @@ Use this contract when changing the login root, account management, shared HTTP 
 
 ## 3. Contracts
 
-At startup, read `/api/auth/me` before loading business views. A 401 shows the application login page; a network/server failure shows a retryable connection error, not a false expiry. After login, use the stable account ID as the identity boundary. Ordinary navigation among the five workspaces retains `RetainedView` drafts and filters. Logout, true 401, or A→B account switch aborts in-flight requests, rejects late responses through the request identity epoch, closes STOMP/reconnect/poll timers and focus audio/checkpoint timers, and remounts the business tree under the new identity. Pending INPUT/REPORT IDs use a user-specific storage key; never restore the old global `ai-workbench.pending.v1` key under another account.
+At startup, read `/api/auth/me` before loading business views. A 401 shows the application login page; a network/server failure shows a retryable connection error, not a false expiry. After login, use the stable account ID as the identity boundary. Ordinary navigation among the six workspaces retains `RetainedView` drafts and filters. Logout, true 401, or A→B account switch dismisses/generation-fences active dialogs, aborts in-flight requests, rejects late responses through the request identity epoch, clears private File/Blob/poll state, closes STOMP/reconnect timers and focus audio/checkpoint timers, and remounts the business tree under the new identity. Pending INPUT/REPORT IDs use a user-specific storage key; never restore the old global `ai-workbench.pending.v1` key under another account. Private interview reads/polls do not signal activity; see [Private UI](./private-interviews.md).
 
 Fetch the CSRF token from `GET /api/auth/csrf` and put `X-XSRF-TOKEN` on login and other protected POST/PATCH/PUT/DELETE calls. Send same-origin Cookies automatically. A 401 on an authenticated operation removes interactive business content immediately and shows the existing 5-second Toast on the login page. 403, 404, network errors, form validation, stored AI failures, and unsaved-change dialogs keep their distinct meanings. Toast remains dismissible and each new event restarts its 5000 ms timer.
 
@@ -33,7 +33,7 @@ When an ADMIN successfully changes their own role, disables their own account, o
 
 | Condition | UI/client result |
 | --- | --- |
-| Anonymous startup / successful login | Application login page / existing five-workspace shell |
+| Anonymous startup / successful login | Application login page / six-workspace shell |
 | Real Session 401 during business use | Business tree immediately removed; login page with 5-second expiry Toast |
 | USER attempts management URL or receives 403 | No management view or mutation; permission feedback without false logout |
 | Foreign business UUID 404 / network failure | Resource or network feedback; current identity remains unless a real 401 follows |
@@ -51,7 +51,7 @@ When an ADMIN successfully changes their own role, disables their own account, o
 ## 6. Tests Required
 
 - Run `npm run lint`, `npm run build`, and Playwright E2E against explicit isolated PostgreSQL/Redis endpoints with synthetic accounts; never point the E2E reset hook at an existing application volume. The E2E backend profile must use `d9_e2e` only.
-- Browser tests must cover desktop/mobile account entry, ADMIN and USER permissions, form fields/cancel/focus, password error and success, five-workspace regression, pagination and dirty-draft guards, 401/403/404 classification, exact 5000 ms Toast, A→B late-response/storage isolation, and user activity signal behavior. Cover focus audio/timer cleanup during A→B switches and prove passive focus synchronization does not call `/api/auth/activity`.
+- Browser tests must cover desktop/mobile account entry, ADMIN and USER permissions, form fields/cancel/focus, password error and success, all six workspaces plus the original five-page behavior, pagination and dirty-draft guards, 401/403/404 classification, exact 5000 ms Toast, A→B late-response/storage/File/dialog isolation, and user activity signal behavior. Cover focus audio/timer cleanup during A→B switches and prove passive focus/interview synchronization does not call `/api/auth/activity`.
 - Verify the login eye toggle in both directions, including keyboard activation, correct accessible action label, retained password value and no login submission from the toggle.
 - For self-demotion, self-disable, and self-reset, force the account-list refresh to fail after a successful mutation and assert the workbench still disappears immediately.
 - Inject STOMP disconnect/reconnect and assert HTTP CRUD is usable, tracked INPUT/REPORT reaches the final database state through 15-second GET, reconnect re-subscribes, duplicate events do not write, and automatic communication does not call `/api/auth/activity`.

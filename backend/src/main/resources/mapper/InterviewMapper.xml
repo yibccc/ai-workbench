@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aiworkbench.mapper.InterviewMapper">
+  <resultMap id="session" type="com.aiworkbench.entity.interview.InterviewRows$SessionRow"><constructor>
+    <arg column="id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="version" javaType="_long"/>
+    <arg column="direction" javaType="java.lang.String"/>
+    <arg column="difficulty" javaType="java.lang.String"/>
+    <arg column="main_count" javaType="_int"/>
+    <arg column="generation_status" javaType="java.lang.String"/>
+    <arg column="answer_status" javaType="java.lang.String"/>
+    <arg column="evaluation_status" javaType="java.lang.String"/>
+    <arg column="current_turn" javaType="_int"/>
+    <arg column="submitted_count" javaType="_int"/>
+    <arg column="resume_text" javaType="java.lang.String"/>
+    <arg column="resume_version" javaType="java.lang.Long"/>
+    <arg column="resume_hash" javaType="java.lang.String"/>
+    <arg column="jd_text" javaType="java.lang.String"/>
+    <arg column="jd_result" javaType="java.lang.String"/>
+    <arg column="input_hash" javaType="java.lang.String"/>
+    <arg column="model_version" javaType="java.lang.String"/>
+    <arg column="question_version" javaType="java.lang.String"/>
+    <arg column="rubric_version" javaType="java.lang.String"/>
+    <arg column="deleted" javaType="_boolean"/>
+    <arg column="total_score" javaType="java.math.BigDecimal"/>
+    <arg column="overall_feedback" javaType="java.lang.String"/>
+    <arg column="safe_failure_code" javaType="java.lang.String"/>
+    <arg column="created_at" javaType="java.time.Instant"/>
+    <arg column="updated_at" javaType="java.time.Instant"/>
+  </constructor></resultMap>
+  <resultMap id="question" type="com.aiworkbench.entity.interview.InterviewRows$QuestionRow"><constructor>
+    <arg column="session_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="turn_index" javaType="_int"/>
+    <arg column="type" javaType="java.lang.String"/>
+    <arg column="parent_main_index" javaType="java.lang.Integer"/>
+    <arg column="text" javaType="java.lang.String"/>
+  </constructor></resultMap>
+  <resultMap id="answer" type="com.aiworkbench.entity.interview.InterviewRows$AnswerRow"><constructor>
+    <arg column="session_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="turn_index" javaType="_int"/>
+    <arg column="status" javaType="java.lang.String"/>
+    <arg column="answer_text" javaType="java.lang.String"/>
+    <arg column="version" javaType="_long"/>
+  </constructor></resultMap>
+  <resultMap id="jd" type="com.aiworkbench.entity.interview.InterviewRows$JdRow"><constructor>
+    <arg column="id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="version" javaType="_long"/>
+    <arg column="direction" javaType="java.lang.String"/>
+    <arg column="jd_text" javaType="java.lang.String"/>
+    <arg column="raw_hash" javaType="java.lang.String"/>
+    <arg column="status" javaType="java.lang.String"/>
+    <arg column="result_json" javaType="java.lang.String"/>
+    <arg column="deleted" javaType="_boolean"/>
+    <arg column="safe_failure_code" javaType="java.lang.String"/>
+    <arg column="created_at" javaType="java.time.Instant"/>
+    <arg column="updated_at" javaType="java.time.Instant"/>
+  </constructor></resultMap>
+  <resultMap id="job" type="com.aiworkbench.entity.interview.InterviewRows$JobRow"><constructor>
+    <arg column="id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="kind" javaType="java.lang.String"/>
+    <arg column="session_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="jd_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="main_index" javaType="java.lang.Integer"/>
+    <arg column="input_hash" javaType="java.lang.String"/>
+    <arg column="payload_json" javaType="java.lang.String"/>
+    <arg column="status" javaType="java.lang.String"/>
+    <arg column="token" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="lease_expires_at" javaType="java.time.Instant"/>
+    <arg column="queue_deadline" javaType="java.time.Instant"/>
+    <arg column="safe_failure_code" javaType="java.lang.String"/>
+    <arg column="created_at" javaType="java.time.Instant"/>
+    <arg column="updated_at" javaType="java.time.Instant"/>
+  </constructor></resultMap>
+  <resultMap id="evaluation" type="com.aiworkbench.entity.interview.InterviewRows$EvaluationRow"><constructor>
+    <arg column="session_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="main_index" javaType="_int"/>
+    <arg column="input_hash" javaType="java.lang.String"/>
+    <arg column="status" javaType="java.lang.String"/>
+    <arg column="result_json" javaType="java.lang.String"/>
+    <arg column="safe_failure_code" javaType="java.lang.String"/>
+  </constructor></resultMap>
+  <resultMap id="receipt" type="com.aiworkbench.entity.interview.InterviewRows$ReceiptRow"><constructor>
+    <arg column="user_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="operation" javaType="java.lang.String"/>
+    <arg column="request_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="payload_hash" javaType="java.lang.String"/>
+    <arg column="session_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="jd_id" javaType="java.util.UUID" typeHandler="com.aiworkbench.config.mybatis.UuidTypeHandler"/>
+    <arg column="state" javaType="java.lang.String"/>
+    <arg column="result_version" javaType="_long"/>
+    <arg column="turn_index" javaType="java.lang.Integer"/>
+    <arg column="created_at" javaType="java.time.Instant"/>
+  </constructor></resultMap>
+  <select id="lockOwner" resultType="java.util.UUID">SELECT id FROM user_accounts WHERE id=#{owner} FOR UPDATE</select>
+  <select id="session" resultMap="session">SELECT * FROM interview_sessions WHERE user_id=#{owner} AND id=#{id}</select>
+  <select id="lockSession" resultMap="session">SELECT * FROM interview_sessions WHERE user_id=#{owner} AND id=#{id} FOR UPDATE</select>
+  <select id="jd" resultMap="jd">SELECT * FROM interview_jd_analyses WHERE user_id=#{owner} AND id=#{id}</select>
+  <select id="lockJd" resultMap="jd">SELECT * FROM interview_jd_analyses WHERE user_id=#{owner} AND id=#{id} FOR UPDATE</select>
+  <select id="sessions" resultMap="session">SELECT * FROM interview_sessions WHERE user_id=#{owner} AND NOT deleted ORDER BY created_at DESC,id DESC</select>
+  <insert id="insertSession">INSERT INTO interview_sessions(id,user_id,version,direction,difficulty,main_count,generation_status,answer_status,evaluation_status,current_turn,submitted_count,resume_text,resume_version,resume_hash,jd_text,jd_result,input_hash,model_version,question_version,rubric_version,deleted,total_score,overall_feedback,safe_failure_code,created_at,updated_at) VALUES(#{row.id},#{row.userId},#{row.version},#{row.direction},#{row.difficulty},#{row.mainCount},#{row.generationStatus},#{row.answerStatus},#{row.evaluationStatus},#{row.currentTurn},#{row.submittedCount},#{row.resumeText},#{row.resumeVersion},#{row.resumeHash},#{row.jdText},#{row.jdResult},#{row.inputHash},#{row.modelVersion},#{row.questionVersion},#{row.rubricVersion},#{row.deleted},#{row.totalScore},#{row.overallFeedback},#{row.safeFailureCode},#{row.createdAt},#{row.updatedAt})</insert>
+  <update id="updateSession">UPDATE interview_sessions SET version=#{row.version},direction=#{row.direction},difficulty=#{row.difficulty},main_count=#{row.mainCount},generation_status=#{row.generationStatus},answer_status=#{row.answerStatus},evaluation_status=#{row.evaluationStatus},current_turn=#{row.currentTurn},submitted_count=#{row.submittedCount},resume_text=#{row.resumeText},resume_version=#{row.resumeVersion},resume_hash=#{row.resumeHash},jd_text=#{row.jdText},jd_result=#{row.jdResult},input_hash=#{row.inputHash},model_version=#{row.modelVersion},question_version=#{row.questionVersion},rubric_version=#{row.rubricVersion},deleted=#{row.deleted},total_score=#{row.totalScore},overall_feedback=#{row.overallFeedback},safe_failure_code=#{row.safeFailureCode},updated_at=#{row.updatedAt} WHERE user_id=#{row.userId} AND id=#{row.id} AND version=#{expected}</update>
+  <insert id="insertJd">INSERT INTO interview_jd_analyses(id,user_id,version,direction,jd_text,raw_hash,status,result_json,deleted,safe_failure_code,created_at,updated_at) VALUES(#{row.id},#{row.userId},#{row.version},#{row.direction},#{row.jdText},#{row.rawHash},#{row.status},#{row.resultJson},#{row.deleted},#{row.safeFailureCode},#{row.createdAt},#{row.updatedAt})</insert>
+  <update id="updateJd">UPDATE interview_jd_analyses SET version=#{row.version},direction=#{row.direction},jd_text=#{row.jdText},raw_hash=#{row.rawHash},status=#{row.status},result_json=#{row.resultJson},deleted=#{row.deleted},safe_failure_code=#{row.safeFailureCode},updated_at=#{row.updatedAt} WHERE user_id=#{row.userId} AND id=#{row.id} AND version=#{expected}</update>
+  <insert id="insertQuestion">INSERT INTO interview_questions(session_id,user_id,turn_index,type,parent_main_index,text) VALUES(#{row.sessionId},#{row.userId},#{row.turnIndex},#{row.type},#{row.parentMainIndex},#{row.text})</insert>
+  <insert id="insertAnswer">INSERT INTO interview_answers(session_id,user_id,turn_index,status,answer_text,version) VALUES(#{row.sessionId},#{row.userId},#{row.turnIndex},#{row.status},#{row.answerText},#{row.version})</insert>
+  <insert id="insertJob">INSERT INTO interview_ai_jobs(id,user_id,kind,session_id,jd_id,main_index,input_hash,payload_json,status,token,lease_expires_at,queue_deadline,safe_failure_code,created_at,updated_at) VALUES(#{row.id},#{row.userId},#{row.kind},#{row.sessionId},#{row.jdId},#{row.mainIndex},#{row.inputHash},#{row.payloadJson},#{row.status},#{row.token},#{row.leaseExpiresAt},#{row.queueDeadline},#{row.safeFailureCode},#{row.createdAt},#{row.updatedAt})</insert>
+  <insert id="insertEvaluation">INSERT INTO interview_evaluations(session_id,user_id,main_index,input_hash,status,result_json,safe_failure_code) VALUES(#{row.sessionId},#{row.userId},#{row.mainIndex},#{row.inputHash},#{row.status},#{row.resultJson},#{row.safeFailureCode})</insert>
+  <insert id="insertReceipt">INSERT INTO interview_operation_receipts(user_id,operation,request_id,payload_hash,session_id,jd_id,state,result_version,turn_index,created_at) VALUES(#{row.userId},#{row.operation},#{row.requestId},#{row.payloadHash},#{row.sessionId},#{row.jdId},#{row.state},#{row.resultVersion},#{row.turnIndex},#{row.createdAt})</insert>
+  <select id="questions" resultMap="question">SELECT * FROM interview_questions WHERE user_id=#{owner} AND session_id=#{id} ORDER BY turn_index</select>
+  <select id="answers" resultMap="answer">SELECT * FROM interview_answers WHERE user_id=#{owner} AND session_id=#{id} ORDER BY turn_index</select>
+  <update id="updateAnswer">UPDATE interview_answers SET status=#{row.status},answer_text=#{row.answerText},version=#{row.version} WHERE user_id=#{row.userId} AND session_id=#{row.sessionId} AND turn_index=#{row.turnIndex} AND status='DRAFT'</update>
+  <select id="receipt" resultMap="receipt">SELECT * FROM interview_operation_receipts WHERE user_id=#{owner} AND operation=#{operation} AND request_id=#{request}</select>
+  <select id="job" resultMap="job">SELECT * FROM interview_ai_jobs WHERE user_id=#{owner} AND id=#{id}</select>
+  <select id="lockJob" resultMap="job">SELECT * FROM interview_ai_jobs WHERE user_id=#{owner} AND id=#{id} FOR UPDATE</select>
+  <update id="claimJob">UPDATE interview_ai_jobs SET status='PROCESSING',token=#{token},lease_expires_at=#{lease},updated_at=#{now} WHERE user_id=#{owner} AND id=#{id} AND status='PENDING' AND queue_deadline&gt;clock_timestamp()</update>
+  <update id="finishJob">UPDATE interview_ai_jobs SET status=#{status},safe_failure_code=#{code},token=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE user_id=#{owner} AND id=#{id} AND status='PROCESSING' AND token=#{token} AND input_hash=#{hash} AND lease_expires_at&gt;clock_timestamp()</update>
+  <update id="failJob">UPDATE interview_ai_jobs SET status='FAILED',safe_failure_code=#{code},token=NULL,lease_expires_at=NULL,updated_at=clock_timestamp() WHERE user_id=#{owner} AND id=#{id} AND status=#{status} AND token IS NOT DISTINCT FROM #{token}</update>
+  <select id="expiredJobs" resultMap="job">SELECT * FROM interview_ai_jobs WHERE (status='PENDING' AND queue_deadline&lt;=clock_timestamp()) OR (status='PROCESSING' AND lease_expires_at&lt;=clock_timestamp()) ORDER BY user_id,id</select>
+  <select id="evaluations" resultMap="evaluation">SELECT * FROM interview_evaluations WHERE user_id=#{owner} AND session_id=#{id} ORDER BY main_index</select>
+  <update id="updateEvaluation">UPDATE interview_evaluations SET status=#{row.status},result_json=#{row.resultJson},safe_failure_code=#{row.safeFailureCode} WHERE user_id=#{row.userId} AND session_id=#{row.sessionId} AND main_index=#{row.mainIndex} AND input_hash=#{row.inputHash}</update>
+  <update id="deleteSessionJobs">UPDATE interview_ai_jobs SET status='FAILED',token=NULL,lease_expires_at=NULL,payload_json=NULL,safe_failure_code='DELETED',updated_at=clock_timestamp() WHERE user_id=#{owner} AND session_id=#{id}</update>
+  <update id="deleteJdJobs">UPDATE interview_ai_jobs SET status='FAILED',token=NULL,lease_expires_at=NULL,payload_json=NULL,safe_failure_code='DELETED',updated_at=clock_timestamp() WHERE user_id=#{owner} AND jd_id=#{id}</update>
+  <delete id="deleteAnswers">DELETE FROM interview_answers WHERE user_id=#{owner} AND session_id=#{id}</delete>
+  <delete id="deleteQuestions">DELETE FROM interview_questions WHERE user_id=#{owner} AND session_id=#{id}</delete>
+  <delete id="deleteEvaluations">DELETE FROM interview_evaluations WHERE user_id=#{owner} AND session_id=#{id}</delete>
+</mapper>
