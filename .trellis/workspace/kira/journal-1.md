@@ -582,3 +582,38 @@ R3正式规划获批后实现发布快照、RustFS私有附件和R2复用界面�
 ### Next Steps
 
 - 阿里云适配器/API资源/同key迁移和真实付费模型质量、最大上下文、延迟、费用测量按批准延期；主产物约563KB为非阻塞构建提示。
+
+
+## Session 21: DeepSeek Flash真实面试与手动恢复验收
+<!-- trellis-session: v=2 fp=28833e6337dd472d -->
+
+**Date**: 2026-10-04
+**Task**: DeepSeek Flash真实面试与手动恢复验收
+**Branch**: `codex/ai-interview`
+
+### Summary
+
+以用户PDF提取的脱敏Markdown在新隔离schema/default真实网关验证Agent开发面试；生成10轮成功，一次明确业务手动retry后完整评分通过；无产品源码变更，记录首次失败、私密证据边界并本地归档，未推送。
+
+### Main Changes
+
+- 补充真实供应商验收规范和交付回流；原始简历/题单/答案/业务响应仅忽略目录，凭据只内存注入，Vite实际秘密计数0。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b9de64043a35b17f09d293098730a4360658ae6d` | docs(interview): verify real DeepSeek Flash workflow |
+
+### Testing
+
+- [OK] 真实生成10.328秒，固定5主问/5追问；初次3组成功/1结构失败/1runner中断，已修runner等待所有job终态。
+- [OK] 原生租约恢复不增加job；一次evaluation/retry仅重评6/8，成功0/2/4完整复用；21.032秒全部10轮SCORED，独立Decimal均值67.60，GET稳定/所有job终态/精确cleanup与.env/JAR摘要不变。
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 首次供应商非法输出细因NOT_CAPTURED，usage/费用/wire次数NOT_MEASURED；真实JD、最大上下文、长期/全方向质量与阿里云接入另行验证；示例分数不代表用户能力。
