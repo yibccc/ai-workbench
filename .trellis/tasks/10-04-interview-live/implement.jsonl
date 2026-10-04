@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/private-interviews.md", "reason": "Real gateway, fixed 2N, persisted jobs and scoring contracts"}
+{"file": ".trellis/spec/backend/private-resumes.md", "reason": "Private resume PASTE and version snapshot"}
+{"file": ".trellis/spec/backend/local-delivery.md", "reason": "Owned default-profile native start/stop and secret isolation"}
+{"file": ".trellis/tasks/10-04-interview-live/research/setup.md", "reason": "Read-only live model and PDF preparation"}
